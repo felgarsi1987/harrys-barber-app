@@ -4,8 +4,8 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { useThemeColors } from "../hooks/useThemeColors";
 
 import { AdminDashboardScreen } from "../screens/admin/AdminDashboardScreen";
+import { AdminReservasScreen }  from "../screens/admin/AdminReservasScreen";
 import { AdminEmpleadosScreen } from "../screens/admin/AdminEmpleadosScreen";
-import { AdminHorarioScreen }   from "../screens/admin/AdminHorarioScreen";
 import { AdminClientesScreen }  from "../screens/admin/AdminClientesScreen";
 import { AdminPerfilScreen }    from "../screens/admin/AdminPerfilScreen";
 
@@ -25,19 +25,19 @@ export function AdminNavigator() {
           height:          60,
           paddingBottom:   8,
         },
-        tabBarActiveTintColor:   c.blue,
+        tabBarActiveTintColor:   c.amber,
         tabBarInactiveTintColor: c.sub,
         tabBarLabelStyle: {
           fontSize:   10,
           fontFamily: "SpaceGrotesk_500Medium",
         },
-        tabBarIcon: ({ color, size }) => {
+        tabBarIcon: ({ color }) => {
           const icons: Record<string, keyof typeof MaterialIcons.glyphMap> = {
-            Dashboard:  "dashboard",
-            Empleados:  "people",
-            Horario:    "schedule",
-            Clientes:   "person-search",
-            Perfil:     "manage-accounts",
+            Dashboard: "dashboard",
+            Reservas:  "event-available",
+            Empleados: "people",
+            Clientes:  "person-search",
+            Perfil:    "manage-accounts",
           };
           return (
             <MaterialIcons
@@ -50,8 +50,8 @@ export function AdminNavigator() {
       })}
     >
       <Tab.Screen name="Dashboard" component={AdminDashboardScreen} />
+      <Tab.Screen name="Reservas"  component={AdminReservasScreen} />
       <Tab.Screen name="Empleados" component={AdminEmpleadosScreen} />
-      <Tab.Screen name="Horario"   component={AdminHorarioScreen} />
       <Tab.Screen name="Clientes"  component={AdminClientesScreen} />
       <Tab.Screen name="Perfil"    component={AdminPerfilScreen} />
     </Tab.Navigator>
