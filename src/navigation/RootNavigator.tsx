@@ -1,0 +1,50 @@
+import React from "react";
+import { View, ActivityIndicator } from "react-native";
+import { NavigationContainer } from "@react-navigation/native";
+import { createStackNavigator } from "@react-navigation/stack";
+import { useAuth } from "../hooks/useAuth";
+import { useThemeStore } from "../store/themeStore";
+import { getThemeColors } from "../theme/colors";
+import { AuthNavigator } from "./AuthNavigator";
+import { AdminNavigator } from "./AdminNavigator";
+import { EmpleadoNavigator } from "./EmpleadoNavigator";
+import { ClienteNavigator } from "./ClienteNavigator";
+
+const Stack = createStackNavigator();
+
+export function RootNavigator() {
+  const { user, isLoading } = useAuth();
+  const mode = useThemeStore((state) => state.mode);
+  const c = getThemeColors(mode);
+
+  if (isLoading) {
+    return (
+      <View
+        style={{
+          flex: 1,
+          justifyContent: "center",
+          alignItems: "center",
+          backgroundColor: c.bg,
+        }}
+      >
+        <ActivityIndicator size="large" color={c.blue} />
+      </View>
+    );
+  }
+
+  return (
+    <NavigationContainer>
+      <Stack.Navigator screenOptions={{ headerShown: false }}>
+        {!user ? (
+          <Stack.Screen name="Auth" component={AuthNavigator} />
+        ) : user.role === "admin" ? (
+          <Stack.Screen name="Admin" component={AdminNavigator} />
+        ) : user.role === "empleado" ? (
+          <Stack.Screen name="Empleado" component={EmpleadoNavigator} />
+        ) : (
+          <Stack.Screen name="Cliente" component={ClienteNavigator} />
+        )}
+      </Stack.Navigator>
+    </NavigationContainer>
+  );
+}
