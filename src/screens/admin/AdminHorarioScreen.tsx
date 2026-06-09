@@ -5,6 +5,7 @@ import {
   Alert, ActivityIndicator, Modal, TextInput,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
+import { BackHeader }    from "../../components/ui/BackHeader";
 import {
   doc, getDoc, setDoc, getDocs,
   collection, query, where, updateDoc,
@@ -156,9 +157,7 @@ export function AdminHorarioScreen() {
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: c.bg }]}>
-      <View style={[styles.header, { borderBottomColor: c.border }]}>
-        <Text style={[styles.title, { color: c.text }]}>Horario</Text>
-      </View>
+      <BackHeader title="Horario" />
 
       <ScrollView contentContainerStyle={styles.scroll}>
 

@@ -4,6 +4,7 @@ import {
   TouchableOpacity, TextInput, ActivityIndicator, Alert,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
+import { BackHeader }    from "../../components/ui/BackHeader";
 import {
   collection, getDocs, query, where,
   doc, setDoc, serverTimestamp,
@@ -80,8 +81,8 @@ export function AdminEmpleadosScreen() {
 
   return (
     <SafeAreaView style={[styles.safe, { backgroundColor: c.bg }]}>
-      <View style={[styles.header, { borderBottomColor: c.border }]}>
-        <Text style={[styles.title, { color: c.text }]}>Empleados</Text>
+      <BackHeader title="Empleados" />
+      <View style={[styles.subHeader, { borderBottomColor: c.border }]}>
         <TouchableOpacity
           onPress={() => setShowForm(!showForm)}
           style={[styles.addBtn, { backgroundColor: c.blue }]}
@@ -165,7 +166,7 @@ export function AdminEmpleadosScreen() {
 
 const styles = StyleSheet.create({
   safe:   { flex: 1 },
-  header: {
+  subHeader: {
     flexDirection: "row", justifyContent: "space-between",
     alignItems: "center", paddingHorizontal: 20,
     paddingVertical: 16, borderBottomWidth: 1,
