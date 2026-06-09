@@ -11,6 +11,7 @@ import {
 } from "firebase/firestore";
 import { db } from "../../services/firebase";
 import { useThemeColors } from "../../hooks/useThemeColors";
+import { useAuthStore }   from "../../store/authStore";
 import { ThemedCard }     from "../../components/ui/ThemedCard";
 import { TagChip }        from "../../components/ui/TagChip";
 import { ScreenWrapper }  from "../../components/ui/ScreenWrapper";
@@ -41,10 +42,14 @@ const DIAS_SEMANA = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
 export function EmpleadoAgendaScreen() {
   const c = useThemeColors();
   const navigation = useNavigation<any>();
+  const { user } = useAuthStore();
   const [reservas,  setReservas]  = useState<Reserva[]>([]);
-  const [loading,   setLoading]   = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [diaOffset, setDiaOffset] = useState(0);
+  const [loading,        setLoading]        = useState(true);
+  const [refreshing,     setRefreshing]     = useState(false);
+  const [diaOffset,      setDiaOffset]      = useState(0);
+  const [tab,            setTab]            = useState<"agenda" | "historial">("agenda");
+  const [historial,      setHistorial]      = useState<Reserva[]>([]);
+  const [loadingHist,    setLoadingHist]    = useState(false);
 
   const marcarFallido = async (reserva: Reserva) => {
     Alert.alert(
@@ -140,6 +145,26 @@ export function EmpleadoAgendaScreen() {
     setRefreshing(false);
   };
 
+  const loadHistorial = async () => {
+    if (!user?.uid) return;
+    setLoadingHist(true);
+    try {
+      const snap = await getDocs(query(
+        collection(db, "reservas"),
+        where("peluqueroUid", "==", user.uid),
+        where("estado", "in", ["confirmada", "completada", "fallida"]),
+        orderBy("fecha", "desc")
+      ));
+      setHistorial(snap.docs.map(d => ({ id: d.id, ...d.data() }) as Reserva));
+    } catch(e) { console.log(e); }
+    finally { setLoadingHist(false); }
+  };
+
+  const formatFechaHist = (ts: Timestamp) =>
+    ts.toDate().toLocaleDateString("es-CO", {
+      weekday: "short", day: "numeric", month: "short", year: "numeric",
+    });
+
   const dias = Array.from({ length: 7 }, (_, i) => {
     const d = new Date();
     d.setDate(d.getDate() + i);
@@ -159,6 +184,27 @@ export function EmpleadoAgendaScreen() {
           <Text style={styles.agendarBtnText}>Agendar</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Tabs */}
+      <View style={[styles.tabsRow, { borderBottomColor: c.border }]}>
+        {(["agenda", "historial"] as const).map(t => (
+          <TouchableOpacity
+            key={t}
+            onPress={() => {
+              setTab(t);
+              if (t === "historial" && historial.length === 0) loadHistorial();
+            }}
+            style={[styles.tabBtn, tab === t && { borderBottomWidth: 2, borderBottomColor: c.amber }]}
+          >
+            <Text style={[styles.tabText, { color: tab === t ? c.amber : c.sub }]}>
+              {t === "agenda" ? "Agenda" : "Mis citas"}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      {/* ── TAB AGENDA ── */}
+      {tab === "agenda" && (<>
 
       {/* Selector de días */}
       <ScrollView
@@ -255,6 +301,52 @@ export function EmpleadoAgendaScreen() {
         </ScrollView>
       )}
 
+      </>)}
+
+      {/* ── TAB MIS CITAS ── */}
+      {tab === "historial" && (
+        loadingHist ? (
+          <ActivityIndicator color={c.amber} style={{ marginTop: 40 }} />
+        ) : historial.length === 0 ? (
+          <View style={styles.empty}>
+            <MaterialIcons name="event-note" size={48} color={c.sub} />
+            <Text style={[styles.emptyText, { color: c.sub }]}>
+              No tienes citas registradas aún
+            </Text>
+          </View>
+        ) : (
+          <ScrollView
+            contentContainerStyle={styles.scroll}
+            refreshControl={<RefreshControl refreshing={loadingHist} onRefresh={loadHistorial} tintColor={c.amber} />}
+          >
+            {historial.map((r, i) => (
+              <ThemedCard key={i} style={styles.reservaCard}>
+                <View style={[styles.horaBlock, { borderRightColor: c.border }]}>
+                  <Text style={[styles.hora, { color: c.amber }]}>{r.hora}</Text>
+                  <Text style={[styles.diaHist, { color: c.sub }]}>
+                    {r.fecha.toDate().toLocaleDateString("es-CO", { day: "numeric", month: "short" })}
+                  </Text>
+                </View>
+                <View style={{ flex: 1, gap: 4 }}>
+                  <Text style={[styles.clienteNombre, { color: c.text }]}>
+                    {r.clienteNombre}
+                  </Text>
+                  <Text style={[styles.servicio, { color: c.sub }]}>
+                    {r.servicio}{r.precio ? `  ·  $${r.precio.toLocaleString("es-CO")}` : ""}
+                  </Text>
+                  <View style={styles.tagsRow}>
+                    <TagChip
+                      label={r.estado}
+                      variant={ESTADO_CHIP[r.estado] ?? "default"}
+                    />
+                  </View>
+                </View>
+              </ThemedCard>
+            ))}
+          </ScrollView>
+        )
+      )}
+
     </ScreenWrapper>
   );
 }
@@ -267,6 +359,10 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10,
   },
   agendarBtnText: { fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold", color: "#000" },
+  tabsRow: { flexDirection: "row", borderBottomWidth: 1, paddingHorizontal: 20 },
+  tabBtn:  { paddingVertical: 12, paddingHorizontal: 16 },
+  tabText: { fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold" },
+  diaHist: { fontSize: 10, fontFamily: "SpaceGrotesk_400Regular", marginTop: 2 },
   diasRow: {
     paddingHorizontal: 16, paddingVertical: 12,
     gap: 8, borderBottomWidth: 1,
