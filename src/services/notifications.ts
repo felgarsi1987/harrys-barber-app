@@ -5,9 +5,11 @@ import { db } from "./firebase";
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge:  true,
+    shouldShowAlert:  true,
+    shouldPlaySound:  true,
+    shouldSetBadge:   true,
+    shouldShowBanner: true,
+    shouldShowList:   true,
   }),
 });
 
@@ -28,10 +30,10 @@ export async function registerForPushNotifications(userId: string): Promise<stri
 
   if (Platform.OS === "android") {
     await Notifications.setNotificationChannelAsync("default", {
-      name: "Harrys Barber",
-      importance: Notifications.AndroidImportance.MAX,
+      name:             "Harrys Barber",
+      importance:       Notifications.AndroidImportance.MAX,
       vibrationPattern: [0, 250, 250, 250],
-      lightColor: "#0511F2",
+      lightColor:       "#0511F2",
     });
   }
 

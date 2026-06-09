@@ -1,11 +1,59 @@
 import React from "react";
-import { View, Text } from "react-native";
+import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { MaterialIcons } from "@expo/vector-icons";
+import { useThemeColors } from "../hooks/useThemeColors";
+
+import { ClienteHomeScreen }        from "../screens/cliente/ClienteHomeScreen";
+import { ClienteAgendarScreen }     from "../screens/cliente/ClienteAgendarScreen";
+import { ClienteCarritoScreen }     from "../screens/cliente/ClienteCarritoScreen";
+import { ClienteSaldoScreen }       from "../screens/cliente/ClienteSaldoScreen";
+import { ClientePerfilScreen }      from "../screens/cliente/ClientePerfilScreen";
+
+const Tab = createBottomTabNavigator();
 
 export function ClienteNavigator() {
+  const c = useThemeColors();
+
   return (
-    <View style={{ flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: "#0D0D0D" }}>
-      <Text style={{ color: "#F4F2EE", fontSize: 18 }}>Home Cliente</Text>
-      <Text style={{ color: "#8A8580", fontSize: 13, marginTop: 8 }}>Fase 4 — próximamente</Text>
-    </View>
+    <Tab.Navigator
+      screenOptions={({ route }) => ({
+        headerShown: false,
+        tabBarStyle: {
+          backgroundColor: c.surface,
+          borderTopColor:  c.border,
+          borderTopWidth:  1,
+          height:          60,
+          paddingBottom:   8,
+        },
+        tabBarActiveTintColor:   c.amber,
+        tabBarInactiveTintColor: c.sub,
+        tabBarLabelStyle: {
+          fontSize:   10,
+          fontFamily: "SpaceGrotesk_500Medium",
+        },
+        tabBarIcon: ({ color }) => {
+          const icons: Record<string, keyof typeof MaterialIcons.glyphMap> = {
+            Inicio:   "home",
+            Agendar:  "event-available",
+            Carrito:  "shopping-cart",
+            Saldo:    "account-balance-wallet",
+            Perfil:   "person-outline",
+          };
+          return (
+            <MaterialIcons
+              name={icons[route.name] ?? "circle"}
+              size={22}
+              color={color}
+            />
+          );
+        },
+      })}
+    >
+      <Tab.Screen name="Inicio"  component={ClienteHomeScreen} />
+      <Tab.Screen name="Agendar" component={ClienteAgendarScreen} />
+      <Tab.Screen name="Carrito" component={ClienteCarritoScreen} />
+      <Tab.Screen name="Saldo"   component={ClienteSaldoScreen} />
+      <Tab.Screen name="Perfil"  component={ClientePerfilScreen} />
+    </Tab.Navigator>
   );
 }
