@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "harrys-barber-app",
+    "name": "Harrys Barber Shop",
     "slug": "harrys-barber-app",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -11,13 +11,14 @@
     },
     "android": {
       "adaptiveIcon": {
-        "backgroundColor": "#E6F4FE",
+        "backgroundColor": "#1A1A1A",
         "foregroundImage": "./assets/android-icon-foreground.png",
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
-      "package": "com.felgarsi.harrysbarberapp"
+      "package": "com.felgarsi.harrysbarberapp",
+      "softwareKeyboardLayoutMode": "pan"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -25,7 +26,12 @@
     "plugins": [
       "expo-font",
       "expo-splash-screen",
-      "expo-status-bar"
+      [
+        "expo-status-bar",
+        {
+          "style": "auto"
+        }
+      ]
     ],
     "extra": {
       "eas": {

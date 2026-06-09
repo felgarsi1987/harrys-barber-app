@@ -4,6 +4,7 @@ import {
   SafeAreaView, TouchableOpacity, RefreshControl, Image,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
 import { collection, getDocs, query, where, Timestamp } from "firebase/firestore";
 import { db } from "../../services/firebase";
 import { useThemeColors } from "../../hooks/useThemeColors";
@@ -11,6 +12,7 @@ import { useAuthStore }   from "../../store/authStore";
 import { NumberText }     from "../../components/ui/NumberText";
 
 export function AdminDashboardScreen() {
+  const navigation = useNavigation<any>();
   const c = useThemeColors();
   const { user } = useAuthStore();
 
@@ -137,6 +139,7 @@ export function AdminDashboardScreen() {
               key={i}
               style={[styles.actionCard, { borderColor: c.border }]}
               activeOpacity={0.6}
+              onPress={() => navigation.navigate(a.route)}
             >
               <MaterialIcons name={a.icon as any} size={20} color={c.text} />
               <Text style={[styles.actionLabel, { color: c.text }]}>{a.label}</Text>
@@ -166,12 +169,12 @@ function KPICard({ label, value, icon, c, positive = false, negative = false }: 
 }
 
 const ACTIONS = [
-  { icon: "event-available",  label: "Reservas",    desc: "Gestionar citas" },
-  { icon: "payments",         label: "Pagos",       desc: "Créditos y abonos" },
-  { icon: "people",           label: "Empleados",   desc: "Equipo de trabajo" },
-  { icon: "inventory-2",      label: "Inventario",  desc: "Stock de productos" },
-  { icon: "bar-chart",        label: "Balances",    desc: "Peluquería y tienda" },
-  { icon: "campaign",         label: "Eventos",     desc: "Publicidad activa" },
+  { icon: "event-available",  label: "Reservas",    desc: "Gestionar citas",      route: "Reservas" },
+  { icon: "payments",         label: "Pagos",       desc: "Créditos y abonos",    route: "Pagos" },
+  { icon: "people",           label: "Empleados",   desc: "Equipo de trabajo",    route: "AdminEmpleados" },
+  { icon: "inventory-2",      label: "Inventario",  desc: "Stock de productos",   route: "AdminInventario" },
+  { icon: "bar-chart",        label: "Balances",    desc: "Peluquería y tienda",  route: "Pagos" },
+  { icon: "campaign",         label: "Eventos",     desc: "Publicidad activa",    route: "AdminEventos" },
 ];
 
 const styles = StyleSheet.create({

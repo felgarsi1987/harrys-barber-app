@@ -4,12 +4,14 @@ import {
   SafeAreaView, TouchableOpacity, Alert,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
 import { useThemeColors } from "../../hooks/useThemeColors";
 import { useAuthStore }   from "../../store/authStore";
 import { ThemedCard }     from "../../components/ui/ThemedCard";
 
 export function AdminPerfilScreen() {
   const c = useThemeColors();
+  const navigation = useNavigation<any>();
   const { user, logout, } = useAuthStore();
   const { toggle, mode }  = useThemeColors();
 
@@ -21,11 +23,11 @@ export function AdminPerfilScreen() {
   };
 
   const menuItems = [
-    { icon: "schedule",       label: "Horario y servicios",    action: () => {} },
-    { icon: "campaign",       label: "Eventos y publicidad",   action: () => {} },
-    { icon: "inventory",      label: "Inventario",             action: () => {} },
-    { icon: "bar-chart",      label: "Balances mensuales",     action: () => {} },
-    { icon: "manage-accounts",label: "Roles temporales",       action: () => {} },
+    { icon: "schedule",        label: "Horario y servicios",  action: () => navigation.navigate("AdminHorario") },
+    { icon: "campaign",        label: "Eventos y publicidad", action: () => navigation.navigate("AdminEventos") },
+    { icon: "inventory",       label: "Inventario",           action: () => navigation.navigate("AdminInventario") },
+    { icon: "bar-chart",       label: "Balances mensuales",   action: () => navigation.navigate("Pagos") },
+    { icon: "manage-accounts", label: "Roles temporales",     action: () => navigation.navigate("AdminEmpleados") },
   ];
 
   return (

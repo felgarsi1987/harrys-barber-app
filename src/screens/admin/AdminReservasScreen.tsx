@@ -5,7 +5,7 @@ import {
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import {
-  collection, getDocs, query, orderBy,
+  collection, getDocs, addDoc, query, orderBy,
   doc, updateDoc, Timestamp,
 } from "firebase/firestore";
 import { db } from "../../services/firebase";
@@ -14,22 +14,24 @@ import { ThemedCard }     from "../../components/ui/ThemedCard";
 import { TagChip }        from "../../components/ui/TagChip";
 
 interface Reserva {
-  id:           string;
+  id:            string;
   clienteNombre: string;
   clienteEmail:  string;
   clienteUid?:   string;
   servicio:      string;
+  precio?:       number;
   fecha:         Timestamp;
   hora:          string;
-  estado:        "pendiente" | "confirmada" | "aplazada" | "negada";
+  estado:        "pendiente" | "confirmada" | "aplazada" | "negada" | "completada";
   noRegistrado?: boolean;
 }
 
 const ESTADO_CHIP: Record<string, any> = {
-  pendiente:  "warning",
-  confirmada: "success",
-  aplazada:   "info",
-  negada:     "danger",
+  pendiente:   "warning",
+  confirmada:  "success",
+  aplazada:    "info",
+  negada:      "danger",
+  completada:  "default",
 };
 
 export function AdminReservasScreen() {
@@ -50,10 +52,7 @@ export function AdminReservasScreen() {
 
   useEffect(() => { loadReservas(); }, []);
 
-  const cambiarEstado = async (
-    reserva: Reserva,
-    nuevoEstado: Reserva["estado"]
-  ) => {
+  const cambiarEstado = async (reserva: Reserva, nuevoEstado: Reserva["estado"]) => {
     const labels: Record<string, string> = {
       confirmada: "Confirmar",
       aplazada:   "Aplazar",
@@ -74,12 +73,51 @@ export function AdminReservasScreen() {
                 updatedAt: Timestamp.now(),
               });
               setReservas(prev =>
-                prev.map(r => r.id === reserva.id
-                  ? { ...r, estado: nuevoEstado } : r
-                )
+                prev.map(r => r.id === reserva.id ? { ...r, estado: nuevoEstado } : r)
               );
-            } catch(e) {
+            } catch {
               Alert.alert("Error", "No se pudo actualizar.");
+            }
+          },
+        },
+      ]
+    );
+  };
+
+  // ── NUEVO: marcar servicio como realizado y registrar ingreso ──
+  const marcarCompletado = async (reserva: Reserva) => {
+    Alert.alert(
+      "¿Servicio realizado?",
+      `Confirma que se realizó el servicio a ${reserva.clienteNombre}. Esto registrará el ingreso.`,
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Sí, completado",
+          onPress: async () => {
+            try {
+              const ahora = Timestamp.now();
+              // 1. Actualizar estado de la reserva
+              await updateDoc(doc(db, "reservas", reserva.id), {
+                estado:           "completada",
+                fechaCompletado:  ahora,
+                updatedAt:        ahora,
+              });
+              // 2. Registrar ingreso en colección servicios_realizados
+              await addDoc(collection(db, "servicios_realizados"), {
+                reservaId:     reserva.id,
+                clienteNombre: reserva.clienteNombre,
+                clienteUid:    reserva.clienteUid ?? null,
+                servicio:      reserva.servicio,
+                precio:        reserva.precio ?? 0,
+                fecha:         ahora,
+                estado:        "completado",
+              });
+              setReservas(prev =>
+                prev.map(r => r.id === reserva.id ? { ...r, estado: "completada" } : r)
+              );
+              Alert.alert("✅ Ingreso registrado", `Servicio completado para ${reserva.clienteNombre}`);
+            } catch {
+              Alert.alert("Error", "No se pudo registrar el servicio.");
             }
           },
         },
@@ -104,7 +142,7 @@ export function AdminReservasScreen() {
         <Text style={[styles.title, { color: c.text }]}>Reservas</Text>
         <TouchableOpacity
           style={[styles.addBtn, { borderColor: c.border }]}
-          onPress={() => Alert.alert("Nueva reserva", "Próximamente")}
+          onPress={() => Alert.alert("Nueva reserva", "Usa la tab 'Nueva Cita' para crear una.")}
         >
           <MaterialIcons name="add" size={20} color={c.text} />
         </TouchableOpacity>
@@ -138,9 +176,7 @@ export function AdminReservasScreen() {
           {filtered.length === 0 ? (
             <View style={styles.empty}>
               <MaterialIcons name="event-busy" size={48} color={c.sub} />
-              <Text style={[styles.emptyText, { color: c.sub }]}>
-                Sin reservas
-              </Text>
+              <Text style={[styles.emptyText, { color: c.sub }]}>Sin reservas</Text>
             </View>
           ) : (
             filtered.map((r, i) => (
@@ -158,6 +194,7 @@ export function AdminReservasScreen() {
                     </View>
                     <Text style={[styles.servicio, { color: c.amber }]}>
                       {r.servicio}
+                      {r.precio ? `  ·  $${r.precio.toLocaleString("es-CO")}` : ""}
                     </Text>
                   </View>
                   <TagChip label={r.estado} variant={ESTADO_CHIP[r.estado]} />
@@ -171,7 +208,7 @@ export function AdminReservasScreen() {
                   </Text>
                 </View>
 
-                {/* Acciones solo si está pendiente */}
+                {/* Acciones pendiente */}
                 {r.estado === "pendiente" && (
                   <View style={[styles.actionsRow, { borderTopColor: c.border }]}>
                     <TouchableOpacity
@@ -179,29 +216,36 @@ export function AdminReservasScreen() {
                       style={[styles.actionBtn, { backgroundColor: c.positive + "18" }]}
                     >
                       <MaterialIcons name="check" size={16} color={c.positive} />
-                      <Text style={[styles.actionBtnText, { color: c.positive }]}>
-                        Confirmar
-                      </Text>
+                      <Text style={[styles.actionBtnText, { color: c.positive }]}>Confirmar</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       onPress={() => cambiarEstado(r, "aplazada")}
                       style={[styles.actionBtn, { backgroundColor: c.amber + "18" }]}
                     >
                       <MaterialIcons name="schedule" size={16} color={c.amber} />
-                      <Text style={[styles.actionBtnText, { color: c.amber }]}>
-                        Aplazar
-                      </Text>
+                      <Text style={[styles.actionBtnText, { color: c.amber }]}>Aplazar</Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                       onPress={() => cambiarEstado(r, "negada")}
                       style={[styles.actionBtn, { backgroundColor: c.negative + "18" }]}
                     >
                       <MaterialIcons name="close" size={16} color={c.negative} />
-                      <Text style={[styles.actionBtnText, { color: c.negative }]}>
-                        Negar
-                      </Text>
+                      <Text style={[styles.actionBtnText, { color: c.negative }]}>Negar</Text>
                     </TouchableOpacity>
                   </View>
+                )}
+
+                {/* ── NUEVO: botón completar para reservas confirmadas ── */}
+                {r.estado === "confirmada" && (
+                  <TouchableOpacity
+                    onPress={() => marcarCompletado(r)}
+                    style={[styles.completarBtn, { backgroundColor: c.positive + "18", borderColor: c.positive + "44" }]}
+                  >
+                    <MaterialIcons name="task-alt" size={18} color={c.positive} />
+                    <Text style={[styles.completarBtnText, { color: c.positive }]}>
+                      Marcar servicio realizado
+                    </Text>
+                  </TouchableOpacity>
                 )}
               </ThemedCard>
             ))
@@ -249,4 +293,9 @@ const styles = StyleSheet.create({
     paddingVertical: 8, borderRadius: 8,
   },
   actionBtnText: { fontSize: 12, fontFamily: "SpaceGrotesk_600SemiBold" },
+  completarBtn: {
+    flexDirection: "row", alignItems: "center", justifyContent: "center",
+    gap: 8, paddingVertical: 12, borderRadius: 10, borderWidth: 1,
+  },
+  completarBtnText: { fontSize: 14, fontFamily: "SpaceGrotesk_600SemiBold" },
 });

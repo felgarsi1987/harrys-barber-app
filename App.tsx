@@ -3,6 +3,7 @@ import { View } from "react-native";
 import * as SplashScreen from "expo-splash-screen";
 import * as Font from "expo-font";
 import * as Network from "expo-network";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 import {
   SpaceGrotesk_400Regular,
   SpaceGrotesk_500Medium,
@@ -30,7 +31,6 @@ export default function App() {
       Syne_800ExtraBold,
     }).then(() => setFontsLoaded(true));
 
-    // Verificar conexión
     checkConnection();
   }, []);
 
@@ -51,16 +51,20 @@ export default function App() {
 
   if (sinConexion) {
     return (
-      <SinConexionScreen onRetry={() => {
-        setSinConexion(false);
-        checkConnection();
-      }} />
+      <SafeAreaProvider>
+        <SinConexionScreen onRetry={() => {
+          setSinConexion(false);
+          checkConnection();
+        }} />
+      </SafeAreaProvider>
     );
   }
 
   return (
-    <View style={{ flex: 1 }} onLayout={onLayoutRootView}>
-      <RootNavigator />
-    </View>
+    <SafeAreaProvider>
+      <View style={{ flex: 1 }} onLayout={onLayoutRootView}>
+        <RootNavigator />
+      </View>
+    </SafeAreaProvider>
   );
 }

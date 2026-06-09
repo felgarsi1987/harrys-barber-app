@@ -68,7 +68,7 @@ export function ClienteAgendarScreen() {
       )).then(snap => {
         const data = snap.docs
           .map(d => d.data() as Peluquero)
-          .filter(p => p.role === "admin" || p.role === "empleado");
+          .filter(p => ["admin", "empleado", "barbero"].includes(p.role));
         setPeluqueros(data);
       }),
 

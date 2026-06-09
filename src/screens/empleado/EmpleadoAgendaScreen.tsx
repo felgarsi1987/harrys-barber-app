@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from "react";
 import {
   View, Text, ScrollView, StyleSheet,
-  SafeAreaView, TouchableOpacity, ActivityIndicator,
+  SafeAreaView, TouchableOpacity, ActivityIndicator, Alert,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
 import {
-  collection, getDocs, query, where,
-  Timestamp, orderBy,
+  collection, getDocs, addDoc, query, where,
+  doc, updateDoc, Timestamp, orderBy,
 } from "firebase/firestore";
 import { db } from "../../services/firebase";
 import { useThemeColors } from "../../hooks/useThemeColors";
@@ -16,7 +17,9 @@ import { TagChip }        from "../../components/ui/TagChip";
 interface Reserva {
   id:            string;
   clienteNombre: string;
+  clienteUid?:   string;
   servicio:      string;
+  precio?:       number;
   hora:          string;
   fecha:         Timestamp;
   estado:        string;
@@ -34,6 +37,7 @@ const DIAS_SEMANA = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
 
 export function EmpleadoAgendaScreen() {
   const c = useThemeColors();
+  const navigation = useNavigation<any>();
   const [reservas,  setReservas]  = useState<Reserva[]>([]);
   const [loading,   setLoading]   = useState(true);
   const [diaOffset, setDiaOffset] = useState(0);
@@ -43,6 +47,39 @@ export function EmpleadoAgendaScreen() {
     d.setDate(d.getDate() + diaOffset);
     return d;
   })();
+
+  const marcarCompletado = async (reserva: Reserva) => {
+    Alert.alert(
+      "¿Servicio realizado?",
+      `¿Confirmas que realizaste el servicio a ${reserva.clienteNombre}?`,
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Sí, completado",
+          onPress: async () => {
+            try {
+              const ahora = Timestamp.now();
+              await updateDoc(doc(db, "reservas", reserva.id), {
+                estado: "completada", fechaCompletado: ahora, updatedAt: ahora,
+              });
+              await addDoc(collection(db, "servicios_realizados"), {
+                reservaId: reserva.id, clienteNombre: reserva.clienteNombre,
+                clienteUid: reserva.clienteUid ?? null,
+                servicio: reserva.servicio, precio: reserva.precio ?? 0,
+                fecha: ahora, estado: "completado",
+              });
+              setReservas(prev =>
+                prev.map(r => r.id === reserva.id ? { ...r, estado: "completada" } : r)
+              );
+              Alert.alert("✅ Listo", "Servicio registrado como completado.");
+            } catch {
+              Alert.alert("Error", "No se pudo registrar.");
+            }
+          },
+        },
+      ]
+    );
+  };
 
   const fechaStr = fechaSeleccionada.toLocaleDateString("es-CO", {
     weekday: "long", day: "numeric", month: "long",
@@ -77,6 +114,13 @@ export function EmpleadoAgendaScreen() {
       {/* Header */}
       <View style={[styles.header, { borderBottomColor: c.border }]}>
         <Text style={[styles.title, { color: c.text }]}>Mi agenda</Text>
+        <TouchableOpacity
+          onPress={() => navigation.navigate("Nueva Cita")}
+          style={[styles.agendarBtn, { backgroundColor: c.amber }]}
+        >
+          <MaterialIcons name="add" size={18} color="#000" />
+          <Text style={styles.agendarBtnText}>Agendar</Text>
+        </TouchableOpacity>
       </View>
 
       {/* Selector de días */}
@@ -149,6 +193,17 @@ export function EmpleadoAgendaScreen() {
                       <TagChip label="Sin registro" variant="default" />
                     )}
                   </View>
+                  {r.estado === "confirmada" && (
+                    <TouchableOpacity
+                      onPress={() => marcarCompletado(r)}
+                      style={[styles.completarBtn, { backgroundColor: c.positive + "18", borderColor: c.positive + "44" }]}
+                    >
+                      <MaterialIcons name="task-alt" size={16} color={c.positive} />
+                      <Text style={[styles.completarBtnText, { color: c.positive }]}>
+                        Marcar realizado
+                      </Text>
+                    </TouchableOpacity>
+                  )}
                 </View>
               </ThemedCard>
             ))
@@ -162,8 +217,13 @@ export function EmpleadoAgendaScreen() {
 
 const styles = StyleSheet.create({
   safe:   { flex: 1 },
-  header: { paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1 },
+  header: { paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   title:  { fontSize: 22, fontFamily: "Syne_700Bold" },
+  agendarBtn: {
+    flexDirection: "row", alignItems: "center", gap: 4,
+    paddingHorizontal: 14, paddingVertical: 8, borderRadius: 10,
+  },
+  agendarBtnText: { fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold", color: "#000" },
   diasRow: {
     paddingHorizontal: 16, paddingVertical: 12,
     gap: 8, borderBottomWidth: 1,
@@ -193,4 +253,10 @@ const styles = StyleSheet.create({
   clienteNombre: { fontSize: 15, fontFamily: "SpaceGrotesk_600SemiBold" },
   servicio:      { fontSize: 12, fontFamily: "SpaceGrotesk_400Regular" },
   tagsRow:       { flexDirection: "row", gap: 6, marginTop: 4 },
+  completarBtn: {
+    flexDirection: "row", alignItems: "center", gap: 6,
+    marginTop: 8, paddingVertical: 8, paddingHorizontal: 12,
+    borderRadius: 8, borderWidth: 1,
+  },
+  completarBtnText: { fontSize: 12, fontFamily: "SpaceGrotesk_600SemiBold" },
 });
