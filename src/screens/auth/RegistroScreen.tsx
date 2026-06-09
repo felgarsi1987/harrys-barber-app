@@ -1,12 +1,13 @@
 import React, { useState } from "react";
 import {
   View, Text, TextInput, TouchableOpacity,
-  StyleSheet, SafeAreaView, ScrollView, ActivityIndicator,
+  StyleSheet, ScrollView, ActivityIndicator,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { useThemeColors }  from "../../hooks/useThemeColors";
 import { useAuthStore }    from "../../store/authStore";
 import { AixonFooter }     from "../../components/ui/AixonFooter";
+import { ScreenWrapper }  from "../../components/ui/ScreenWrapper";
 import { Typography }      from "../../theme/typography";
 import { Spacing, Radius } from "../../theme/spacing";
 
@@ -50,7 +51,7 @@ export function RegistroScreen() {
   ] as const;
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: c.bg }]}>
+    <ScreenWrapper>
       <ScrollView contentContainerStyle={[styles.scroll, { gap: Spacing.md }]} keyboardShouldPersistTaps="handled">
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Text style={[Typography.body, { color: c.blue }]}>← Volver</Text>
@@ -93,12 +94,11 @@ export function RegistroScreen() {
         </TouchableOpacity>
       </ScrollView>
       <AixonFooter />
-    </SafeAreaView>
+    </ScreenWrapper>
   );
 }
 
 const styles = StyleSheet.create({
-  safe:   { flex: 1 },
   scroll: { padding: Spacing.lg, flexGrow: 1 },
   input: {
     height: 50, borderWidth: 1, borderRadius: Radius.md,

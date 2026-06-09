@@ -1,10 +1,11 @@
 import React from "react";
 import {
-  View, Text, TouchableOpacity, StyleSheet, SafeAreaView,
+  View, Text, TouchableOpacity, StyleSheet,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useThemeColors } from "../../hooks/useThemeColors";
 import { AixonFooter }    from "../../components/ui/AixonFooter";
+import { ScreenWrapper }  from "../../components/ui/ScreenWrapper";
 
 interface Props {
   onRetry?: () => void;
@@ -14,7 +15,7 @@ export function ServidorCaidoScreen({ onRetry }: Props) {
   const c = useThemeColors();
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: c.bg }]}>
+    <ScreenWrapper>
       <View style={styles.container}>
 
         <View style={[styles.iconBox, { borderColor: c.border }]}>
@@ -53,12 +54,11 @@ export function ServidorCaidoScreen({ onRetry }: Props) {
 
       </View>
       <AixonFooter />
-    </SafeAreaView>
+    </ScreenWrapper>
   );
 }
 
 const styles = StyleSheet.create({
-  safe:      { flex: 1 },
   container: {
     flex: 1, alignItems: "center", justifyContent: "center",
     paddingHorizontal: 40, gap: 24,

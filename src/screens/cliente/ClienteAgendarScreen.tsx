@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import {
-  View, Text, ScrollView, StyleSheet,
-  SafeAreaView, TouchableOpacity, Alert, ActivityIndicator,
+  View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert, ActivityIndicator,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { Calendar, LocaleConfig } from "react-native-calendars";
@@ -15,6 +14,7 @@ import { getServicios, Servicio } from "../../services/serviciosService";
 import { useThemeColors } from "../../hooks/useThemeColors";
 import { useAuthStore }   from "../../store/authStore";
 import { ThemedCard }     from "../../components/ui/ThemedCard";
+import { ScreenWrapper }  from "../../components/ui/ScreenWrapper";
 
 LocaleConfig.locales["es"] = {
   monthNames: ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"],
@@ -173,7 +173,7 @@ export function ClienteAgendarScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: c.bg }]}>
+    <ScreenWrapper>
       <View style={[styles.header, { borderBottomColor: c.border }]}>
         <Text style={[styles.title, { color: c.text }]}>Agendar cita</Text>
       </View>
@@ -411,12 +411,11 @@ export function ClienteAgendarScreen() {
         </TouchableOpacity>
 
       </ScrollView>
-    </SafeAreaView>
+    </ScreenWrapper>
   );
 }
 
 const styles = StyleSheet.create({
-  safe:   { flex: 1 },
   header: { paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1 },
   title:  { fontSize: 22, fontFamily: "Syne_700Bold" },
   scroll: { padding: 20, gap: 16 },

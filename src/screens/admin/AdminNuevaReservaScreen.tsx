@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import {
-  View, Text, ScrollView, StyleSheet,
-  SafeAreaView, TouchableOpacity, TextInput,
+  View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput,
   Alert, ActivityIndicator, Switch,
 } from "react-native";
 import { collection, addDoc, Timestamp } from "firebase/firestore";
@@ -10,6 +9,7 @@ import { db } from "../../services/firebase";
 import { useThemeColors } from "../../hooks/useThemeColors";
 import { ThemedCard }     from "../../components/ui/ThemedCard";
 import { BackHeader }     from "../../components/ui/BackHeader";
+import { ScreenWrapper }  from "../../components/ui/ScreenWrapper";
 
 // Servicios cargados desde Firestore
 
@@ -66,7 +66,7 @@ export function AdminNuevaReservaScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: c.bg }]}>
+    <ScreenWrapper>
       <BackHeader title="Nueva reserva" />
 
       <ScrollView contentContainerStyle={styles.scroll}>
@@ -159,12 +159,11 @@ export function AdminNuevaReservaScreen() {
         </TouchableOpacity>
 
       </ScrollView>
-    </SafeAreaView>
+    </ScreenWrapper>
   );
 }
 
 const styles = StyleSheet.create({
-  safe:   { flex: 1 },
   scroll: { padding: 20, gap: 16 },
   toggleCard:   { flexDirection: "row", alignItems: "center", gap: 12 },
   toggleLabel:  { fontSize: 15, fontFamily: "SpaceGrotesk_600SemiBold" },

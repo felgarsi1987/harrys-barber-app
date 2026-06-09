@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from "react";
 import {
-  View, Text, ScrollView, StyleSheet,
-  SafeAreaView, ActivityIndicator,
+  View, Text, ScrollView, StyleSheet, ActivityIndicator,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../../services/firebase";
 import { useThemeColors } from "../../hooks/useThemeColors";
 import { ThemedCard }     from "../../components/ui/ThemedCard";
+import { ScreenWrapper }  from "../../components/ui/ScreenWrapper";
 
 interface Producto {
   id:        string;
@@ -49,7 +49,7 @@ export function EmpleadoInventarioScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: c.bg }]}>
+    <ScreenWrapper>
       <View style={[styles.header, { borderBottomColor: c.border }]}>
         <Text style={[styles.title, { color: c.text }]}>Inventario</Text>
         <Text style={[styles.subtitle, { color: c.sub }]}>Solo lectura</Text>
@@ -108,12 +108,11 @@ export function EmpleadoInventarioScreen() {
           )}
         </ScrollView>
       )}
-    </SafeAreaView>
+    </ScreenWrapper>
   );
 }
 
 const styles = StyleSheet.create({
-  safe:   { flex: 1 },
   header: {
     flexDirection: "row", alignItems: "center",
     justifyContent: "space-between",

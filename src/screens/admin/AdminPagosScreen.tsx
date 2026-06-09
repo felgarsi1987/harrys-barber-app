@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import {
-  View, Text, ScrollView, StyleSheet,
-  SafeAreaView, TouchableOpacity, ActivityIndicator,
+  View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator,
   TextInput, Alert, Modal, RefreshControl,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
@@ -15,6 +14,7 @@ import { useThemeColors } from "../../hooks/useThemeColors";
 import { ThemedCard }     from "../../components/ui/ThemedCard";
 import { NumberText }     from "../../components/ui/NumberText";
 import { TagChip }        from "../../components/ui/TagChip";
+import { ScreenWrapper }  from "../../components/ui/ScreenWrapper";
 
 interface ClienteConSaldo {
   uid:      string;
@@ -246,7 +246,7 @@ export function AdminPagosScreen() {
   ];
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: c.bg }]}>
+    <ScreenWrapper>
       <View style={[styles.header, { borderBottomColor: c.border }]}>
         <Text style={[styles.title, { color: c.text }]}>Pagos y créditos</Text>
       </View>
@@ -469,12 +469,11 @@ export function AdminPagosScreen() {
           </View>
         </View>
       </Modal>
-    </SafeAreaView>
+    </ScreenWrapper>
   );
 }
 
 const styles = StyleSheet.create({
-  safe:   { flex: 1 },
   header: { paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1 },
   title:  { fontSize: 22, fontFamily: "Syne_700Bold" },
   totalCard: { margin: 20, alignItems: "center", gap: 6, paddingVertical: 24 },

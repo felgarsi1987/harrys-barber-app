@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import {
-  View, Text, ScrollView, StyleSheet,
-  SafeAreaView, TouchableOpacity, ActivityIndicator,
+  View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator,
   TextInput, Alert, Modal, Switch,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
@@ -14,6 +13,7 @@ import { db } from "../../services/firebase";
 import { useThemeColors } from "../../hooks/useThemeColors";
 import { ThemedCard }     from "../../components/ui/ThemedCard";
 import { TagChip }        from "../../components/ui/TagChip";
+import { ScreenWrapper }  from "../../components/ui/ScreenWrapper";
 
 interface Evento {
   id:          string;
@@ -120,7 +120,7 @@ export function AdminEventosScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: c.bg }]}>
+    <ScreenWrapper>
       <BackHeader title="Eventos" />
       <View style={[styles.subHeader, { borderBottomColor: c.border }]}>
         <TouchableOpacity
@@ -257,12 +257,11 @@ export function AdminEventosScreen() {
           </View>
         </View>
       </Modal>
-    </SafeAreaView>
+    </ScreenWrapper>
   );
 }
 
 const styles = StyleSheet.create({
-  safe:   { flex: 1 },
   subHeader: {
     flexDirection: "row", justifyContent: "space-between",
     alignItems: "center", paddingHorizontal: 20,

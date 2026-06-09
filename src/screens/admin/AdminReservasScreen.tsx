@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import {
-  View, Text, ScrollView, StyleSheet,
-  SafeAreaView, TouchableOpacity, ActivityIndicator, Alert,
+  View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator, Alert,
   RefreshControl,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
@@ -15,6 +14,7 @@ import { notificarCambioEstado, cancelarRecordatorio } from "../../services/noti
 import { useThemeColors } from "../../hooks/useThemeColors";
 import { ThemedCard }     from "../../components/ui/ThemedCard";
 import { TagChip }        from "../../components/ui/TagChip";
+import { ScreenWrapper }  from "../../components/ui/ScreenWrapper";
 
 interface Reserva {
   id:            string;
@@ -181,7 +181,7 @@ export function AdminReservasScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: c.bg }]}>
+    <ScreenWrapper>
       <View style={[styles.header, { borderBottomColor: c.border }]}>
         <Text style={[styles.title, { color: c.text }]}>Reservas</Text>
         <TouchableOpacity
@@ -306,12 +306,11 @@ export function AdminReservasScreen() {
           )}
         </ScrollView>
       )}
-    </SafeAreaView>
+    </ScreenWrapper>
   );
 }
 
 const styles = StyleSheet.create({
-  safe:   { flex: 1 },
   header: {
     flexDirection: "row", justifyContent: "space-between",
     alignItems: "center", paddingHorizontal: 20,

@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import {
-  View, Text, ScrollView, StyleSheet,
-  SafeAreaView, TouchableOpacity, ActivityIndicator,
+  View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator,
   Dimensions, RefreshControl,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
@@ -14,6 +13,7 @@ import { useThemeColors } from "../../hooks/useThemeColors";
 import { BackHeader }     from "../../components/ui/BackHeader";
 import { ThemedCard }     from "../../components/ui/ThemedCard";
 import { NumberText }     from "../../components/ui/NumberText";
+import { ScreenWrapper }  from "../../components/ui/ScreenWrapper";
 
 const { width: SCREEN_W } = Dimensions.get("window");
 const CHART_W = SCREEN_W - 48;
@@ -138,7 +138,7 @@ export function AdminBalancesScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: c.bg }]}>
+    <ScreenWrapper>
       <BackHeader title="Balances" />
 
       {loading ? (
@@ -240,12 +240,11 @@ export function AdminBalancesScreen() {
 
         </ScrollView>
       )}
-    </SafeAreaView>
+    </ScreenWrapper>
   );
 }
 
 const styles = StyleSheet.create({
-  safe:   { flex: 1 },
   scroll: { padding: 20, gap: 16 },
   periodoRow: {
     flexDirection: "row", borderRadius: 12,

@@ -4,13 +4,13 @@ import {
   Text,
   TouchableOpacity,
   StyleSheet,
-  SafeAreaView,
   Image,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useThemeColors } from "../../hooks/useThemeColors";
 import { AixonFooter } from "../../components/ui/AixonFooter";
+import { ScreenWrapper }  from "../../components/ui/ScreenWrapper";
 
 type RoleOption = {
   key: "admin" | "empleado" | "cliente";
@@ -45,7 +45,7 @@ export function EntradaScreen() {
   const c = useThemeColors();
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: c.bg }]}>
+    <ScreenWrapper>
       <View style={styles.container}>
 
         {/* Logo oficial circular */}
@@ -123,12 +123,11 @@ export function EntradaScreen() {
 
       </View>
       <AixonFooter />
-    </SafeAreaView>
+    </ScreenWrapper>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1 },
   container: {
     flex: 1,
     alignItems: "center",

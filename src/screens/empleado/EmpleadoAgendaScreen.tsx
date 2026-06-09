@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import {
-  View, Text, ScrollView, StyleSheet,
-  SafeAreaView, TouchableOpacity, ActivityIndicator, Alert,
+  View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator, Alert,
   RefreshControl,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
@@ -14,6 +13,7 @@ import { db } from "../../services/firebase";
 import { useThemeColors } from "../../hooks/useThemeColors";
 import { ThemedCard }     from "../../components/ui/ThemedCard";
 import { TagChip }        from "../../components/ui/TagChip";
+import { ScreenWrapper }  from "../../components/ui/ScreenWrapper";
 
 interface Reserva {
   id:            string;
@@ -147,7 +147,7 @@ export function EmpleadoAgendaScreen() {
   });
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: c.bg }]}>
+    <ScreenWrapper>
       {/* Header */}
       <View style={[styles.header, { borderBottomColor: c.border }]}>
         <Text style={[styles.title, { color: c.text }]}>Mi agenda</Text>
@@ -255,12 +255,11 @@ export function EmpleadoAgendaScreen() {
         </ScrollView>
       )}
 
-    </SafeAreaView>
+    </ScreenWrapper>
   );
 }
 
 const styles = StyleSheet.create({
-  safe:   { flex: 1 },
   header: { paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1, flexDirection: "row", alignItems: "center", justifyContent: "space-between" },
   title:  { fontSize: 22, fontFamily: "Syne_700Bold" },
   agendarBtn: {

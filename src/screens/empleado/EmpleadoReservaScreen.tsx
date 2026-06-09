@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import {
-  View, Text, ScrollView, StyleSheet,
-  SafeAreaView, TouchableOpacity, TextInput,
+  View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput,
   Alert, ActivityIndicator, Switch,
 } from "react-native";
 import { collection, addDoc, Timestamp } from "firebase/firestore";
@@ -9,6 +8,7 @@ import { db } from "../../services/firebase";
 import { getServicios, Servicio } from "../../services/serviciosService";
 import { useThemeColors } from "../../hooks/useThemeColors";
 import { ThemedCard }     from "../../components/ui/ThemedCard";
+import { ScreenWrapper }  from "../../components/ui/ScreenWrapper";
 
 // Servicios cargados desde Firestore
 
@@ -65,7 +65,7 @@ export function EmpleadoReservaScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: c.bg }]}>
+    <ScreenWrapper>
       <View style={[styles.header, { borderBottomColor: c.border }]}>
         <Text style={[styles.title, { color: c.text }]}>Nueva cita</Text>
       </View>
@@ -175,12 +175,11 @@ export function EmpleadoReservaScreen() {
         </TouchableOpacity>
 
       </ScrollView>
-    </SafeAreaView>
+    </ScreenWrapper>
   );
 }
 
 const styles = StyleSheet.create({
-  safe:   { flex: 1 },
   header: { paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1 },
   title:  { fontSize: 22, fontFamily: "Syne_700Bold" },
   scroll: { padding: 20, gap: 16 },

@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import {
-  View, Text, ScrollView, StyleSheet,
-  SafeAreaView, TouchableOpacity, RefreshControl, Image,
+  View, Text, ScrollView, StyleSheet, TouchableOpacity, RefreshControl, Image,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
@@ -10,6 +9,7 @@ import { db } from "../../services/firebase";
 import { useThemeColors } from "../../hooks/useThemeColors";
 import { useAuthStore }   from "../../store/authStore";
 import { NumberText }     from "../../components/ui/NumberText";
+import { ScreenWrapper }  from "../../components/ui/ScreenWrapper";
 
 export function AdminDashboardScreen() {
   const navigation = useNavigation<any>();
@@ -66,7 +66,7 @@ export function AdminDashboardScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: c.bg }]}>
+    <ScreenWrapper>
 
       {/* ── HEADER ── */}
       <View style={[styles.header, { borderBottomColor: c.border }]}>
@@ -149,7 +149,7 @@ export function AdminDashboardScreen() {
         </View>
 
       </ScrollView>
-    </SafeAreaView>
+    </ScreenWrapper>
   );
 }
 
@@ -180,7 +180,6 @@ const ACTIONS = [
 ];
 
 const styles = StyleSheet.create({
-  safe:   { flex: 1 },
 
   header: {
     flexDirection:    "row",

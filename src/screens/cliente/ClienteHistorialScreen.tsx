@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import {
-  View, Text, ScrollView, StyleSheet,
-  SafeAreaView, ActivityIndicator, RefreshControl,
+  View, Text, ScrollView, StyleSheet, ActivityIndicator, RefreshControl,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
@@ -14,6 +13,7 @@ import { useAuthStore }   from "../../store/authStore";
 import { ThemedCard }     from "../../components/ui/ThemedCard";
 import { TagChip }        from "../../components/ui/TagChip";
 import { BackHeader }     from "../../components/ui/BackHeader";
+import { ScreenWrapper }  from "../../components/ui/ScreenWrapper";
 
 interface Reserva {
   id:              string;
@@ -87,7 +87,7 @@ export function ClienteHistorialScreen() {
   });
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: c.bg }]}>
+    <ScreenWrapper>
       <BackHeader title="Mis citas" />
 
       {loading ? (
@@ -150,12 +150,11 @@ export function ClienteHistorialScreen() {
           ))}
         </ScrollView>
       )}
-    </SafeAreaView>
+    </ScreenWrapper>
   );
 }
 
 const styles = StyleSheet.create({
-  safe:       { flex: 1 },
   scroll:     { padding: 20, gap: 20 },
   empty:      { flex: 1, alignItems: "center", justifyContent: "center", gap: 12, padding: 40 },
   emptyTitle: { fontSize: 18, fontFamily: "Syne_700Bold" },

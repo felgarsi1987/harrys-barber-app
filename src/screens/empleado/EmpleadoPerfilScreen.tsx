@@ -1,12 +1,12 @@
 import React from "react";
 import {
-  View, Text, ScrollView, StyleSheet,
-  SafeAreaView, TouchableOpacity, Alert,
+  View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useThemeColors } from "../../hooks/useThemeColors";
 import { useAuthStore }   from "../../store/authStore";
 import { ThemedCard }     from "../../components/ui/ThemedCard";
+import { ScreenWrapper }  from "../../components/ui/ScreenWrapper";
 
 export function EmpleadoPerfilScreen() {
   const c                = useThemeColors();
@@ -21,7 +21,7 @@ export function EmpleadoPerfilScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: c.bg }]}>
+    <ScreenWrapper>
       <View style={[styles.header, { borderBottomColor: c.border }]}>
         <Text style={[styles.title, { color: c.text }]}>Mi perfil</Text>
       </View>
@@ -101,12 +101,11 @@ export function EmpleadoPerfilScreen() {
         </TouchableOpacity>
 
       </ScrollView>
-    </SafeAreaView>
+    </ScreenWrapper>
   );
 }
 
 const styles = StyleSheet.create({
-  safe:   { flex: 1 },
   header: { paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1 },
   title:  { fontSize: 22, fontFamily: "Syne_700Bold" },
   scroll: { padding: 20, gap: 16 },

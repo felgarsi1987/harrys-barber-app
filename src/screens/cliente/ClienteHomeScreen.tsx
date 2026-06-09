@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import {
-  View, Text, ScrollView, StyleSheet,
-  SafeAreaView, Image, TouchableOpacity,
+  View, Text, ScrollView, StyleSheet, Image, TouchableOpacity,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
@@ -15,6 +14,7 @@ import { useAuthStore }   from "../../store/authStore";
 import { TagChip }        from "../../components/ui/TagChip";
 import { ThemedCard }     from "../../components/ui/ThemedCard";
 import { AixonFooter }   from "../../components/ui/AixonFooter";
+import { ScreenWrapper }  from "../../components/ui/ScreenWrapper";
 
 interface Reserva {
   id:       string;
@@ -78,7 +78,7 @@ export function ClienteHomeScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: c.bg }]}>
+    <ScreenWrapper>
 
       {/* Header */}
       <View style={[styles.header, { borderBottomColor: c.border }]}>
@@ -178,7 +178,7 @@ export function ClienteHomeScreen() {
       </ScrollView>
 
       <AixonFooter />
-    </SafeAreaView>
+    </ScreenWrapper>
   );
 }
 
@@ -189,7 +189,6 @@ const SERVICIOS = [
 ];
 
 const styles = StyleSheet.create({
-  safe:   { flex: 1 },
   header: {
     flexDirection: "row", alignItems: "center",
     paddingHorizontal: 20, paddingVertical: 12,

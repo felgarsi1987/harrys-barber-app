@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import {
-  View, Text, ScrollView, StyleSheet,
-  SafeAreaView, TouchableOpacity, ActivityIndicator,
+  View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator,
   TextInput, Alert, Modal,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
@@ -14,6 +13,7 @@ import { db } from "../../services/firebase";
 import { useThemeColors } from "../../hooks/useThemeColors";
 import { ThemedCard }     from "../../components/ui/ThemedCard";
 import { NumberText }     from "../../components/ui/NumberText";
+import { ScreenWrapper }  from "../../components/ui/ScreenWrapper";
 
 interface Producto {
   id:        string;
@@ -125,7 +125,7 @@ export function AdminInventarioScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: c.bg }]}>
+    <ScreenWrapper>
       <BackHeader title="Inventario" />
       <View style={[styles.subHeader, { borderBottomColor: c.border }]}>
         <TouchableOpacity
@@ -276,12 +276,11 @@ export function AdminInventarioScreen() {
         </View>
       </Modal>
 
-    </SafeAreaView>
+    </ScreenWrapper>
   );
 }
 
 const styles = StyleSheet.create({
-  safe:   { flex: 1 },
   subHeader: {
     flexDirection: "row", justifyContent: "space-between",
     alignItems: "center", paddingHorizontal: 20,

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import {
-  View, Text, ScrollView, StyleSheet, SafeAreaView,
+  View, Text, ScrollView, StyleSheet,
   TouchableOpacity, TextInput, Alert, ActivityIndicator,
   Modal, Switch, RefreshControl,
 } from "react-native";
@@ -8,6 +8,7 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { useThemeColors } from "../../hooks/useThemeColors";
 import { BackHeader }     from "../../components/ui/BackHeader";
 import { ThemedCard }     from "../../components/ui/ThemedCard";
+import { ScreenWrapper }  from "../../components/ui/ScreenWrapper";
 import {
   Servicio, getAllServicios, crearServicio,
   actualizarServicio, eliminarServicio,
@@ -117,7 +118,7 @@ export function AdminServiciosScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: c.bg }]}>
+    <ScreenWrapper>
       <BackHeader title="Servicios" />
 
       {/* Subheader con botón agregar */}
@@ -250,12 +251,11 @@ export function AdminServiciosScreen() {
           </View>
         </View>
       </Modal>
-    </SafeAreaView>
+    </ScreenWrapper>
   );
 }
 
 const styles = StyleSheet.create({
-  safe:      { flex: 1 },
   subHeader: {
     flexDirection: "row", justifyContent: "space-between",
     alignItems: "center", paddingHorizontal: 20,

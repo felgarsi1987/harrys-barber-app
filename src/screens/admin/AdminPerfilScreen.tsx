@@ -1,13 +1,13 @@
 import React from "react";
 import {
-  View, Text, ScrollView, StyleSheet,
-  SafeAreaView, TouchableOpacity, Alert,
+  View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { useThemeColors } from "../../hooks/useThemeColors";
 import { useAuthStore }   from "../../store/authStore";
 import { ThemedCard }     from "../../components/ui/ThemedCard";
+import { ScreenWrapper }  from "../../components/ui/ScreenWrapper";
 
 export function AdminPerfilScreen() {
   const c = useThemeColors();
@@ -32,7 +32,7 @@ export function AdminPerfilScreen() {
   ];
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: c.bg }]}>
+    <ScreenWrapper>
       <View style={[styles.header, { borderBottomColor: c.border }]}>
         <Text style={[styles.title, { color: c.text }]}>Perfil</Text>
       </View>
@@ -98,12 +98,11 @@ export function AdminPerfilScreen() {
           <Text style={[styles.logoutText, { color: c.red }]}>Cerrar sesión</Text>
         </TouchableOpacity>
       </ScrollView>
-    </SafeAreaView>
+    </ScreenWrapper>
   );
 }
 
 const styles = StyleSheet.create({
-  safe:   { flex: 1 },
   header: { paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1 },
   title:  { fontSize: 22, fontFamily: "Syne_700Bold" },
   scroll: { padding: 20, gap: 16 },

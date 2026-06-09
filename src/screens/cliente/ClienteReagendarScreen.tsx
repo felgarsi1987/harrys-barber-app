@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import {
-  View, Text, ScrollView, StyleSheet,
-  SafeAreaView, TouchableOpacity, Alert, ActivityIndicator,
+  View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert, ActivityIndicator,
 } from "react-native";
 import { Calendar, LocaleConfig } from "react-native-calendars";
 import {
@@ -12,6 +11,7 @@ import { db } from "../../services/firebase";
 import { useThemeColors } from "../../hooks/useThemeColors";
 import { BackHeader }     from "../../components/ui/BackHeader";
 import { ThemedCard }     from "../../components/ui/ThemedCard";
+import { ScreenWrapper }  from "../../components/ui/ScreenWrapper";
 import { programarRecordatorio, cancelarRecordatorio } from "../../services/notifications";
 
 LocaleConfig.locales["es"] = {
@@ -91,7 +91,7 @@ export function ClienteReagendarScreen({ route }: Props) {
   const horasDisponibles = horasConfig.filter(h => !horasOcupadas.includes(h));
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: c.bg }]}>
+    <ScreenWrapper>
       <BackHeader title="Reagendar cita" />
 
       <ScrollView contentContainerStyle={styles.scroll}>
@@ -170,12 +170,11 @@ export function ClienteReagendarScreen({ route }: Props) {
           </TouchableOpacity>
         )}
       </ScrollView>
-    </SafeAreaView>
+    </ScreenWrapper>
   );
 }
 
 const styles = StyleSheet.create({
-  safe:   { flex: 1 },
   scroll: { padding: 20, gap: 16 },
   infoCard: { gap: 4 },
   servicio:     { fontSize: 18, fontFamily: "Syne_700Bold" },

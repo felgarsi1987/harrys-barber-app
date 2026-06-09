@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import {
-  View, Text, ScrollView, StyleSheet,
-  SafeAreaView, TouchableOpacity, Switch,
+  View, Text, ScrollView, StyleSheet, TouchableOpacity, Switch,
   Alert, ActivityIndicator, Modal, TextInput,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
@@ -13,6 +12,7 @@ import {
 import { db } from "../../services/firebase";
 import { useThemeColors } from "../../hooks/useThemeColors";
 import { ThemedCard }     from "../../components/ui/ThemedCard";
+import { ScreenWrapper }  from "../../components/ui/ScreenWrapper";
 
 const DIAS = ["Lunes","Martes","Miércoles","Jueves","Viernes","Sábado","Domingo"];
 
@@ -150,13 +150,13 @@ export function AdminHorarioScreen() {
   };
 
   if (loading) return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: c.bg }]}>
+    <ScreenWrapper>
       <ActivityIndicator color={c.amber} style={{ marginTop: 40 }} />
-    </SafeAreaView>
+    </ScreenWrapper>
   );
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: c.bg }]}>
+    <ScreenWrapper>
       <BackHeader title="Horario" />
 
       <ScrollView contentContainerStyle={styles.scroll}>
@@ -420,12 +420,11 @@ export function AdminHorarioScreen() {
         </View>
       </Modal>
 
-    </SafeAreaView>
+    </ScreenWrapper>
   );
 }
 
 const styles = StyleSheet.create({
-  safe:   { flex: 1 },
   header: { paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1 },
   title:  { fontSize: 22, fontFamily: "Syne_700Bold" },
   scroll: { padding: 20, gap: 16 },

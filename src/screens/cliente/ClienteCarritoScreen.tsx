@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import {
-  View, Text, ScrollView, StyleSheet,
-  SafeAreaView, TouchableOpacity, Alert, ActivityIndicator,
+  View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert, ActivityIndicator,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { collection, getDocs, addDoc, Timestamp } from "firebase/firestore";
@@ -10,6 +9,7 @@ import { useThemeColors } from "../../hooks/useThemeColors";
 import { useAuthStore }   from "../../store/authStore";
 import { NumberText }     from "../../components/ui/NumberText";
 import { ThemedCard }     from "../../components/ui/ThemedCard";
+import { ScreenWrapper }  from "../../components/ui/ScreenWrapper";
 
 interface Producto {
   id:        string;
@@ -112,7 +112,7 @@ export function ClienteCarritoScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: c.bg }]}>
+    <ScreenWrapper>
       <View style={[styles.header, { borderBottomColor: c.border }]}>
         <Text style={[styles.title, { color: c.text }]}>Tienda</Text>
         {carrito.length > 0 && (
@@ -219,12 +219,11 @@ export function ClienteCarritoScreen() {
           </>
         )}
       </ScrollView>
-    </SafeAreaView>
+    </ScreenWrapper>
   );
 }
 
 const styles = StyleSheet.create({
-  safe:   { flex: 1 },
   header: {
     flexDirection: "row", alignItems: "center",
     paddingHorizontal: 20, paddingVertical: 16,

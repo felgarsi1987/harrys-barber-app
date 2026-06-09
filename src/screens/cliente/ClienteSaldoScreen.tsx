@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from "react";
 import {
-  View, Text, ScrollView, StyleSheet,
-  SafeAreaView, ActivityIndicator,
+  View, Text, ScrollView, StyleSheet, ActivityIndicator,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import {
@@ -13,6 +12,7 @@ import { useAuthStore }   from "../../store/authStore";
 import { NumberText }     from "../../components/ui/NumberText";
 import { ThemedCard }     from "../../components/ui/ThemedCard";
 import { TagChip }        from "../../components/ui/TagChip";
+import { ScreenWrapper }  from "../../components/ui/ScreenWrapper";
 
 interface Movimiento {
   id:          string;
@@ -54,7 +54,7 @@ export function ClienteSaldoScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: c.bg }]}>
+    <ScreenWrapper>
       <View style={[styles.header, { borderBottomColor: c.border }]}>
         <Text style={[styles.title, { color: c.text }]}>Mi saldo</Text>
       </View>
@@ -114,12 +114,11 @@ export function ClienteSaldoScreen() {
           </ThemedCard>
         )}
       </ScrollView>
-    </SafeAreaView>
+    </ScreenWrapper>
   );
 }
 
 const styles = StyleSheet.create({
-  safe:   { flex: 1 },
   header: { paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1 },
   title:  { fontSize: 22, fontFamily: "Syne_700Bold" },
   scroll: { padding: 20, gap: 16 },

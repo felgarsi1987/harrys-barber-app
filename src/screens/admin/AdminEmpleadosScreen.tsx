@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import {
-  View, Text, ScrollView, StyleSheet, SafeAreaView,
+  View, Text, ScrollView, StyleSheet,
   TouchableOpacity, TextInput, ActivityIndicator, Alert,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
@@ -16,6 +16,7 @@ import { auth, db } from "../../services/firebase";
 import { useThemeColors } from "../../hooks/useThemeColors";
 import { ThemedCard }     from "../../components/ui/ThemedCard";
 import { TagChip }        from "../../components/ui/TagChip";
+import { ScreenWrapper }  from "../../components/ui/ScreenWrapper";
 
 interface Empleado {
   uid:      string;
@@ -80,7 +81,7 @@ export function AdminEmpleadosScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: c.bg }]}>
+    <ScreenWrapper>
       <BackHeader title="Empleados" />
       <View style={[styles.subHeader, { borderBottomColor: c.border }]}>
         <TouchableOpacity
@@ -160,12 +161,11 @@ export function AdminEmpleadosScreen() {
           ))
         )}
       </ScrollView>
-    </SafeAreaView>
+    </ScreenWrapper>
   );
 }
 
 const styles = StyleSheet.create({
-  safe:   { flex: 1 },
   subHeader: {
     flexDirection: "row", justifyContent: "space-between",
     alignItems: "center", paddingHorizontal: 20,

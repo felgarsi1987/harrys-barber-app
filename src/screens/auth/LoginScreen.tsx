@@ -1,8 +1,8 @@
 import React, { useState } from "react";
 import {
   View, Text, TextInput, TouchableOpacity,
-  StyleSheet, SafeAreaView, KeyboardAvoidingView,
-  Platform, ActivityIndicator, Alert,
+  StyleSheet
+  ActivityIndicator, Alert,
 } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { sendPasswordResetEmail } from "firebase/auth";
@@ -10,6 +10,7 @@ import { auth } from "../../services/firebase";
 import { useThemeColors }  from "../../hooks/useThemeColors";
 import { useAuthStore }    from "../../store/authStore";
 import { AixonFooter }     from "../../components/ui/AixonFooter";
+import { ScreenWrapper }  from "../../components/ui/ScreenWrapper";
 import { Typography }      from "../../theme/typography";
 import { Spacing, Radius } from "../../theme/spacing";
 
@@ -56,11 +57,7 @@ export function LoginScreen() {
   };
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: c.bg }]}>
-      <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : "height"}
-        style={{ flex: 1 }}
-      >
+    <ScreenWrapper>
         <View style={styles.container}>
           <TouchableOpacity
             onPress={() => navigation.goBack()}
@@ -149,14 +146,12 @@ export function LoginScreen() {
             }
           </TouchableOpacity>
         </View>
-      </KeyboardAvoidingView>
       <AixonFooter />
-    </SafeAreaView>
+    </ScreenWrapper>
   );
 }
 
 const styles = StyleSheet.create({
-  safe:       { flex: 1 },
   container:  {
     flex: 1, padding: Spacing.lg, gap: Spacing.md, justifyContent: "center",
   },

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import {
-  View, Text, ScrollView, StyleSheet, SafeAreaView,
+  View, Text, ScrollView, StyleSheet,
   TouchableOpacity, TextInput, Alert, ActivityIndicator,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
@@ -13,6 +13,7 @@ import { db } from "../../services/firebase";
 import { useThemeColors }    from "../../hooks/useThemeColors";
 import { BackHeader }         from "../../components/ui/BackHeader";
 import { ThemedCard }         from "../../components/ui/ThemedCard";
+import { ScreenWrapper }  from "../../components/ui/ScreenWrapper";
 import { getServicios, Servicio } from "../../services/serviciosService";
 import { notificarCambioEstado } from "../../services/notifications";
 import * as Notifications from "expo-notifications";
@@ -165,15 +166,15 @@ export function AdminAsignarReservaScreen() {
 
   if (loading) {
     return (
-      <SafeAreaView style={[styles.safe, { backgroundColor: c.bg }]}>
+      <ScreenWrapper>
         <BackHeader title="Asignar reserva" />
         <ActivityIndicator color={c.amber} style={{ marginTop: 40 }} />
-      </SafeAreaView>
+      </>
     );
   }
 
   return (
-    <SafeAreaView style={[styles.safe, { backgroundColor: c.bg }]}>
+    <ScreenWrapper>
       <BackHeader title="Asignar reserva" />
 
       {/* Stepper */}
@@ -393,12 +394,11 @@ export function AdminAsignarReservaScreen() {
         )}
 
       </ScrollView>
-    </SafeAreaView>
+    </ScreenWrapper>
   );
 }
 
 const styles = StyleSheet.create({
-  safe:    { flex: 1 },
   stepper: {
     flexDirection: "row", alignItems: "center",
     paddingHorizontal: 24, paddingVertical: 16,
