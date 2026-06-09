@@ -7,7 +7,7 @@ export function AixonFooter() {
   return (
     <View style={styles.container}>
       <Image
-        source={require("../../assets/images/AIXON_isotipo_128x128.png")}
+        source={require("../../assets/images/aixon_logo.png")}
         style={styles.logo}
         resizeMode="contain"
       />

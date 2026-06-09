@@ -1,26 +1,37 @@
 import React, { useEffect, useRef } from "react";
-import { View, Image, Animated, StyleSheet, Dimensions } from "react-native";
+import {
+  View, Image, Animated, StyleSheet, Dimensions, Text,
+} from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { useThemeStore } from "../../store/themeStore";
 
 const { width } = Dimensions.get("window");
 
 export function SplashScreen() {
-  const navigation  = useNavigation<any>();
+  const navigation    = useNavigation<any>();
   const { loadTheme } = useThemeStore();
-  const progress    = useRef(new Animated.Value(0)).current;
-  const logoOpacity = useRef(new Animated.Value(0)).current;
+  const progress      = useRef(new Animated.Value(0)).current;
+  const logoOpacity   = useRef(new Animated.Value(0)).current;
+  const textOpacity   = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     loadTheme();
 
+    // Fade in logo
     Animated.timing(logoOpacity, {
-      toValue: 1, duration: 600,
+      toValue: 1, duration: 800,
       useNativeDriver: true,
     }).start();
 
+    // Fade in texto con delay
+    Animated.timing(textOpacity, {
+      toValue: 1, duration: 600, delay: 400,
+      useNativeDriver: true,
+    }).start();
+
+    // Barra de progreso
     Animated.timing(progress, {
-      toValue: 1, duration: 1800,
+      toValue: 1, duration: 2000,
       useNativeDriver: false,
     }).start(() => {
       navigation.replace("Entrada");
@@ -34,15 +45,37 @@ export function SplashScreen() {
 
   return (
     <View style={styles.container}>
-      <Animated.View style={{ opacity: logoOpacity }}>
-        <View style={styles.logoPlaceholder}>
-          <Animated.Text style={{ fontSize: 48 }}>✂️</Animated.Text>
-        </View>
+
+      {/* Logo Harrys */}
+      <Animated.View style={[styles.logoWrapper, { opacity: logoOpacity }]}>
+        <Image
+          source={require("../../assets/images/HarrysBarberShop.png")}
+          style={styles.logo}
+          resizeMode="contain"
+        />
       </Animated.View>
 
+      {/* Nombre marca */}
+      <Animated.View style={[styles.brandBlock, { opacity: textOpacity }]}>
+        <Text style={styles.brand}>HARRYS</Text>
+        <Text style={styles.brandSub}>BARBER SHOP</Text>
+      </Animated.View>
+
+      {/* Barra de progreso */}
       <View style={styles.barTrack}>
         <Animated.View style={[styles.barFill, { width: barWidth }]} />
       </View>
+
+      {/* Footer AIXON */}
+      <Animated.View style={[styles.aixonFooter, { opacity: textOpacity }]}>
+        <Image
+          source={require("../../assets/images/aixon_logo.png")}
+          style={styles.aixonLogo}
+          resizeMode="contain"
+        />
+        <Text style={styles.aixonText}>Administrado por AIXON</Text>
+      </Animated.View>
+
     </View>
   );
 }
@@ -51,28 +84,15 @@ const styles = StyleSheet.create({
   container: {
     flex:            1,
     backgroundColor: "#0D0D0D",
-    justifyContent:  "center",
     alignItems:      "center",
-    gap:             48,
-  },
-  logoPlaceholder: {
-    width:           120,
-    height:          120,
-    borderRadius:    60,
-    backgroundColor: "#191C21",
     justifyContent:  "center",
-    alignItems:      "center",
+    gap:             24,
   },
-  barTrack: {
-    width:           width * 0.5,
-    height:          3,
-    backgroundColor: "#2A2D35",
-    borderRadius:    9999,
-    overflow:        "hidden",
+  logoWrapper: {
+    alignItems: "center",
   },
-  barFill: {
-    height:          3,
-    backgroundColor: "#0511F2",
-    borderRadius:    9999,
+  logo: {
+    width:        140,
+    height:       140,
+    borderRadius: 70,
   },
-});
