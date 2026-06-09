@@ -3,7 +3,7 @@ import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput,
   Alert, ActivityIndicator, Switch,
 } from "react-native";
-import { collection, addDoc, Timestamp } from "firebase/firestore";
+import { collection, addDoc, getDocs, query, where, Timestamp } from "firebase/firestore";
 import { db } from "../../services/firebase";
 import { getServicios, Servicio } from "../../services/serviciosService";
 import { useThemeColors } from "../../hooks/useThemeColors";
@@ -18,11 +18,21 @@ const HORAS = [
   "14:00","14:30","15:00","15:30","16:00","16:30","17:00","17:30",
 ];
 
+
+interface Empleado {
+  uid:     string;
+  nombre:  string;
+  apellido: string;
+  role:    string;
+}
+
 export function EmpleadoReservaScreen() {
   const c = useThemeColors();
   const { user } = useAuthStore();
 
   const [servicios,     setServicios]     = useState<Servicio[]>([]);
+  const [empleados,     setEmpleados]     = useState<Empleado[]>([]);
+  const [barberoSel,    setBarberoSel]    = useState<Empleado | null>(null);
   const [paraMiMismo,   setParaMiMismo]   = useState(false);
   const [noRegistrado,  setNoRegistrado]  = useState(false);
   const [nombreCliente, setNombreCliente] = useState("");
@@ -30,7 +40,19 @@ export function EmpleadoReservaScreen() {
   const [horaSel,       setHoraSel]       = useState("");
   const [guardando,     setGuardando]     = useState(false);
 
-  useEffect(() => { getServicios().then(setServicios); }, []);
+  useEffect(() => {
+    getServicios().then(setServicios);
+    // Cargar todos los empleados + admin como opciones de barbero
+    getDocs(query(collection(db, "users"), where("role", "in", ["empleado", "admin"])))
+      .then(snap => {
+        const lista = snap.docs.map(d => d.data() as Empleado);
+        setEmpleados(lista);
+        // Pre-seleccionar al empleado actual
+        const yo = lista.find(e => e.uid === user?.uid);
+        if (yo) setBarberoSel(yo);
+      })
+      .catch(console.log);
+  }, []);
 
   const toggleParaMiMismo = (val: boolean) => {
     setParaMiMismo(val);
@@ -50,6 +72,10 @@ export function EmpleadoReservaScreen() {
       Alert.alert("Faltan datos", "Ingresa el nombre del cliente y la hora.");
       return;
     }
+    if (!barberoSel) {
+      Alert.alert("Faltan datos", "Selecciona quién atiende la cita.");
+      return;
+    }
     setGuardando(true);
     try {
       if (!servicios.length) return;
@@ -59,6 +85,10 @@ export function EmpleadoReservaScreen() {
         clienteNombre:     nombreCliente.trim(),
         clienteUid:        paraMiMismo ? (user?.uid ?? null) : null,
         clienteEmail:      paraMiMismo ? (user?.email ?? null) : null,
+        peluqueroUid:      barberoSel?.uid    ?? null,
+        peluqueroNombre:   barberoSel
+          ? `${barberoSel.nombre} ${barberoSel.apellido}`
+          : null,
         servicio:          servicio.label,
         precio:            servicio.precio,
         fecha:             Timestamp.fromDate(fecha),
@@ -148,6 +178,46 @@ export function EmpleadoReservaScreen() {
           editable={!paraMiMismo}
         />
 
+        {/* Barbero que atiende */}
+        <Text style={[styles.sectionLabel, { color: c.sub }]}>BARBERO QUE ATIENDE</Text>
+        <View style={styles.barberosRow}>
+          {empleados.map((emp, i) => {
+            const seleccionado = barberoSel?.uid === emp.uid;
+            const esYo        = emp.uid === user?.uid;
+            return (
+              <TouchableOpacity
+                key={i}
+                onPress={() => setBarberoSel(emp)}
+                style={[
+                  styles.barberoBtn,
+                  {
+                    borderColor:     seleccionado ? c.amber : c.border,
+                    backgroundColor: seleccionado ? c.amber + "18" : c.surface,
+                  },
+                ]}
+              >
+                <View style={[styles.barberoAvatar, {
+                  backgroundColor: seleccionado ? c.amber : c.border + "40",
+                }]}>
+                  <Text style={[styles.barberoAvatarText, {
+                    color: seleccionado ? "#000" : c.text,
+                  }]}>
+                    {emp.nombre[0]}{emp.apellido[0]}
+                  </Text>
+                </View>
+                <Text style={[styles.barberoNombre, {
+                  color: seleccionado ? c.amber : c.text,
+                }]} numberOfLines={1}>
+                  {esYo ? "Yo" : emp.nombre}
+                </Text>
+                {esYo && (
+                  <Text style={[styles.barberoYo, { color: c.sub }]}>tú</Text>
+                )}
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+
         {/* Servicio */}
         <Text style={[styles.sectionLabel, { color: c.sub }]}>SERVICIO</Text>
         <View style={styles.serviciosGrid}>
@@ -231,6 +301,18 @@ const styles = StyleSheet.create({
   header: { paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1 },
   title:  { fontSize: 22, fontFamily: "Syne_700Bold" },
   scroll: { padding: 20, gap: 16 },
+  barberosRow:     { flexDirection: "row", flexWrap: "wrap", gap: 10 },
+  barberoBtn: {
+    alignItems: "center", gap: 6, padding: 10,
+    borderWidth: 1, borderRadius: 12, minWidth: 72,
+  },
+  barberoAvatar: {
+    width: 40, height: 40, borderRadius: 20,
+    justifyContent: "center", alignItems: "center",
+  },
+  barberoAvatarText: { fontSize: 14, fontFamily: "Syne_700Bold" },
+  barberoNombre:     { fontSize: 12, fontFamily: "SpaceGrotesk_600SemiBold" },
+  barberoYo:         { fontSize: 10, fontFamily: "SpaceGrotesk_400Regular" },
   toggleCard:   { flexDirection: "row", alignItems: "center", gap: 12 },
   toggleLabel:  { fontSize: 15, fontFamily: "SpaceGrotesk_600SemiBold" },
   toggleDesc:   { fontSize: 12, fontFamily: "SpaceGrotesk_400Regular", marginTop: 2 },
