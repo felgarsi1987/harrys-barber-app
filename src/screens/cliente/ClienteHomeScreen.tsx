@@ -4,6 +4,7 @@ import {
   SafeAreaView, Image, TouchableOpacity,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
 import {
   collection, getDocs, query, where,
   orderBy, limit,
@@ -31,6 +32,7 @@ interface Evento {
 
 export function ClienteHomeScreen() {
   const c = useThemeColors();
+  const navigation = useNavigation<any>();
   const { user } = useAuthStore();
   const [proximaCita, setProximaCita] = useState<Reserva | null>(null);
   const [evento,      setEvento]      = useState<Evento | null>(null);
@@ -148,7 +150,10 @@ export function ClienteHomeScreen() {
             <Text style={[styles.noCitaText, { color: c.sub }]}>
               No tienes citas próximas
             </Text>
-            <TouchableOpacity style={[styles.agendarBtn, { backgroundColor: c.amber }]}>
+            <TouchableOpacity
+              style={[styles.agendarBtn, { backgroundColor: c.amber }]}
+              onPress={() => navigation.navigate("Agendar")}
+            >
               <Text style={styles.agendarBtnText}>Agendar ahora</Text>
             </TouchableOpacity>
           </ThemedCard>

@@ -9,10 +9,11 @@ import { AdminReservasScreen }   from "../screens/admin/AdminReservasScreen";
 import { AdminPagosScreen }      from "../screens/admin/AdminPagosScreen";
 import { AdminClientesScreen }   from "../screens/admin/AdminClientesScreen";
 import { AdminPerfilScreen }     from "../screens/admin/AdminPerfilScreen";
-import { AdminHorarioScreen }    from "../screens/admin/AdminHorarioScreen";
-import { AdminEmpleadosScreen }  from "../screens/admin/AdminEmpleadosScreen";
-import { AdminInventarioScreen } from "../screens/admin/AdminInventarioScreen";
-import { AdminEventosScreen }    from "../screens/admin/AdminEventosScreen";
+import { AdminHorarioScreen }       from "../screens/admin/AdminHorarioScreen";
+import { AdminEmpleadosScreen }     from "../screens/admin/AdminEmpleadosScreen";
+import { AdminInventarioScreen }    from "../screens/admin/AdminInventarioScreen";
+import { AdminEventosScreen }       from "../screens/admin/AdminEventosScreen";
+import { AdminNuevaReservaScreen }  from "../screens/admin/AdminNuevaReservaScreen";
 
 const Tab   = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -69,11 +70,12 @@ function AdminTabs() {
 export function AdminNavigator() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="AdminTabs"      component={AdminTabs} />
-      <Stack.Screen name="AdminHorario"   component={AdminHorarioScreen} />
-      <Stack.Screen name="AdminEmpleados" component={AdminEmpleadosScreen} />
-      <Stack.Screen name="AdminInventario" component={AdminInventarioScreen} />
-      <Stack.Screen name="AdminEventos"   component={AdminEventosScreen} />
+      <Stack.Screen name="AdminTabs"          component={AdminTabs} />
+      <Stack.Screen name="AdminHorario"        component={AdminHorarioScreen} />
+      <Stack.Screen name="AdminEmpleados"      component={AdminEmpleadosScreen} />
+      <Stack.Screen name="AdminInventario"     component={AdminInventarioScreen} />
+      <Stack.Screen name="AdminEventos"        component={AdminEventosScreen} />
+      <Stack.Screen name="AdminNuevaReserva"   component={AdminNuevaReservaScreen} />
     </Stack.Navigator>
   );
 }

@@ -31,6 +31,8 @@ const ESTADO_CHIP: Record<string, any> = {
   confirmada: "success",
   aplazada:   "info",
   negada:     "danger",
+  completada: "default",
+  fallida:    "danger",
 };
 
 const DIAS_SEMANA = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
@@ -41,6 +43,29 @@ export function EmpleadoAgendaScreen() {
   const [reservas,  setReservas]  = useState<Reserva[]>([]);
   const [loading,   setLoading]   = useState(true);
   const [diaOffset, setDiaOffset] = useState(0);
+
+  const marcarFallido = async (reserva: Reserva) => {
+    Alert.alert(
+      "¿Servicio fallido?",
+      `¿Marcar como fallido el servicio de ${reserva.clienteNombre}?`,
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Marcar fallido", style: "destructive",
+          onPress: async () => {
+            try {
+              await updateDoc(doc(db, "reservas", reserva.id), {
+                estado: "fallida", updatedAt: Timestamp.now(),
+              });
+              setReservas(prev =>
+                prev.map(r => r.id === reserva.id ? { ...r, estado: "fallida" } : r)
+              );
+            } catch { Alert.alert("Error", "No se pudo actualizar."); }
+          },
+        },
+      ]
+    );
+  };
 
   const fechaSeleccionada = (() => {
     const d = new Date();
@@ -194,15 +219,22 @@ export function EmpleadoAgendaScreen() {
                     )}
                   </View>
                   {r.estado === "confirmada" && (
-                    <TouchableOpacity
-                      onPress={() => marcarCompletado(r)}
-                      style={[styles.completarBtn, { backgroundColor: c.positive + "18", borderColor: c.positive + "44" }]}
-                    >
-                      <MaterialIcons name="task-alt" size={16} color={c.positive} />
-                      <Text style={[styles.completarBtnText, { color: c.positive }]}>
-                        Marcar realizado
-                      </Text>
-                    </TouchableOpacity>
+                    <View style={styles.confirmadaRow}>
+                      <TouchableOpacity
+                        onPress={() => marcarCompletado(r)}
+                        style={[styles.confirmadaBtn, { backgroundColor: c.positive + "18", borderColor: c.positive + "44" }]}
+                      >
+                        <MaterialIcons name="task-alt" size={14} color={c.positive} />
+                        <Text style={[styles.confirmadaBtnText, { color: c.positive }]}>Realizado</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        onPress={() => marcarFallido(r)}
+                        style={[styles.confirmadaBtn, { backgroundColor: c.negative + "18", borderColor: c.negative + "44" }]}
+                      >
+                        <MaterialIcons name="cancel" size={14} color={c.negative} />
+                        <Text style={[styles.confirmadaBtnText, { color: c.negative }]}>Fallido</Text>
+                      </TouchableOpacity>
+                    </View>
                   )}
                 </View>
               </ThemedCard>
@@ -253,10 +285,10 @@ const styles = StyleSheet.create({
   clienteNombre: { fontSize: 15, fontFamily: "SpaceGrotesk_600SemiBold" },
   servicio:      { fontSize: 12, fontFamily: "SpaceGrotesk_400Regular" },
   tagsRow:       { flexDirection: "row", gap: 6, marginTop: 4 },
-  completarBtn: {
-    flexDirection: "row", alignItems: "center", gap: 6,
-    marginTop: 8, paddingVertical: 8, paddingHorizontal: 12,
-    borderRadius: 8, borderWidth: 1,
+  confirmadaRow: { flexDirection: "row", gap: 8, marginTop: 8 },
+  confirmadaBtn: {
+    flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center",
+    gap: 5, paddingVertical: 8, borderRadius: 8, borderWidth: 1,
   },
-  completarBtnText: { fontSize: 12, fontFamily: "SpaceGrotesk_600SemiBold" },
+  confirmadaBtnText: { fontSize: 12, fontFamily: "SpaceGrotesk_600SemiBold" },
 });

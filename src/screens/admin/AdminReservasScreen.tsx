@@ -4,6 +4,7 @@ import {
   SafeAreaView, TouchableOpacity, ActivityIndicator, Alert,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
 import {
   collection, getDocs, addDoc, query, orderBy,
   doc, updateDoc, Timestamp,
@@ -32,10 +33,12 @@ const ESTADO_CHIP: Record<string, any> = {
   aplazada:    "info",
   negada:      "danger",
   completada:  "default",
+  fallida:     "danger",
 };
 
 export function AdminReservasScreen() {
   const c = useThemeColors();
+  const navigation = useNavigation<any>();
   const [reservas, setReservas] = useState<Reserva[]>([]);
   const [loading,  setLoading]  = useState(true);
   const [filter,   setFilter]   = useState<"todas" | "pendiente" | "confirmada">("todas");
@@ -125,6 +128,33 @@ export function AdminReservasScreen() {
     );
   };
 
+  // ── Marcar servicio fallido ──
+  const marcarFallido = async (reserva: Reserva) => {
+    Alert.alert(
+      "¿Servicio fallido?",
+      `¿Marcar como fallido el servicio de ${reserva.clienteNombre}? No se registrará ingreso.`,
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Marcar fallido",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await updateDoc(doc(db, "reservas", reserva.id), {
+                estado: "fallida", updatedAt: Timestamp.now(),
+              });
+              setReservas(prev =>
+                prev.map(r => r.id === reserva.id ? { ...r, estado: "fallida" as any } : r)
+              );
+            } catch {
+              Alert.alert("Error", "No se pudo actualizar.");
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const filtered = reservas.filter(r =>
     filter === "todas" ? true : r.estado === filter
   );
@@ -142,7 +172,7 @@ export function AdminReservasScreen() {
         <Text style={[styles.title, { color: c.text }]}>Reservas</Text>
         <TouchableOpacity
           style={[styles.addBtn, { borderColor: c.border }]}
-          onPress={() => Alert.alert("Nueva reserva", "Usa la tab 'Nueva Cita' para crear una.")}
+          onPress={() => navigation.navigate("AdminNuevaReserva")}
         >
           <MaterialIcons name="add" size={20} color={c.text} />
         </TouchableOpacity>
@@ -235,17 +265,24 @@ export function AdminReservasScreen() {
                   </View>
                 )}
 
-                {/* ── NUEVO: botón completar para reservas confirmadas ── */}
+                {/* Botones para reservas confirmadas */}
                 {r.estado === "confirmada" && (
-                  <TouchableOpacity
-                    onPress={() => marcarCompletado(r)}
-                    style={[styles.completarBtn, { backgroundColor: c.positive + "18", borderColor: c.positive + "44" }]}
-                  >
-                    <MaterialIcons name="task-alt" size={18} color={c.positive} />
-                    <Text style={[styles.completarBtnText, { color: c.positive }]}>
-                      Marcar servicio realizado
-                    </Text>
-                  </TouchableOpacity>
+                  <View style={styles.confirmadaRow}>
+                    <TouchableOpacity
+                      onPress={() => marcarCompletado(r)}
+                      style={[styles.confirmadaBtn, { backgroundColor: c.positive + "18", borderColor: c.positive + "44" }]}
+                    >
+                      <MaterialIcons name="task-alt" size={16} color={c.positive} />
+                      <Text style={[styles.confirmadaBtnText, { color: c.positive }]}>Realizado</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => marcarFallido(r)}
+                      style={[styles.confirmadaBtn, { backgroundColor: c.negative + "18", borderColor: c.negative + "44" }]}
+                    >
+                      <MaterialIcons name="cancel" size={16} color={c.negative} />
+                      <Text style={[styles.confirmadaBtnText, { color: c.negative }]}>Fallido</Text>
+                    </TouchableOpacity>
+                  </View>
                 )}
               </ThemedCard>
             ))
@@ -293,9 +330,12 @@ const styles = StyleSheet.create({
     paddingVertical: 8, borderRadius: 8,
   },
   actionBtnText: { fontSize: 12, fontFamily: "SpaceGrotesk_600SemiBold" },
-  completarBtn: {
-    flexDirection: "row", alignItems: "center", justifyContent: "center",
-    gap: 8, paddingVertical: 12, borderRadius: 10, borderWidth: 1,
+  confirmadaRow: {
+    flexDirection: "row", gap: 8,
   },
-  completarBtnText: { fontSize: 14, fontFamily: "SpaceGrotesk_600SemiBold" },
+  confirmadaBtn: {
+    flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center",
+    gap: 6, paddingVertical: 10, borderRadius: 10, borderWidth: 1,
+  },
+  confirmadaBtnText: { fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold" },
 });

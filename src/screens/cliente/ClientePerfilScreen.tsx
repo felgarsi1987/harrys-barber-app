@@ -4,6 +4,7 @@ import {
   SafeAreaView, TouchableOpacity, Alert,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
 import { useThemeColors } from "../../hooks/useThemeColors";
 import { useAuthStore }   from "../../store/authStore";
 import { ThemedCard }     from "../../components/ui/ThemedCard";
@@ -11,6 +12,7 @@ import { TagChip }        from "../../components/ui/TagChip";
 
 export function ClientePerfilScreen() {
   const c              = useThemeColors();
+  const navigation     = useNavigation<any>();
   const { user, logout } = useAuthStore();
   const { toggle, mode } = useThemeColors();
 
@@ -68,6 +70,17 @@ export function ClientePerfilScreen() {
               </View>
             </View>
           ))}
+        </ThemedCard>
+
+        <ThemedCard style={styles.menuCard}>
+          <TouchableOpacity
+            onPress={() => navigation.navigate("ClienteHistorial")}
+            style={styles.menuRow}
+          >
+            <MaterialIcons name="history" size={20} color={c.sub} />
+            <Text style={[styles.menuLabel, { color: c.text }]}>Mis citas</Text>
+            <MaterialIcons name="chevron-right" size={18} color={c.sub} />
+          </TouchableOpacity>
         </ThemedCard>
 
         <ThemedCard style={styles.themeCard}>
@@ -130,4 +143,10 @@ const styles = StyleSheet.create({
     height: 50, borderRadius: 12, borderWidth: 1, gap: 8,
   },
   logoutText: { fontSize: 15, fontFamily: "SpaceGrotesk_600SemiBold" },
+  menuCard:  { gap: 0, padding: 0, overflow: "hidden" },
+  menuRow: {
+    flexDirection: "row", alignItems: "center",
+    paddingHorizontal: 16, paddingVertical: 14, gap: 12,
+  },
+  menuLabel: { flex: 1, fontSize: 15, fontFamily: "SpaceGrotesk_500Medium" },
 });

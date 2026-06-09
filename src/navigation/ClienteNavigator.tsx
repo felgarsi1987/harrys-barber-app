@@ -1,17 +1,20 @@
 import React from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { createStackNavigator }     from "@react-navigation/stack";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useThemeColors } from "../hooks/useThemeColors";
 
-import { ClienteHomeScreen }        from "../screens/cliente/ClienteHomeScreen";
-import { ClienteAgendarScreen }     from "../screens/cliente/ClienteAgendarScreen";
-import { ClienteCarritoScreen }     from "../screens/cliente/ClienteCarritoScreen";
-import { ClienteSaldoScreen }       from "../screens/cliente/ClienteSaldoScreen";
-import { ClientePerfilScreen }      from "../screens/cliente/ClientePerfilScreen";
+import { ClienteHomeScreen }       from "../screens/cliente/ClienteHomeScreen";
+import { ClienteAgendarScreen }    from "../screens/cliente/ClienteAgendarScreen";
+import { ClienteCarritoScreen }    from "../screens/cliente/ClienteCarritoScreen";
+import { ClienteSaldoScreen }      from "../screens/cliente/ClienteSaldoScreen";
+import { ClientePerfilScreen }     from "../screens/cliente/ClientePerfilScreen";
+import { ClienteHistorialScreen }  from "../screens/cliente/ClienteHistorialScreen";
 
-const Tab = createBottomTabNavigator();
+const Tab   = createBottomTabNavigator();
+const Stack = createStackNavigator();
 
-export function ClienteNavigator() {
+function ClienteTabs() {
   const c = useThemeColors();
 
   return (
@@ -33,11 +36,11 @@ export function ClienteNavigator() {
         },
         tabBarIcon: ({ color }) => {
           const icons: Record<string, keyof typeof MaterialIcons.glyphMap> = {
-            Inicio:   "home",
-            Agendar:  "event-available",
-            Carrito:  "shopping-cart",
-            Saldo:    "account-balance-wallet",
-            Perfil:   "person-outline",
+            Inicio:  "home",
+            Agendar: "event-available",
+            Carrito: "shopping-cart",
+            Saldo:   "account-balance-wallet",
+            Perfil:  "person-outline",
           };
           return (
             <MaterialIcons
@@ -55,5 +58,14 @@ export function ClienteNavigator() {
       <Tab.Screen name="Saldo"   component={ClienteSaldoScreen} />
       <Tab.Screen name="Perfil"  component={ClientePerfilScreen} />
     </Tab.Navigator>
+  );
+}
+
+export function ClienteNavigator() {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="ClienteTabs"      component={ClienteTabs} />
+      <Stack.Screen name="ClienteHistorial" component={ClienteHistorialScreen} />
+    </Stack.Navigator>
   );
 }
