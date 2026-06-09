@@ -31,14 +31,6 @@
         {
           "style": "auto"
         }
-      ],
-      [
-        "react-native-edge-to-edge",
-        {
-          "android": {
-            "parentTheme": "Default"
-          }
-        }
       ]
     ],
     "extra": {

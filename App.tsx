@@ -1,10 +1,9 @@
 import React, { useEffect, useState, useCallback } from "react";
-import { View } from "react-native";
+import { View, StatusBar, Platform } from "react-native";
 import * as SplashScreen from "expo-splash-screen";
 import * as Font from "expo-font";
 import * as Network from "expo-network";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import { SystemBars } from "react-native-edge-to-edge";
 import {
   SpaceGrotesk_400Regular,
   SpaceGrotesk_500Medium,
@@ -31,6 +30,12 @@ export default function App() {
       Syne_700Bold,
       Syne_800ExtraBold,
     }).then(() => setFontsLoaded(true));
+
+    // Android: status bar translucente para edge-to-edge
+    if (Platform.OS === "android") {
+      StatusBar.setBackgroundColor("transparent", false);
+      StatusBar.setTranslucent(true);
+    }
 
     checkConnection();
   }, []);
@@ -63,7 +68,11 @@ export default function App() {
 
   return (
     <SafeAreaProvider>
-      <SystemBars style="auto" />
+      <StatusBar
+        translucent
+        backgroundColor="transparent"
+        barStyle="light-content"
+      />
       <View style={{ flex: 1 }} onLayout={onLayoutRootView}>
         <RootNavigator />
       </View>
