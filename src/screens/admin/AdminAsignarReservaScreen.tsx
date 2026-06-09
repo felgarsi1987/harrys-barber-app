@@ -169,7 +169,7 @@ export function AdminAsignarReservaScreen() {
       <ScreenWrapper>
         <BackHeader title="Asignar reserva" />
         <ActivityIndicator color={c.amber} style={{ marginTop: 40 }} />
-      </>
+      </ScreenWrapper>
     );
   }
 
