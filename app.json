@@ -16,7 +16,8 @@
         "backgroundImage": "./assets/android-icon-background.png",
         "monochromeImage": "./assets/android-icon-monochrome.png"
       },
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "package": "com.felgarsi.harrysbarberapp"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -25,6 +26,12 @@
       "expo-font",
       "expo-splash-screen",
       "expo-status-bar"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "e1e52c92-60ac-4c73-85e4-007716a48dad"
+      }
+    },
+    "owner": "felgarsi"
   }
 }

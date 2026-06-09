@@ -2,9 +2,11 @@ import React, { useState } from "react";
 import {
   View, Text, TextInput, TouchableOpacity,
   StyleSheet, SafeAreaView, KeyboardAvoidingView,
-  Platform, ActivityIndicator,
+  Platform, ActivityIndicator, Alert,
 } from "react-native";
 import { useNavigation, useRoute } from "@react-navigation/native";
+import { sendPasswordResetEmail } from "firebase/auth";
+import { auth } from "../../services/firebase";
 import { useThemeColors }  from "../../hooks/useThemeColors";
 import { useAuthStore }    from "../../store/authStore";
 import { AixonFooter }     from "../../components/ui/AixonFooter";
@@ -28,11 +30,29 @@ export function LoginScreen() {
   const [email,    setEmail]    = useState("");
   const [password, setPassword] = useState("");
   const [showPass, setShowPass] = useState(false);
+  const [enviando, setEnviando] = useState(false);
 
   const handleLogin = async () => {
     if (!email || !password) return;
     clearError();
     await login(email.trim().toLowerCase(), password);
+  };
+
+  const handleRecuperarContrasena = async () => {
+    if (!email.trim()) {
+      Alert.alert("Ingresa tu correo", "Escribe tu correo arriba para recuperar la contraseña.");
+      return;
+    }
+    setEnviando(true);
+    try {
+      await sendPasswordResetEmail(auth, email.trim().toLowerCase());
+      Alert.alert(
+        "✅ Correo enviado",
+        `Te enviamos un enlace para restablecer tu contraseña a ${email.trim()}.`
+      );
+    } catch (e: any) {
+      Alert.alert("Error", "No se pudo enviar el correo. Verifica que el email sea correcto.");
+    } finally { setEnviando(false); }
   };
 
   return (
@@ -42,7 +62,10 @@ export function LoginScreen() {
         style={{ flex: 1 }}
       >
         <View style={styles.container}>
-          <TouchableOpacity onPress={() => navigation.goBack()} style={{ alignSelf: "flex-start" }}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            style={{ alignSelf: "flex-start" }}
+          >
             <Text style={[Typography.body, { color: c.blue }]}>← Volver</Text>
           </TouchableOpacity>
 
@@ -50,6 +73,7 @@ export function LoginScreen() {
             Ingreso — {ROLE_LABELS[role]}
           </Text>
 
+          {/* Email */}
           <View style={styles.fieldGroup}>
             <Text style={[Typography.label, { color: c.sub }]}>Correo</Text>
             <TextInput
@@ -63,27 +87,48 @@ export function LoginScreen() {
             />
           </View>
 
+          {/* Contraseña */}
           <View style={styles.fieldGroup}>
             <Text style={[Typography.label, { color: c.sub }]}>Contraseña</Text>
             <View>
               <TextInput
-                style={[styles.input, { color: c.text, backgroundColor: c.surface, borderColor: c.border, paddingRight: 48 }]}
+                style={[styles.input, { color: c.text, backgroundColor: c.surface,
+                  borderColor: c.border, paddingRight: 48 }]}
                 value={password}
                 onChangeText={setPassword}
                 placeholder="••••••••"
                 placeholderTextColor={c.sub}
                 secureTextEntry={!showPass}
               />
-              <TouchableOpacity onPress={() => setShowPass(!showPass)} style={styles.eyeBtn}>
-                <Text style={{ color: c.sub, fontSize: 16 }}>{showPass ? "🙈" : "👁"}</Text>
+              <TouchableOpacity
+                onPress={() => setShowPass(!showPass)}
+                style={styles.eyeBtn}
+              >
+                <Text style={{ color: c.sub, fontSize: 16 }}>
+                  {showPass ? "🙈" : "👁"}
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
 
+          {/* Error */}
           {error ? (
             <Text style={[Typography.bodySmall, { color: c.negative }]}>{error}</Text>
           ) : null}
 
+          {/* Recuperar contraseña — solo clientes */}
+          {role === "cliente" && (
+            <TouchableOpacity
+              onPress={handleRecuperarContrasena}
+              disabled={enviando}
+            >
+              <Text style={[Typography.body, { color: c.sub }]}>
+                {enviando ? "Enviando..." : "¿Olvidaste tu contraseña?"}
+              </Text>
+            </TouchableOpacity>
+          )}
+
+          {/* Registro */}
           {role === "cliente" && (
             <TouchableOpacity onPress={() => navigation.navigate("Registro")}>
               <Text style={[Typography.body, { color: c.blue }]}>
@@ -92,6 +137,7 @@ export function LoginScreen() {
             </TouchableOpacity>
           )}
 
+          {/* CTA */}
           <TouchableOpacity
             style={[styles.btn, { backgroundColor: c.blue, opacity: isLoading ? 0.7 : 1 }]}
             onPress={handleLogin}
@@ -111,7 +157,9 @@ export function LoginScreen() {
 
 const styles = StyleSheet.create({
   safe:       { flex: 1 },
-  container:  { flex: 1, padding: Spacing.lg, gap: Spacing.md, justifyContent: "center" },
+  container:  {
+    flex: 1, padding: Spacing.lg, gap: Spacing.md, justifyContent: "center",
+  },
   fieldGroup: { gap: 6 },
   input: {
     height: 50, borderWidth: 1, borderRadius: Radius.md,
