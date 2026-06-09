@@ -4,7 +4,7 @@ import {
   SafeAreaView, TouchableOpacity, Alert, ActivityIndicator,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
-import { collection, getDocs, addDoc, updateDoc, getDoc, doc, Timestamp } from "firebase/firestore";
+import { collection, getDocs, addDoc, Timestamp } from "firebase/firestore";
 import { db } from "../../services/firebase";
 import { useThemeColors } from "../../hooks/useThemeColors";
 import { useAuthStore }   from "../../store/authStore";
@@ -68,6 +68,7 @@ export function ClienteCarritoScreen() {
       await addDoc(collection(db, "pedidos"), {
         clienteUid:    user?.uid,
         clienteNombre: `${user?.nombre} ${user?.apellido}`,
+        clienteEmail:  user?.email ?? null,
         items: carrito.map(i => ({
           productoId: i.id,
           nombre:     i.nombre,
@@ -75,32 +76,17 @@ export function ClienteCarritoScreen() {
           cantidad:   i.cantidad,
         })),
         total,
-        estado:    "pendiente",
+        estado:    aCredito ? "pendiente_credito" : "pendiente",
         aCredito,
         createdAt: Timestamp.now(),
       });
-
-      // Si es a crédito, registrar cargo en movimientos y aumentar saldo
-      if (aCredito && user?.uid) {
-        const userRef  = doc(db, "users", user.uid);
-        const userSnap = await getDoc(userRef);
-        const saldoActual = userSnap.exists() ? (userSnap.data().saldo ?? 0) : 0;
-        await updateDoc(userRef, { saldo: saldoActual + total });
-        await addDoc(collection(db, "movimientos"), {
-          clienteUid:  user.uid,
-          tipo:        "cargo",
-          descripcion: `Pedido tienda — ${carrito.map(i => `${i.nombre} x${i.cantidad}`).join(", ")}`,
-          monto:       total,
-          fecha:       Timestamp.now(),
-        });
-      }
 
       setCarrito([]);
       Alert.alert(
         "✅ Pedido enviado",
         aCredito
-          ? `Tu pedido de $${total.toLocaleString("es-CO")} quedó registrado a crédito. El admin lo aprobará pronto.`
-          : "El admin aprobará tu pedido pronto."
+          ? "Tu solicitud de crédito fue enviada. El administrador la revisará y recibirás una notificación con la respuesta."
+          : "Tu pedido fue enviado. El admin lo aprobará pronto."
       );
     } catch {
       Alert.alert("Error", "No se pudo enviar el pedido.");
