@@ -10,6 +10,7 @@ import { ClienteCarritoScreen }    from "../screens/cliente/ClienteCarritoScreen
 import { ClienteSaldoScreen }      from "../screens/cliente/ClienteSaldoScreen";
 import { ClientePerfilScreen }     from "../screens/cliente/ClientePerfilScreen";
 import { ClienteHistorialScreen }  from "../screens/cliente/ClienteHistorialScreen";
+import { ClienteReagendarScreen }  from "../screens/cliente/ClienteReagendarScreen";
 
 const Tab   = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -66,6 +67,7 @@ export function ClienteNavigator() {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="ClienteTabs"      component={ClienteTabs} />
       <Stack.Screen name="ClienteHistorial" component={ClienteHistorialScreen} />
+      <Stack.Screen name="ClienteReagendar" component={ClienteReagendarScreen} />
     </Stack.Navigator>
   );
 }

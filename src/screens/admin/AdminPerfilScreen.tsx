@@ -24,9 +24,10 @@ export function AdminPerfilScreen() {
 
   const menuItems = [
     { icon: "schedule",        label: "Horario y servicios",  action: () => navigation.navigate("AdminHorario") },
+    { icon: "content-cut",     label: "Servicios y precios",  action: () => navigation.navigate("AdminServicios") },
     { icon: "campaign",        label: "Eventos y publicidad", action: () => navigation.navigate("AdminEventos") },
     { icon: "inventory",       label: "Inventario",           action: () => navigation.navigate("AdminInventario") },
-    { icon: "bar-chart",       label: "Balances mensuales",   action: () => navigation.navigate("Pagos") },
+    { icon: "bar-chart",       label: "Balances mensuales",   action: () => navigation.navigate("AdminBalances") },
     { icon: "manage-accounts", label: "Roles temporales",     action: () => navigation.navigate("AdminEmpleados") },
   ];
 

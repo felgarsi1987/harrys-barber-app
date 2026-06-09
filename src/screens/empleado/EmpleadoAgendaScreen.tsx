@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import {
   View, Text, ScrollView, StyleSheet,
   SafeAreaView, TouchableOpacity, ActivityIndicator, Alert,
+  RefreshControl,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
@@ -42,6 +43,7 @@ export function EmpleadoAgendaScreen() {
   const navigation = useNavigation<any>();
   const [reservas,  setReservas]  = useState<Reserva[]>([]);
   const [loading,   setLoading]   = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
   const [diaOffset, setDiaOffset] = useState(0);
 
   const marcarFallido = async (reserva: Reserva) => {
@@ -110,23 +112,33 @@ export function EmpleadoAgendaScreen() {
     weekday: "long", day: "numeric", month: "long",
   }).toUpperCase();
 
-  useEffect(() => {
-    setLoading(true);
+  const loadReservas = async () => {
     const inicio = new Date(fechaSeleccionada);
     inicio.setHours(0, 0, 0, 0);
     const fin = new Date(fechaSeleccionada);
     fin.setHours(23, 59, 59, 999);
-
-    getDocs(query(
-      collection(db, "reservas"),
-      where("fecha", ">=", Timestamp.fromDate(inicio)),
-      where("fecha", "<=", Timestamp.fromDate(fin)),
-      orderBy("fecha", "asc")
-    )).then(snap => {
+    try {
+      const snap = await getDocs(query(
+        collection(db, "reservas"),
+        where("fecha", ">=", Timestamp.fromDate(inicio)),
+        where("fecha", "<=", Timestamp.fromDate(fin)),
+        orderBy("fecha", "asc")
+      ));
       setReservas(snap.docs.map(d => ({ id: d.id, ...d.data() }) as Reserva));
-    }).catch(console.log)
-    .finally(() => setLoading(false));
+    } catch(e) { console.log(e); }
+    finally { setLoading(false); }
+  };
+
+  useEffect(() => {
+    setLoading(true);
+    loadReservas();
   }, [diaOffset]);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await loadReservas();
+    setRefreshing(false);
+  };
 
   const dias = Array.from({ length: 7 }, (_, i) => {
     const d = new Date();
@@ -188,7 +200,7 @@ export function EmpleadoAgendaScreen() {
       {loading ? (
         <ActivityIndicator color={c.amber} style={{ marginTop: 40 }} />
       ) : (
-        <ScrollView contentContainerStyle={styles.scroll}>
+        <ScrollView contentContainerStyle={styles.scroll} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={c.amber} />}>
           {reservas.length === 0 ? (
             <View style={styles.empty}>
               <MaterialIcons name="event-busy" size={48} color={c.sub} />

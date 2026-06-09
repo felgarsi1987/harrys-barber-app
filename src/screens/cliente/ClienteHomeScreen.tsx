@@ -186,7 +186,6 @@ const SERVICIOS = [
   { icon: "content-cut",  label: "Corte",        precio: "Desde $15.000" },
   { icon: "face",         label: "Barba",         precio: "Desde $10.000" },
   { icon: "auto-awesome", label: "Corte + Barba", precio: "Desde $22.000" },
-  { icon: "spa",          label: "Tratamiento",   precio: "Desde $20.000" },
 ];
 
 const styles = StyleSheet.create({

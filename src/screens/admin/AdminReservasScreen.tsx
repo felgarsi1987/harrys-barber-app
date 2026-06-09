@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import {
   View, Text, ScrollView, StyleSheet,
   SafeAreaView, TouchableOpacity, ActivityIndicator, Alert,
+  RefreshControl,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
@@ -10,6 +11,7 @@ import {
   doc, updateDoc, Timestamp,
 } from "firebase/firestore";
 import { db } from "../../services/firebase";
+import { notificarCambioEstado, cancelarRecordatorio } from "../../services/notifications";
 import { useThemeColors } from "../../hooks/useThemeColors";
 import { ThemedCard }     from "../../components/ui/ThemedCard";
 import { TagChip }        from "../../components/ui/TagChip";
@@ -39,9 +41,10 @@ const ESTADO_CHIP: Record<string, any> = {
 export function AdminReservasScreen() {
   const c = useThemeColors();
   const navigation = useNavigation<any>();
-  const [reservas, setReservas] = useState<Reserva[]>([]);
-  const [loading,  setLoading]  = useState(true);
-  const [filter,   setFilter]   = useState<"todas" | "pendiente" | "confirmada">("todas");
+  const [reservas,   setReservas]   = useState<Reserva[]>([]);
+  const [loading,    setLoading]    = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
+  const [filter,     setFilter]     = useState<"todas" | "pendiente" | "confirmada">("todas");
 
   const loadReservas = async () => {
     try {
@@ -54,6 +57,12 @@ export function AdminReservasScreen() {
   };
 
   useEffect(() => { loadReservas(); }, []);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await loadReservas();
+    setRefreshing(false);
+  };
 
   const cambiarEstado = async (reserva: Reserva, nuevoEstado: Reserva["estado"]) => {
     const labels: Record<string, string> = {
@@ -78,6 +87,9 @@ export function AdminReservasScreen() {
               setReservas(prev =>
                 prev.map(r => r.id === reserva.id ? { ...r, estado: nuevoEstado } : r)
               );
+              // Notificar al cliente
+              notificarCambioEstado(reserva.clienteUid, reserva.clienteNombre, reserva.servicio, nuevoEstado, reserva.hora);
+              if (nuevoEstado === "negada" || nuevoEstado === "aplazada") cancelarRecordatorio(reserva.id);
             } catch {
               Alert.alert("Error", "No se pudo actualizar.");
             }
@@ -118,6 +130,7 @@ export function AdminReservasScreen() {
               setReservas(prev =>
                 prev.map(r => r.id === reserva.id ? { ...r, estado: "completada" } : r)
               );
+              notificarCambioEstado(reserva.clienteUid, reserva.clienteNombre, reserva.servicio, "completada", reserva.hora);
               Alert.alert("✅ Ingreso registrado", `Servicio completado para ${reserva.clienteNombre}`);
             } catch {
               Alert.alert("Error", "No se pudo registrar el servicio.");
@@ -146,6 +159,7 @@ export function AdminReservasScreen() {
               setReservas(prev =>
                 prev.map(r => r.id === reserva.id ? { ...r, estado: "fallida" as any } : r)
               );
+              notificarCambioEstado(reserva.clienteUid, reserva.clienteNombre, reserva.servicio, "fallida", reserva.hora);
             } catch {
               Alert.alert("Error", "No se pudo actualizar.");
             }
@@ -202,7 +216,10 @@ export function AdminReservasScreen() {
       {loading ? (
         <ActivityIndicator color={c.amber} style={{ marginTop: 40 }} />
       ) : (
-        <ScrollView contentContainerStyle={styles.scroll}>
+        <ScrollView
+          contentContainerStyle={styles.scroll}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={c.amber} />}
+        >
           {filtered.length === 0 ? (
             <View style={styles.empty}>
               <MaterialIcons name="event-busy" size={48} color={c.sub} />

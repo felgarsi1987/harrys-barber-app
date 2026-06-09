@@ -10,6 +10,8 @@ import {
   where, Timestamp,
 } from "firebase/firestore";
 import { db } from "../../services/firebase";
+import { programarRecordatorio } from "../../services/notifications";
+import { getServicios, Servicio } from "../../services/serviciosService";
 import { useThemeColors } from "../../hooks/useThemeColors";
 import { useAuthStore }   from "../../store/authStore";
 import { ThemedCard }     from "../../components/ui/ThemedCard";
@@ -22,12 +24,7 @@ LocaleConfig.locales["es"] = {
 };
 LocaleConfig.defaultLocale = "es";
 
-const SERVICIOS = [
-  { label: "Corte clásico",  precio: 15000, duracion: 30 },
-  { label: "Corte + Barba",  precio: 22000, duracion: 45 },
-  { label: "Barba",          precio: 10000, duracion: 20 },
-  { label: "Tratamiento",    precio: 20000, duracion: 40 },
-];
+// Servicios se cargan de Firestore via serviciosService
 
 interface Peluquero {
   uid:              string;
@@ -42,6 +39,7 @@ export function ClienteAgendarScreen() {
   const c = useThemeColors();
   const { user } = useAuthStore();
 
+  const [servicios,          setServicios]          = useState<Servicio[]>([]);
   const [peluqueros,        setPeluqueros]        = useState<Peluquero[]>([]);
   const [peluqueroSel,      setPeluqueroSel]      = useState<Peluquero | null>(null);
   const [fechaSeleccionada, setFechaSeleccionada] = useState("");
@@ -61,6 +59,9 @@ export function ClienteAgendarScreen() {
   // Cargar peluqueros disponibles y config de horario
   useEffect(() => {
     Promise.all([
+      // Servicios desde Firestore
+      getServicios().then(data => setServicios(data)),
+
       // Peluqueros con disponibleAgenda = true
       getDocs(query(
         collection(db, "users"),
@@ -135,9 +136,10 @@ export function ClienteAgendarScreen() {
     }
     setGuardando(true);
     try {
-      const servicio = SERVICIOS[servicioSel];
+      if (!servicios.length) return;
+      const servicio = servicios[servicioSel];
       const fecha    = new Date(fechaSeleccionada + "T" + horaSeleccionada);
-      await addDoc(collection(db, "reservas"), {
+      const docRef = await addDoc(collection(db, "reservas"), {
         clienteUid:      user?.uid,
         clienteNombre:   `${user?.nombre} ${user?.apellido}`,
         clienteEmail:    user?.email,
@@ -151,6 +153,13 @@ export function ClienteAgendarScreen() {
         noRegistrado:    false,
         createdAt:       Timestamp.now(),
       });
+      // Programar recordatorio 1h antes
+      programarRecordatorio(
+        docRef.id,
+        servicio.label,
+        fecha,
+        `${peluqueroSel.nombre} ${peluqueroSel.apellido}`
+      );
       Alert.alert(
         "✅ Reserva enviada",
         `Tu cita con ${peluqueroSel.nombre} fue enviada. El admin la confirmará pronto.`
@@ -249,7 +258,7 @@ export function ClienteAgendarScreen() {
         </View>
 
         <View style={styles.serviciosRow}>
-          {SERVICIOS.map((s, i) => (
+          {servicios.map((s, i) => (
             <TouchableOpacity
               key={i}
               onPress={() => setServicioSel(i)}
@@ -359,10 +368,10 @@ export function ClienteAgendarScreen() {
             <Text style={[styles.resumenTitle, { color: c.text }]}>Resumen</Text>
             {[
               { label: "Peluquero", value: `${peluqueroSel.nombre} ${peluqueroSel.apellido}` },
-              { label: "Servicio",  value: SERVICIOS[servicioSel].label },
+              { label: "Servicio",  value: servicios[servicioSel].label },
               { label: "Fecha",     value: fechaSeleccionada },
               { label: "Hora",      value: horaSeleccionada },
-              { label: "Precio",    value: `$${SERVICIOS[servicioSel].precio.toLocaleString("es-CO")}`, amber: true },
+              { label: "Precio",    value: `$${servicios[servicioSel].precio.toLocaleString("es-CO")}`, amber: true },
             ].map((row, i) => (
               <View key={i} style={styles.resumenRow}>
                 <Text style={[styles.resumenLabel, { color: c.sub }]}>{row.label}</Text>

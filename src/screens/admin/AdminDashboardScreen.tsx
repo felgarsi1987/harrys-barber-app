@@ -170,10 +170,12 @@ function KPICard({ label, value, icon, c, positive = false, negative = false }: 
 
 const ACTIONS = [
   { icon: "event-available",  label: "Reservas",    desc: "Gestionar citas",      route: "Reservas" },
+  { icon: "assignment-ind",   label: "Asignar",     desc: "Reserva a empleado",   route: "AdminAsignarReserva" },
   { icon: "payments",         label: "Pagos",       desc: "Créditos y abonos",    route: "Pagos" },
   { icon: "people",           label: "Empleados",   desc: "Equipo de trabajo",    route: "AdminEmpleados" },
+  { icon: "content-cut",      label: "Servicios",   desc: "Precios y catálogo",   route: "AdminServicios" },
   { icon: "inventory-2",      label: "Inventario",  desc: "Stock de productos",   route: "AdminInventario" },
-  { icon: "bar-chart",        label: "Balances",    desc: "Peluquería y tienda",  route: "Pagos" },
+  { icon: "bar-chart",        label: "Balances",    desc: "Peluquería y tienda",  route: "AdminBalances" },
   { icon: "campaign",         label: "Eventos",     desc: "Publicidad activa",    route: "AdminEventos" },
 ];
 

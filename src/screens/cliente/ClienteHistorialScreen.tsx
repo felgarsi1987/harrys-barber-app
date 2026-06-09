@@ -1,9 +1,10 @@
 import React, { useEffect, useState } from "react";
 import {
   View, Text, ScrollView, StyleSheet,
-  SafeAreaView, ActivityIndicator,
+  SafeAreaView, ActivityIndicator, RefreshControl,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
+import { useNavigation } from "@react-navigation/native";
 import {
   collection, getDocs, query, where, orderBy, Timestamp,
 } from "firebase/firestore";
@@ -15,12 +16,14 @@ import { TagChip }        from "../../components/ui/TagChip";
 import { BackHeader }     from "../../components/ui/BackHeader";
 
 interface Reserva {
-  id:       string;
-  servicio: string;
-  precio?:  number;
-  hora:     string;
-  fecha:    Timestamp;
-  estado:   string;
+  id:              string;
+  servicio:        string;
+  precio?:         number;
+  hora:            string;
+  fecha:           Timestamp;
+  estado:          string;
+  peluqueroUid?:   string;
+  peluqueroNombre?: string;
 }
 
 const ESTADO_CHIP: Record<string, any> = {
@@ -43,21 +46,32 @@ const ESTADO_ICON: Record<string, string> = {
 
 export function ClienteHistorialScreen() {
   const c = useThemeColors();
+  const navigation = useNavigation<any>();
   const { user } = useAuthStore();
   const [reservas, setReservas] = useState<Reserva[]>([]);
-  const [loading,  setLoading]  = useState(true);
+  const [loading,   setLoading]   = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
+  const loadReservas = async () => {
     if (!user?.uid) return;
-    getDocs(query(
-      collection(db, "reservas"),
-      where("clienteUid", "==", user.uid),
-      orderBy("fecha", "desc")
-    )).then(snap => {
+    try {
+      const snap = await getDocs(query(
+        collection(db, "reservas"),
+        where("clienteUid", "==", user.uid),
+        orderBy("fecha", "desc")
+      ));
       setReservas(snap.docs.map(d => ({ id: d.id, ...d.data() }) as Reserva));
-    }).catch(console.log)
-    .finally(() => setLoading(false));
-  }, [user?.uid]);
+    } catch(e) { console.log(e); }
+    finally { setLoading(false); }
+  };
+
+  useEffect(() => { loadReservas(); }, [user?.uid]);
+
+  const onRefresh = async () => {
+    setRefreshing(true);
+    await loadReservas();
+    setRefreshing(false);
+  };
 
   const formatFecha = (ts: Timestamp) =>
     ts.toDate().toLocaleDateString("es-CO", {
@@ -87,7 +101,7 @@ export function ClienteHistorialScreen() {
           </Text>
         </View>
       ) : (
-        <ScrollView contentContainerStyle={styles.scroll}>
+        <ScrollView contentContainerStyle={styles.scroll} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={c.amber} />}>
           {Object.entries(grouped).map(([mes, citas]) => (
             <View key={mes} style={styles.grupo}>
               <Text style={[styles.mesLabel, { color: c.sub }]}>
@@ -114,6 +128,20 @@ export function ClienteHistorialScreen() {
                         ${r.precio.toLocaleString("es-CO")}
                       </Text>
                     )}
+                    {r.estado === "aplazada" && r.peluqueroUid && (
+                      <TouchableOpacity
+                        onPress={() => navigation.navigate("ClienteReagendar", {
+                          reservaId:       r.id,
+                          servicio:        r.servicio,
+                          peluqueroUid:    r.peluqueroUid,
+                          peluqueroNombre: r.peluqueroNombre ?? "Barbero",
+                        })}
+                        style={[styles.reagendarBtn, { borderColor: c.amber + "66", backgroundColor: c.amber + "18" }]}
+                      >
+                        <MaterialIcons name="event-repeat" size={14} color={c.amber} />
+                        <Text style={[styles.reagendarBtnText, { color: c.amber }]}>Reagendar</Text>
+                      </TouchableOpacity>
+                    )}
                   </View>
                   <TagChip label={r.estado} variant={ESTADO_CHIP[r.estado] ?? "default"} />
                 </ThemedCard>
@@ -139,4 +167,10 @@ const styles = StyleSheet.create({
   servicio:   { fontSize: 14, fontFamily: "SpaceGrotesk_600SemiBold" },
   fecha:      { fontSize: 12, fontFamily: "SpaceGrotesk_400Regular" },
   precio:     { fontSize: 12, fontFamily: "SpaceGrotesk_600SemiBold" },
+  reagendarBtn: {
+    flexDirection: "row", alignItems: "center", gap: 5,
+    marginTop: 4, paddingVertical: 6, paddingHorizontal: 10,
+    borderRadius: 8, borderWidth: 1, alignSelf: "flex-start",
+  },
+  reagendarBtnText: { fontSize: 12, fontFamily: "SpaceGrotesk_600SemiBold" },
 });

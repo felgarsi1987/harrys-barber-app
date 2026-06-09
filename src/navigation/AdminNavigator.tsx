@@ -14,6 +14,9 @@ import { AdminEmpleadosScreen }     from "../screens/admin/AdminEmpleadosScreen"
 import { AdminInventarioScreen }    from "../screens/admin/AdminInventarioScreen";
 import { AdminEventosScreen }       from "../screens/admin/AdminEventosScreen";
 import { AdminNuevaReservaScreen }  from "../screens/admin/AdminNuevaReservaScreen";
+import { AdminBalancesScreen }      from "../screens/admin/AdminBalancesScreen";
+import { AdminServiciosScreen }     from "../screens/admin/AdminServiciosScreen";
+import { AdminAsignarReservaScreen }from "../screens/admin/AdminAsignarReservaScreen";
 
 const Tab   = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -76,6 +79,9 @@ export function AdminNavigator() {
       <Stack.Screen name="AdminInventario"     component={AdminInventarioScreen} />
       <Stack.Screen name="AdminEventos"        component={AdminEventosScreen} />
       <Stack.Screen name="AdminNuevaReserva"   component={AdminNuevaReservaScreen} />
+      <Stack.Screen name="AdminBalances"        component={AdminBalancesScreen} />
+      <Stack.Screen name="AdminServicios"       component={AdminServiciosScreen} />
+      <Stack.Screen name="AdminAsignarReserva"  component={AdminAsignarReservaScreen} />
     </Stack.Navigator>
   );
 }

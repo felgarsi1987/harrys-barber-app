@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View, Text, ScrollView, StyleSheet,
   SafeAreaView, TouchableOpacity, TextInput,
@@ -6,15 +6,11 @@ import {
 } from "react-native";
 import { collection, addDoc, Timestamp } from "firebase/firestore";
 import { db } from "../../services/firebase";
+import { getServicios, Servicio } from "../../services/serviciosService";
 import { useThemeColors } from "../../hooks/useThemeColors";
 import { ThemedCard }     from "../../components/ui/ThemedCard";
 
-const SERVICIOS = [
-  { label: "Corte clásico",  precio: 15000 },
-  { label: "Corte + Barba",  precio: 22000 },
-  { label: "Barba",          precio: 10000 },
-  { label: "Tratamiento",    precio: 20000 },
-];
+// Servicios cargados desde Firestore
 
 const HORAS = [
   "08:00","08:30","09:00","09:30","10:00","10:30","11:00","11:30",
@@ -24,11 +20,14 @@ const HORAS = [
 export function EmpleadoReservaScreen() {
   const c = useThemeColors();
 
+  const [servicios,      setServicios]      = useState<Servicio[]>([]);
   const [noRegistrado,  setNoRegistrado]  = useState(false);
   const [nombreCliente, setNombreCliente] = useState("");
   const [servicioSel,   setServicioSel]   = useState(0);
   const [horaSel,       setHoraSel]       = useState("");
   const [guardando,     setGuardando]     = useState(false);
+
+  useEffect(() => { getServicios().then(setServicios); }, []);
 
   const hoy    = new Date();
   const hoyStr = hoy.toISOString().split("T")[0];
@@ -40,7 +39,8 @@ export function EmpleadoReservaScreen() {
     }
     setGuardando(true);
     try {
-      const servicio = SERVICIOS[servicioSel];
+      if (!servicios.length) return;
+    const servicio = servicios[servicioSel];
       const fecha    = new Date(`${hoyStr}T${horaSel}`);
       await addDoc(collection(db, "reservas"), {
         clienteNombre: nombreCliente.trim(),
@@ -103,7 +103,7 @@ export function EmpleadoReservaScreen() {
         {/* Servicio */}
         <Text style={[styles.sectionLabel, { color: c.sub }]}>SERVICIO</Text>
         <View style={styles.serviciosGrid}>
-          {SERVICIOS.map((s, i) => (
+          {servicios.map((s, i) => (
             <TouchableOpacity
               key={i}
               onPress={() => setServicioSel(i)}
