@@ -69,7 +69,7 @@ export function AdminDashboardScreen() {
       {/* ── HEADER ── */}
       <View style={[styles.header, { borderBottomColor: c.border }]}>
         <Image
-          source={require("../../assets/images/harrys_logo.png")}
+          source={require("../../assets/images/HarrysBarberShop.png")}
           style={styles.headerLogo}
           resizeMode="contain"
         />
