@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from "react";
 import {
   View, Text, ScrollView, StyleSheet,
-  TouchableOpacity, TextInput, ActivityIndicator, Alert,
+  TouchableOpacity, TextInput, ActivityIndicator, Alert, Switch,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { BackHeader }    from "../../components/ui/BackHeader";
 import {
   collection, getDocs, query, where,
-  doc, setDoc, serverTimestamp,
+  doc, setDoc, updateDoc, serverTimestamp,
 } from "firebase/firestore";
 import {
   createUserWithEmailAndPassword,
@@ -19,11 +19,12 @@ import { TagChip }        from "../../components/ui/TagChip";
 import { ScreenWrapper }  from "../../components/ui/ScreenWrapper";
 
 interface Empleado {
-  uid:      string;
-  nombre:   string;
-  apellido: string;
-  email:    string;
+  uid:               string;
+  nombre:            string;
+  apellido:          string;
+  email:             string;
   canApproveOrders?: boolean;
+  disponibleAgenda?: boolean;
 }
 
 export function AdminEmpleadosScreen() {
@@ -60,11 +61,12 @@ export function AdminEmpleadosScreen() {
         auth, form.email.trim(), form.password
       );
       const newEmp: Empleado = {
-        uid:      credential.user.uid,
-        nombre:   form.nombre.trim(),
-        apellido: form.apellido.trim(),
-        email:    form.email.trim(),
-        canApproveOrders: false,
+        uid:               credential.user.uid,
+        nombre:            form.nombre.trim(),
+        apellido:          form.apellido.trim(),
+        email:             form.email.trim(),
+        canApproveOrders:  false,
+        disponibleAgenda:  false,
       };
       await setDoc(doc(db, "users", credential.user.uid), {
         ...newEmp,
@@ -78,6 +80,18 @@ export function AdminEmpleadosScreen() {
     } catch (e: any) {
       Alert.alert("Error", e.message);
     } finally { setSaving(false); }
+  };
+
+  const toggleDisponibilidad = async (emp: Empleado) => {
+    const nuevo = !emp.disponibleAgenda;
+    try {
+      await updateDoc(doc(db, "users", emp.uid), { disponibleAgenda: nuevo });
+      setEmpleados(prev =>
+        prev.map(e => e.uid === emp.uid ? { ...e, disponibleAgenda: nuevo } : e)
+      );
+    } catch {
+      Alert.alert("Error", "No se pudo actualizar la disponibilidad.");
+    }
   };
 
   return (
@@ -147,16 +161,33 @@ export function AdminEmpleadosScreen() {
                   {emp.nombre[0]}{emp.apellido?.[0] ?? ""}
                 </Text>
               </View>
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.empName, { color: c.text }]}>
+              <View style={{ flex: 1, gap: 4 }}>
+                <Text style={[styles.empName,  { color: c.text }]}>
                   {emp.nombre} {emp.apellido}
                 </Text>
                 <Text style={[styles.empEmail, { color: c.sub }]}>{emp.email}</Text>
+                <View style={styles.disponRow}>
+                  <MaterialIcons
+                    name={emp.disponibleAgenda ? "event-available" : "event-busy"}
+                    size={13}
+                    color={emp.disponibleAgenda ? c.positive : c.sub}
+                  />
+                  <Text style={[styles.disponLabel, {
+                    color: emp.disponibleAgenda ? c.positive : c.sub
+                  }]}>
+                    {emp.disponibleAgenda ? "Disponible en agenda" : "No disponible"}
+                  </Text>
+                </View>
                 {emp.canApproveOrders && (
                   <TagChip label="Rol temporal" variant="warning" />
                 )}
               </View>
-              <MaterialIcons name="chevron-right" size={20} color={c.sub} />
+              <Switch
+                value={emp.disponibleAgenda ?? false}
+                onValueChange={() => toggleDisponibilidad(emp)}
+                trackColor={{ false: c.border, true: c.amber + "66" }}
+                thumbColor={emp.disponibleAgenda ? c.amber : c.sub}
+              />
             </ThemedCard>
           ))
         )}
@@ -196,4 +227,6 @@ const styles = StyleSheet.create({
   avatarText: { fontSize: 16, fontFamily: "Syne_700Bold" },
   empName:    { fontSize: 15, fontFamily: "SpaceGrotesk_600SemiBold" },
   empEmail:   { fontSize: 12, fontFamily: "SpaceGrotesk_400Regular", marginTop: 2 },
+  disponRow:  { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 2 },
+  disponLabel:{ fontSize: 11, fontFamily: "SpaceGrotesk_500Medium" },
 });
