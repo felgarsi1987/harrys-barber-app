@@ -50,7 +50,7 @@ export function EntradaScreen() {
 
         {/* Logo oficial circular */}
         <Image
-          source={require("../../assets/images/HarrysBarberShop.png")}
+          source={require("../../assets/images/harrys_logo_clean.png")}
           style={styles.logoImg}
           resizeMode="contain"
         />

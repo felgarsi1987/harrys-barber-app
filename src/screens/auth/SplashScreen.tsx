@@ -44,7 +44,7 @@ export function SplashScreen() {
     <View style={styles.container}>
       <Animated.View style={[styles.logoWrapper, { opacity: logoOpacity }]}>
         <Image
-          source={require("../../assets/images/HarrysBarberShop.png")}
+          source={require("../../assets/images/harrys_logo_clean.png")}
           style={styles.logo}
           resizeMode="contain"
         />

@@ -81,7 +81,7 @@ export function ClienteHomeScreen() {
       {/* Header */}
       <View style={[styles.header, { borderBottomColor: c.border }]}>
         <Image
-          source={require("../../assets/images/HarrysBarberShop.png")}
+          source={require("../../assets/images/harrys_logo_clean.png")}
           style={styles.logo}
           resizeMode="contain"
         />
