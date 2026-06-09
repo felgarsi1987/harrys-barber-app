@@ -1,19 +1,24 @@
 import React from "react";
+import { createStackNavigator } from "@react-navigation/stack";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useThemeColors } from "../hooks/useThemeColors";
 
-import { AdminDashboardScreen } from "../screens/admin/AdminDashboardScreen";
-import { AdminReservasScreen }  from "../screens/admin/AdminReservasScreen";
-import { AdminPagosScreen }     from "../screens/admin/AdminPagosScreen";
-import { AdminClientesScreen }  from "../screens/admin/AdminClientesScreen";
-import { AdminPerfilScreen }    from "../screens/admin/AdminPerfilScreen";
+import { AdminDashboardScreen }  from "../screens/admin/AdminDashboardScreen";
+import { AdminReservasScreen }   from "../screens/admin/AdminReservasScreen";
+import { AdminPagosScreen }      from "../screens/admin/AdminPagosScreen";
+import { AdminClientesScreen }   from "../screens/admin/AdminClientesScreen";
+import { AdminPerfilScreen }     from "../screens/admin/AdminPerfilScreen";
+import { AdminInventarioScreen } from "../screens/admin/AdminInventarioScreen";
+import { AdminEventosScreen }    from "../screens/admin/AdminEventosScreen";
+import { AdminEmpleadosScreen }  from "../screens/admin/AdminEmpleadosScreen";
+import { AdminHorarioScreen }    from "../screens/admin/AdminHorarioScreen";
 
-const Tab = createBottomTabNavigator();
+const Tab   = createBottomTabNavigator();
+const Stack = createStackNavigator();
 
-export function AdminNavigator() {
+function AdminTabs() {
   const c = useThemeColors();
-
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
@@ -55,5 +60,17 @@ export function AdminNavigator() {
       <Tab.Screen name="Clientes"  component={AdminClientesScreen} />
       <Tab.Screen name="Perfil"    component={AdminPerfilScreen} />
     </Tab.Navigator>
+  );
+}
+
+export function AdminNavigator() {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="AdminTabs"    component={AdminTabs} />
+      <Stack.Screen name="Inventario"   component={AdminInventarioScreen} />
+      <Stack.Screen name="Eventos"      component={AdminEventosScreen} />
+      <Stack.Screen name="Empleados"    component={AdminEmpleadosScreen} />
+      <Stack.Screen name="Horario"      component={AdminHorarioScreen} />
+    </Stack.Navigator>
   );
 }
