@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import { View } from "react-native";
 import * as SplashScreen from "expo-splash-screen";
 import * as Font from "expo-font";
+import * as Network from "expo-network";
 import {
   SpaceGrotesk_400Regular,
   SpaceGrotesk_500Medium,
@@ -11,12 +12,14 @@ import {
   Syne_700Bold,
   Syne_800ExtraBold,
 } from "@expo-google-fonts/syne";
-import { RootNavigator } from "./src/navigation/RootNavigator";
+import { RootNavigator }      from "./src/navigation/RootNavigator";
+import { SinConexionScreen }  from "./src/screens/errors/SinConexionScreen";
 
 SplashScreen.preventAutoHideAsync();
 
 export default function App() {
-  const [fontsLoaded, setFontsLoaded] = useState(false);
+  const [fontsLoaded,   setFontsLoaded]   = useState(false);
+  const [sinConexion,   setSinConexion]   = useState(false);
 
   useEffect(() => {
     Font.loadAsync({
@@ -26,13 +29,34 @@ export default function App() {
       Syne_700Bold,
       Syne_800ExtraBold,
     }).then(() => setFontsLoaded(true));
+
+    // Verificar conexión
+    checkConnection();
   }, []);
+
+  const checkConnection = async () => {
+    try {
+      const state = await Network.getNetworkStateAsync();
+      setSinConexion(!state.isConnected);
+    } catch {
+      setSinConexion(false);
+    }
+  };
 
   const onLayoutRootView = useCallback(async () => {
     if (fontsLoaded) await SplashScreen.hideAsync();
   }, [fontsLoaded]);
 
   if (!fontsLoaded) return null;
+
+  if (sinConexion) {
+    return (
+      <SinConexionScreen onRetry={() => {
+        setSinConexion(false);
+        checkConnection();
+      }} />
+    );
+  }
 
   return (
     <View style={{ flex: 1 }} onLayout={onLayoutRootView}>
