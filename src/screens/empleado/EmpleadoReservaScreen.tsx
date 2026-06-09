@@ -7,6 +7,7 @@ import { collection, addDoc, Timestamp } from "firebase/firestore";
 import { db } from "../../services/firebase";
 import { getServicios, Servicio } from "../../services/serviciosService";
 import { useThemeColors } from "../../hooks/useThemeColors";
+import { useAuthStore }   from "../../store/authStore";
 import { ThemedCard }     from "../../components/ui/ThemedCard";
 import { ScreenWrapper }  from "../../components/ui/ScreenWrapper";
 
@@ -19,8 +20,10 @@ const HORAS = [
 
 export function EmpleadoReservaScreen() {
   const c = useThemeColors();
+  const { user } = useAuthStore();
 
-  const [servicios,      setServicios]      = useState<Servicio[]>([]);
+  const [servicios,     setServicios]     = useState<Servicio[]>([]);
+  const [paraMiMismo,   setParaMiMismo]   = useState(false);
   const [noRegistrado,  setNoRegistrado]  = useState(false);
   const [nombreCliente, setNombreCliente] = useState("");
   const [servicioSel,   setServicioSel]   = useState(0);
@@ -28,6 +31,16 @@ export function EmpleadoReservaScreen() {
   const [guardando,     setGuardando]     = useState(false);
 
   useEffect(() => { getServicios().then(setServicios); }, []);
+
+  const toggleParaMiMismo = (val: boolean) => {
+    setParaMiMismo(val);
+    if (val) {
+      setNombreCliente(`${user?.nombre ?? ""} ${user?.apellido ?? ""}`.trim());
+      setNoRegistrado(false);
+    } else {
+      setNombreCliente("");
+    }
+  };
 
   const hoy    = new Date();
   const hoyStr = hoy.toISOString().split("T")[0];
@@ -40,25 +53,32 @@ export function EmpleadoReservaScreen() {
     setGuardando(true);
     try {
       if (!servicios.length) return;
-    const servicio = servicios[servicioSel];
+      const servicio = servicios[servicioSel];
       const fecha    = new Date(`${hoyStr}T${horaSel}`);
       await addDoc(collection(db, "reservas"), {
-        clienteNombre: nombreCliente.trim(),
-        clienteUid:    null,
-        clienteEmail:  null,
-        servicio:      servicio.label,
-        precio:        servicio.precio,
-        fecha:         Timestamp.fromDate(fecha),
-        hora:          horaSel,
-        estado:        "confirmada",
-        noRegistrado,
+        clienteNombre:     nombreCliente.trim(),
+        clienteUid:        paraMiMismo ? (user?.uid ?? null) : null,
+        clienteEmail:      paraMiMismo ? (user?.email ?? null) : null,
+        servicio:          servicio.label,
+        precio:            servicio.precio,
+        fecha:             Timestamp.fromDate(fecha),
+        hora:              horaSel,
+        estado:            "confirmada",
+        noRegistrado:      !paraMiMismo && noRegistrado,
+        paraMiMismo,
         creadoPorEmpleado: true,
-        createdAt:     Timestamp.now(),
+        createdAt:         Timestamp.now(),
       });
-      Alert.alert("✅ Reserva creada", `${nombreCliente} — ${horaSel}`);
+      Alert.alert(
+        "✅ Reserva creada",
+        paraMiMismo
+          ? `Tu cita para las ${horaSel} fue registrada.`
+          : `${nombreCliente} — ${horaSel}`
+      );
       setNombreCliente("");
       setHoraSel("");
       setNoRegistrado(false);
+      setParaMiMismo(false);
     } catch {
       Alert.alert("Error", "No se pudo crear la reserva.");
     } finally { setGuardando(false); }
@@ -72,32 +92,60 @@ export function EmpleadoReservaScreen() {
 
       <ScrollView contentContainerStyle={styles.scroll}>
 
-        {/* Cliente no registrado toggle */}
-        <ThemedCard style={styles.toggleCard}>
+        {/* Para mí mismo */}
+        <ThemedCard style={[styles.toggleCard, paraMiMismo && { borderColor: c.amber, borderWidth: 1 }]}>
           <View style={{ flex: 1 }}>
-            <Text style={[styles.toggleLabel, { color: c.text }]}>
-              Cliente sin registro
+            <Text style={[styles.toggleLabel, { color: paraMiMismo ? c.amber : c.text }]}>
+              Para mí mismo
             </Text>
             <Text style={[styles.toggleDesc, { color: c.sub }]}>
-              No puede tener crédito
+              La cita queda a tu nombre
             </Text>
           </View>
           <Switch
-            value={noRegistrado}
-            onValueChange={setNoRegistrado}
+            value={paraMiMismo}
+            onValueChange={toggleParaMiMismo}
             trackColor={{ false: c.border, true: c.amber + "66" }}
-            thumbColor={noRegistrado ? c.amber : c.sub}
+            thumbColor={paraMiMismo ? c.amber : c.sub}
           />
         </ThemedCard>
 
+        {/* Cliente sin registro — solo si NO es para mí mismo */}
+        {!paraMiMismo && (
+          <ThemedCard style={styles.toggleCard}>
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.toggleLabel, { color: c.text }]}>
+                Cliente sin registro
+              </Text>
+              <Text style={[styles.toggleDesc, { color: c.sub }]}>
+                No puede tener crédito
+              </Text>
+            </View>
+            <Switch
+              value={noRegistrado}
+              onValueChange={setNoRegistrado}
+              trackColor={{ false: c.border, true: c.amber + "66" }}
+              thumbColor={noRegistrado ? c.amber : c.sub}
+            />
+          </ThemedCard>
+        )}
+
         {/* Nombre cliente */}
-        <Text style={[styles.sectionLabel, { color: c.sub }]}>CLIENTE</Text>
+        <Text style={[styles.sectionLabel, { color: c.sub }]}>
+          {paraMiMismo ? "EMPLEADO" : "CLIENTE"}
+        </Text>
         <TextInput
-          style={[styles.input, { color: c.text, backgroundColor: c.surface, borderColor: c.border }]}
+          style={[styles.input, {
+            color: c.text,
+            backgroundColor: c.surface,
+            borderColor: paraMiMismo ? c.amber + "66" : c.border,
+            opacity: paraMiMismo ? 0.7 : 1,
+          }]}
           value={nombreCliente}
-          onChangeText={setNombreCliente}
-          placeholder="Nombre del cliente"
+          onChangeText={val => !paraMiMismo && setNombreCliente(val)}
+          placeholder={paraMiMismo ? "Tu nombre" : "Nombre del cliente"}
           placeholderTextColor={c.sub}
+          editable={!paraMiMismo}
         />
 
         {/* Servicio */}
