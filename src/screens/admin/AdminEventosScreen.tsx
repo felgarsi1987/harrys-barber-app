@@ -11,9 +11,15 @@ import {
 } from "firebase/firestore";
 import { db } from "../../services/firebase";
 import { useThemeColors } from "../../hooks/useThemeColors";
-import { ThemedCard }     from "../../components/ui/ThemedCard";
-import { TagChip }        from "../../components/ui/TagChip";
-import { ScreenWrapper }  from "../../components/ui/ScreenWrapper";
+import { Calendar, LocaleConfig } from "react-native-calendars";
+
+LocaleConfig.locales["es"] = {
+  monthNames: ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"],
+  monthNamesShort: ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"],
+  dayNames: ["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"],
+  dayNamesShort: ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"],
+};
+LocaleConfig.defaultLocale = "es";
 
 interface Evento {
   id:          string;
@@ -34,6 +40,7 @@ export function AdminEventosScreen() {
   const [editando,     setEditando]     = useState<Evento | null>(null);
   const [form,         setForm]         = useState(EMPTY_FORM);
   const [guardando,    setGuardando]    = useState(false);
+  const [showCalendar, setShowCalendar] = useState(false);
 
   const loadEventos = async () => {
     try {
@@ -61,6 +68,7 @@ export function AdminEventosScreen() {
       setForm(EMPTY_FORM);
     }
     setModalVisible(true);
+    setShowCalendar(false);
   };
 
   const guardar = async () => {
@@ -207,10 +215,11 @@ export function AdminEventosScreen() {
               {editando ? "Editar evento" : "Nuevo evento"}
             </Text>
 
+            <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 500 }} contentContainerStyle={{ gap: 14 }}>
+
             {[
-              { key: "titulo",      label: "Titulo",      placeholder: "Ej. Descuento del 20%" },
-              { key: "descripcion", label: "Descripcion", placeholder: "Descripcion del evento" },
-              { key: "fecha",       label: "Fecha",       placeholder: "Ej. 15 de junio 2026" },
+              { key: "titulo",      label: "Título",      placeholder: "Ej. Descuento del 20%" },
+              { key: "descripcion", label: "Descripción", placeholder: "Descripción del evento" },
             ].map(f => (
               <View key={f.key} style={{ gap: 4 }}>
                 <Text style={[styles.inputLabel, { color: c.sub }]}>{f.label}</Text>
@@ -225,6 +234,71 @@ export function AdminEventosScreen() {
                 />
               </View>
             ))}
+
+            {/* Fecha con calendario */}
+            <View style={{ gap: 6 }}>
+              <Text style={[styles.inputLabel, { color: c.sub }]}>Fecha del evento</Text>
+              <TouchableOpacity
+                onPress={() => setShowCalendar(!showCalendar)}
+                style={[styles.fechaBtn, {
+                  borderColor: form.fecha ? c.amber : c.border,
+                  backgroundColor: c.bg,
+                }]}
+              >
+                <MaterialIcons
+                  name="calendar-today"
+                  size={16}
+                  color={form.fecha ? c.amber : c.sub}
+                />
+                <Text style={[styles.fechaBtnText, {
+                  color: form.fecha ? c.text : c.sub,
+                }]}>
+                  {form.fecha
+                    ? new Date(form.fecha + "T12:00:00").toLocaleDateString("es-CO", {
+                        weekday: "long", day: "numeric", month: "long", year: "numeric",
+                      })
+                    : "Seleccionar fecha"}
+                </Text>
+                <MaterialIcons
+                  name={showCalendar ? "expand-less" : "expand-more"}
+                  size={18}
+                  color={c.sub}
+                />
+              </TouchableOpacity>
+
+              {showCalendar && (
+                <Calendar
+                  minDate={new Date().toISOString().split("T")[0]}
+                  onDayPress={day => {
+                    setForm(prev => ({ ...prev, fecha: day.dateString }));
+                    setShowCalendar(false);
+                  }}
+                  markedDates={form.fecha ? {
+                    [form.fecha]: { selected: true, selectedColor: c.amber }
+                  } : {}}
+                  theme={{
+                    backgroundColor:            c.bg,
+                    calendarBackground:         c.surface,
+                    textSectionTitleColor:      c.sub,
+                    selectedDayBackgroundColor: c.amber,
+                    selectedDayTextColor:       "#000",
+                    todayTextColor:             c.amber,
+                    dayTextColor:               c.text,
+                    textDisabledColor:          c.border,
+                    arrowColor:                 c.amber,
+                    monthTextColor:             c.text,
+                    textDayFontFamily:          "SpaceGrotesk_500Medium",
+                    textMonthFontFamily:        "Syne_700Bold",
+                    textDayHeaderFontFamily:    "SpaceGrotesk_400Regular",
+                    textDayFontSize:            14,
+                    textMonthFontSize:          15,
+                  }}
+                  style={{ borderRadius: 12, overflow: "hidden" }}
+                />
+              )}
+            </View>
+
+            </ScrollView>
 
             <View style={styles.activoRow}>
               <Text style={[styles.activoLabel, { color: c.text }]}>Mostrar en home</Text>
@@ -300,6 +374,11 @@ const styles = StyleSheet.create({
   },
   modalTitle:  { fontSize: 20, fontFamily: "Syne_700Bold" },
   inputLabel:  { fontSize: 12, fontFamily: "SpaceGrotesk_500Medium" },
+  fechaBtn: {
+    flexDirection: "row", alignItems: "center", gap: 8,
+    height: 48, borderWidth: 1, borderRadius: 10, paddingHorizontal: 14,
+  },
+  fechaBtnText: { flex: 1, fontSize: 14, fontFamily: "SpaceGrotesk_400Regular" },
   input: {
     borderWidth: 1, borderRadius: 10, paddingHorizontal: 14,
     paddingVertical: 10, fontSize: 14, fontFamily: "SpaceGrotesk_400Regular", minHeight: 46,
