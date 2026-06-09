@@ -17,6 +17,11 @@ import { AdminNuevaReservaScreen }  from "../screens/admin/AdminNuevaReservaScre
 import { AdminBalancesScreen }      from "../screens/admin/AdminBalancesScreen";
 import { AdminServiciosScreen }     from "../screens/admin/AdminServiciosScreen";
 import { AdminAsignarReservaScreen }from "../screens/admin/AdminAsignarReservaScreen";
+import { PedidosScreen }             from "../screens/shared/PedidosScreen";
+
+function AdminPedidosGestScreen() {
+  return <PedidosScreen mode="admin" showBackHeader={false} />;
+}
 
 const Tab   = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -46,6 +51,7 @@ function AdminTabs() {
           const icons: Record<string, keyof typeof MaterialIcons.glyphMap> = {
             Dashboard: "dashboard",
             Reservas:  "event-available",
+            Pedidos:   "receipt-long",
             Pagos:     "payments",
             Clientes:  "person-search",
             Perfil:    "manage-accounts",
@@ -62,6 +68,7 @@ function AdminTabs() {
     >
       <Tab.Screen name="Dashboard" component={AdminDashboardScreen} />
       <Tab.Screen name="Reservas"  component={AdminReservasScreen} />
+      <Tab.Screen name="Pedidos"   component={AdminPedidosGestScreen} />
       <Tab.Screen name="Pagos"     component={AdminPagosScreen} />
       <Tab.Screen name="Clientes"  component={AdminClientesScreen} />
       <Tab.Screen name="Perfil"    component={AdminPerfilScreen} />

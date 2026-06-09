@@ -1,25 +1,37 @@
 import React, { useEffect, useState } from "react";
 import {
-  View, Text, ScrollView, StyleSheet, ActivityIndicator, TextInput,
+  View, Text, ScrollView, StyleSheet, ActivityIndicator,
+  TextInput, TouchableOpacity, Alert, Modal,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
-import { collection, getDocs, query, where } from "firebase/firestore";
+import {
+  collection, getDocs, query, where,
+  doc, updateDoc,
+} from "firebase/firestore";
 import { db } from "../../services/firebase";
-import { useThemeColors } from "../../hooks/useThemeColors";
-import { ThemedCard }     from "../../components/ui/ThemedCard";
-import { NumberText }     from "../../components/ui/NumberText";
-import { TagChip }        from "../../components/ui/TagChip";
-import { ScreenWrapper }  from "../../components/ui/ScreenWrapper";
+import { useThemeColors }      from "../../hooks/useThemeColors";
+import { ThemedCard }           from "../../components/ui/ThemedCard";
+import { NumberText }           from "../../components/ui/NumberText";
+import { TagChip }              from "../../components/ui/TagChip";
+import { ScreenWrapper }        from "../../components/ui/ScreenWrapper";
+import { FidelizacionBadge, Categoria } from "../../components/ui/FidelizacionBadge";
 
 interface Cliente {
-  uid:       string;
-  nombre:    string;
-  apellido:  string;
-  email:     string;
-  telefono?: string;
-  saldo?:    number;
+  uid:        string;
+  nombre:     string;
+  apellido:   string;
+  email:      string;
+  telefono?:  string;
+  saldo?:     number;
   birthdate?: string;
+  categoria?: Categoria;
 }
+
+const CATEGORIAS: { key: Categoria; label: string; icon: string; color: string }[] = [
+  { key: "plata",    label: "Plata",    icon: "stars",   color: "#9E9E9E" },
+  { key: "oro",      label: "Oro",      icon: "stars",   color: "#FFC107" },
+  { key: "diamante", label: "Diamante", icon: "diamond", color: "#29B6F6" },
+];
 
 export function AdminClientesScreen() {
   const c = useThemeColors();
@@ -27,6 +39,7 @@ export function AdminClientesScreen() {
   const [filtered,  setFiltered]  = useState<Cliente[]>([]);
   const [loading,   setLoading]   = useState(true);
   const [search,    setSearch]    = useState("");
+  const [modalCli,  setModalCli]  = useState<Cliente | null>(null);
 
   useEffect(() => {
     getDocs(query(collection(db, "users"), where("role", "==", "cliente")))
@@ -41,17 +54,25 @@ export function AdminClientesScreen() {
   useEffect(() => {
     const q = search.toLowerCase();
     setFiltered(
-      clientes.filter(c =>
-        `${c.nombre} ${c.apellido} ${c.email}`.toLowerCase().includes(q)
+      clientes.filter(cl =>
+        `${cl.nombre} ${cl.apellido} ${cl.email}`.toLowerCase().includes(q)
       )
     );
   }, [search, clientes]);
 
   const isBirthday = (birthdate?: string) => {
     if (!birthdate) return false;
-    const hoy = new Date();
-    const bd  = new Date(birthdate);
+    const hoy = new Date(); const bd = new Date(birthdate);
     return bd.getMonth() === hoy.getMonth() && bd.getDate() === hoy.getDate();
+  };
+
+  const asignarCategoria = async (cliente: Cliente, cat: Categoria | null) => {
+    try {
+      await updateDoc(doc(db, "users", cliente.uid), { categoria: cat });
+      const updated = { ...cliente, categoria: cat ?? undefined };
+      setClientes(prev => prev.map(cl => cl.uid === cliente.uid ? updated : cl));
+      setModalCli(updated);
+    } catch { Alert.alert("Error", "No se pudo actualizar."); }
   };
 
   return (
@@ -82,61 +103,127 @@ export function AdminClientesScreen() {
         ) : (
           filtered.map((cli, i) => (
             <ThemedCard key={i} style={styles.clienteCard}>
-              <View style={[styles.avatar, { backgroundColor: c.amber + "22" }]}>
-                <Text style={[styles.avatarText, { color: c.amber }]}>
+              <View style={[styles.avatar, {
+                backgroundColor: cli.categoria === "diamante" ? "#29B6F622" :
+                                 cli.categoria === "oro"      ? "#FFC10722" :
+                                 cli.categoria === "plata"    ? "#9E9E9E22" : c.blue + "22",
+              }]}>
+                <Text style={[styles.avatarText, { color: c.blue }]}>
                   {cli.nombre[0]}{cli.apellido?.[0] ?? ""}
                 </Text>
               </View>
-              <View style={{ flex: 1, gap: 4 }}>
+              <View style={{ flex: 1, gap: 3 }}>
                 <View style={styles.nameRow}>
-                  <Text style={[styles.clienteName, { color: c.text }]}>
+                  <Text style={[styles.nombre, { color: c.text }]}>
                     {cli.nombre} {cli.apellido}
                   </Text>
+                  {cli.categoria && <FidelizacionBadge categoria={cli.categoria} />}
                   {isBirthday(cli.birthdate) && (
-                    <Text style={{ fontSize: 16 }}>🎂</Text>
+                    <Text style={{ fontSize: 14 }}>🎂</Text>
                   )}
                 </View>
-                <Text style={[styles.clienteEmail, { color: c.sub }]}>{cli.email}</Text>
-                {cli.saldo !== undefined && cli.saldo > 0 && (
-                  <View style={styles.saldoRow}>
-                    <Text style={[styles.saldoLabel, { color: c.sub }]}>Debe: </Text>
-                    <NumberText size={13} negative>${cli.saldo.toLocaleString("es-CO")}</NumberText>
-                  </View>
-                )}
-                {cli.saldo === 0 && (
-                  <TagChip label="Al día" variant="success" />
+                <Text style={[styles.email, { color: c.sub }]}>{cli.email}</Text>
+                {(cli.saldo ?? 0) > 0 && (
+                  <NumberText size={13} negative>
+                    Deuda: ${(cli.saldo ?? 0).toLocaleString("es-CO")}
+                  </NumberText>
                 )}
               </View>
+              <TouchableOpacity
+                onPress={() => setModalCli(cli)}
+                style={[styles.editBtn, { borderColor: c.border }]}
+              >
+                <MaterialIcons name="workspace-premium" size={18} color={c.amber} />
+              </TouchableOpacity>
             </ThemedCard>
           ))
         )}
       </ScrollView>
+
+      {/* Modal categoría */}
+      <Modal visible={!!modalCli} transparent animationType="slide">
+        <View style={styles.overlay}>
+          <View style={[styles.modalCard, { backgroundColor: c.surface }]}>
+            <Text style={[styles.modalTitle, { color: c.text }]}>
+              {modalCli?.nombre} {modalCli?.apellido}
+            </Text>
+            <Text style={[styles.modalSub, { color: c.sub }]}>
+              Asignar categoría de fidelización
+            </Text>
+
+            <View style={styles.catGrid}>
+              {CATEGORIAS.map(cat => {
+                const sel = modalCli?.categoria === cat.key;
+                return (
+                  <TouchableOpacity
+                    key={cat.key}
+                    onPress={() => modalCli && asignarCategoria(modalCli, cat.key)}
+                    style={[
+                      styles.catBtn,
+                      {
+                        borderColor:     sel ? cat.color : c.border,
+                        backgroundColor: sel ? cat.color + "22" : c.bg,
+                      },
+                    ]}
+                  >
+                    <MaterialIcons name={cat.icon as any} size={24} color={cat.color} />
+                    <Text style={[styles.catLabel, { color: sel ? cat.color : c.text }]}>
+                      {cat.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            <View style={styles.modalBtns}>
+              {modalCli?.categoria && (
+                <TouchableOpacity
+                  onPress={() => modalCli && asignarCategoria(modalCli, null)}
+                  style={[styles.modalBtn, { borderColor: c.negative + "44" }]}
+                >
+                  <Text style={[styles.modalBtnText, { color: c.negative }]}>Quitar categoría</Text>
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity
+                onPress={() => setModalCli(null)}
+                style={[styles.modalBtn, { backgroundColor: c.amber, flex: 1 }]}
+              >
+                <Text style={[styles.modalBtnText, { color: "#000" }]}>Listo</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </ScreenWrapper>
   );
 }
 
 const styles = StyleSheet.create({
-  header: { paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1 },
-  title:  { fontSize: 22, fontFamily: "Syne_700Bold" },
-  searchBox: {
-    flexDirection: "row", alignItems: "center",
-    marginHorizontal: 20, marginVertical: 12,
-    paddingHorizontal: 14, height: 44,
-    borderRadius: 10, borderWidth: 1, gap: 8,
+  header:      { paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1 },
+  title:       { fontSize: 22, fontFamily: "Syne_700Bold" },
+  searchBox:   {
+    flexDirection: "row", alignItems: "center", gap: 8,
+    margin: 16, borderRadius: 10, borderWidth: 1, paddingHorizontal: 12, height: 42,
   },
   searchInput: { flex: 1, fontSize: 14, fontFamily: "SpaceGrotesk_400Regular" },
-  scroll:      { padding: 20, gap: 10 },
+  scroll:      { paddingHorizontal: 16, paddingBottom: 20, gap: 10 },
   empty:       { alignItems: "center", marginTop: 60, gap: 12 },
   emptyText:   { fontSize: 14, fontFamily: "SpaceGrotesk_400Regular" },
   clienteCard: { flexDirection: "row", alignItems: "center", gap: 12 },
-  avatar: {
-    width: 44, height: 44, borderRadius: 22,
-    justifyContent: "center", alignItems: "center",
-  },
-  avatarText:    { fontSize: 16, fontFamily: "Syne_700Bold" },
-  nameRow:       { flexDirection: "row", alignItems: "center", gap: 6 },
-  clienteName:   { fontSize: 15, fontFamily: "SpaceGrotesk_600SemiBold" },
-  clienteEmail:  { fontSize: 12, fontFamily: "SpaceGrotesk_400Regular" },
-  saldoRow:      { flexDirection: "row", alignItems: "center" },
-  saldoLabel:    { fontSize: 13, fontFamily: "SpaceGrotesk_400Regular" },
+  avatar:      { width: 44, height: 44, borderRadius: 22, justifyContent: "center", alignItems: "center" },
+  avatarText:  { fontSize: 16, fontFamily: "Syne_700Bold" },
+  nameRow:     { flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap" },
+  nombre:      { fontSize: 15, fontFamily: "SpaceGrotesk_600SemiBold" },
+  email:       { fontSize: 12, fontFamily: "SpaceGrotesk_400Regular" },
+  editBtn:     { width: 34, height: 34, borderRadius: 8, borderWidth: 1, justifyContent: "center", alignItems: "center" },
+  overlay:     { flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "flex-end" },
+  modalCard:   { borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 24, gap: 16 },
+  modalTitle:  { fontSize: 20, fontFamily: "Syne_700Bold" },
+  modalSub:    { fontSize: 13, fontFamily: "SpaceGrotesk_400Regular" },
+  catGrid:     { flexDirection: "row", gap: 10 },
+  catBtn:      { flex: 1, alignItems: "center", gap: 8, padding: 14, borderRadius: 12, borderWidth: 1 },
+  catLabel:    { fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold" },
+  modalBtns:   { flexDirection: "row", gap: 10 },
+  modalBtn:    { flex: 1, height: 48, borderRadius: 10, borderWidth: 1, justifyContent: "center", alignItems: "center" },
+  modalBtnText:{ fontSize: 14, fontFamily: "SpaceGrotesk_600SemiBold" },
 });

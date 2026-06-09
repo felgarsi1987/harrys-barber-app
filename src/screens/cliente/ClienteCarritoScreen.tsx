@@ -104,7 +104,7 @@ export function ClienteCarritoScreen() {
           onPress: () => enviarPedido(true),
         },
         {
-          text: "💵 En efectivo",
+          text: "💵 De contado",
           onPress: () => enviarPedido(false),
         },
       ]

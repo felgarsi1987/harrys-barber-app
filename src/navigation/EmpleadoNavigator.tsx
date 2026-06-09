@@ -7,6 +7,11 @@ import { EmpleadoAgendaScreen }    from "../screens/empleado/EmpleadoAgendaScree
 import { EmpleadoReservaScreen }   from "../screens/empleado/EmpleadoReservaScreen";
 import { EmpleadoInventarioScreen } from "../screens/empleado/EmpleadoInventarioScreen";
 import { EmpleadoPerfilScreen }    from "../screens/empleado/EmpleadoPerfilScreen";
+import { PedidosScreen }             from "../screens/shared/PedidosScreen";
+
+function EmpleadoPedidosScreen() {
+  return <PedidosScreen mode="empleado" showBackHeader={false} />;
+}
 
 const Tab = createBottomTabNavigator();
 
@@ -32,10 +37,11 @@ export function EmpleadoNavigator() {
         },
         tabBarIcon: ({ color }) => {
           const icons: Record<string, keyof typeof MaterialIcons.glyphMap> = {
-            Agenda:     "event-note",
+            Agenda:      "event-note",
             "Nueva Cita": "add-circle-outline",
-            Inventario: "inventory-2",
-            Perfil:     "person-outline",
+            Inventario:  "inventory-2",
+            Pedidos:     "receipt-long",
+            Perfil:      "person-outline",
           };
           return (
             <MaterialIcons
@@ -50,6 +56,7 @@ export function EmpleadoNavigator() {
       <Tab.Screen name="Agenda"      component={EmpleadoAgendaScreen} />
       <Tab.Screen name="Nueva Cita"  component={EmpleadoReservaScreen} />
       <Tab.Screen name="Inventario"  component={EmpleadoInventarioScreen} />
+      <Tab.Screen name="Pedidos"     component={EmpleadoPedidosScreen} />
       <Tab.Screen name="Perfil"      component={EmpleadoPerfilScreen} />
     </Tab.Navigator>
   );

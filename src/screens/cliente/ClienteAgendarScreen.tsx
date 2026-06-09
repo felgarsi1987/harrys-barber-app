@@ -12,6 +12,7 @@ import { db } from "../../services/firebase";
 import { programarRecordatorio } from "../../services/notifications";
 import { getServicios, Servicio } from "../../services/serviciosService";
 import { useThemeColors } from "../../hooks/useThemeColors";
+import { useGuestStore }  from "../../store/guestStore";
 import { useAuthStore }   from "../../store/authStore";
 import { ThemedCard }     from "../../components/ui/ThemedCard";
 import { ScreenWrapper }  from "../../components/ui/ScreenWrapper";
@@ -38,6 +39,8 @@ interface Peluquero {
 export function ClienteAgendarScreen() {
   const c = useThemeColors();
   const { user } = useAuthStore();
+  const guest = useGuestStore(s => s.guest);
+  const nombreCliente = user ? `${user.nombre} ${user.apellido}` : guest ? `${guest.nombre} ${guest.apellido}` : "";
 
   const [servicios,          setServicios]          = useState<Servicio[]>([]);
   const [peluqueros,        setPeluqueros]        = useState<Peluquero[]>([]);
@@ -137,6 +140,12 @@ export function ClienteAgendarScreen() {
     setGuardando(true);
     try {
       if (!servicios.length) return;
+      // Validar que la fecha/hora no haya pasado
+      const fechaHora = new Date(fechaSeleccionada + "T" + horaSeleccionada);
+      if (fechaHora <= new Date()) {
+        Alert.alert("Hora no disponible", "No puedes agendar en una hora que ya pasó.");
+        return;
+      }
       const servicio = servicios[servicioSel];
       const fecha    = new Date(fechaSeleccionada + "T" + horaSeleccionada);
       const docRef = await addDoc(collection(db, "reservas"), {

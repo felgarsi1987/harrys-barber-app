@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import {
   View, Text, ScrollView, StyleSheet,
-  TouchableOpacity, TextInput, ActivityIndicator, Alert, Switch,
+  TouchableOpacity, TextInput, ActivityIndicator, Alert, Switch, Modal,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { BackHeader }    from "../../components/ui/BackHeader";
@@ -80,6 +80,27 @@ export function AdminEmpleadosScreen() {
     } catch (e: any) {
       Alert.alert("Error", e.message);
     } finally { setSaving(false); }
+  };
+
+  const abrirEdicion = (emp: Empleado) => {
+    setEditEmp(emp);
+    setEditNombre(emp.nombre);
+    setEditApellido(emp.apellido);
+  };
+
+  const guardarEdicion = async () => {
+    if (!editEmp || !editNombre.trim() || !editApellido.trim()) return;
+    setEditGuardando(true);
+    try {
+      await updateDoc(doc(db, "users", editEmp.uid), {
+        nombre: editNombre.trim(), apellido: editApellido.trim(),
+      });
+      setEmpleados(prev => prev.map(e =>
+        e.uid === editEmp.uid ? { ...e, nombre: editNombre.trim(), apellido: editApellido.trim() } : e
+      ));
+      setEditEmp(null);
+    } catch { Alert.alert("Error", "No se pudo guardar."); }
+    finally { setEditGuardando(false); }
   };
 
   const toggleDisponibilidad = async (emp: Empleado) => {
@@ -182,6 +203,9 @@ export function AdminEmpleadosScreen() {
                   <TagChip label="Rol temporal" variant="warning" />
                 )}
               </View>
+              <TouchableOpacity onPress={() => abrirEdicion(emp)} style={{ padding: 4 }}>
+                <MaterialIcons name="edit" size={18} color={c.sub} />
+              </TouchableOpacity>
               <Switch
                 value={emp.disponibleAgenda ?? false}
                 onValueChange={() => toggleDisponibilidad(emp)}
@@ -192,6 +216,41 @@ export function AdminEmpleadosScreen() {
           ))
         )}
       </ScrollView>
+      {/* Modal editar nombre */}
+      <Modal visible={!!editEmp} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalCard, { backgroundColor: c.surface }]}>
+            <Text style={[styles.modalTitle, { color: c.text }]}>Editar empleado</Text>
+            {[
+              { label: "Nombre",   value: editNombre,   set: setEditNombre },
+              { label: "Apellido", value: editApellido, set: setEditApellido },
+            ].map((f, i) => (
+              <View key={i} style={{ gap: 6 }}>
+                <Text style={[styles.inputLabel, { color: c.sub }]}>{f.label.toUpperCase()}</Text>
+                <TextInput
+                  style={[styles.input, { color: c.text, backgroundColor: c.bg, borderColor: c.border }]}
+                  value={f.value}
+                  onChangeText={f.set}
+                  autoCapitalize="words"
+                  placeholder={f.label}
+                  placeholderTextColor={c.sub}
+                />
+              </View>
+            ))}
+            <View style={styles.modalBtns}>
+              <TouchableOpacity onPress={() => setEditEmp(null)} style={[styles.modalBtn, { borderColor: c.border }]}>
+                <Text style={[styles.modalBtnText, { color: c.sub }]}>Cancelar</Text>
+              </TouchableOpacity>
+              <TouchableOpacity onPress={guardarEdicion} disabled={editGuardando} style={[styles.modalBtn, { backgroundColor: c.amber }]}>
+                {editGuardando
+                  ? <ActivityIndicator color="#000" size="small" />
+                  : <Text style={[styles.modalBtnText, { color: "#000" }]}>Guardar</Text>
+                }
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </ScreenWrapper>
   );
 }
@@ -228,5 +287,13 @@ const styles = StyleSheet.create({
   empName:    { fontSize: 15, fontFamily: "SpaceGrotesk_600SemiBold" },
   empEmail:   { fontSize: 12, fontFamily: "SpaceGrotesk_400Regular", marginTop: 2 },
   disponRow:  { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 2 },
+  modalOverlay: { flex:1, backgroundColor:"rgba(0,0,0,0.6)", justifyContent:"flex-end" },
+  modalCard:    { borderTopLeftRadius:20, borderTopRightRadius:20, padding:24, gap:14 },
+  modalTitle:   { fontSize:20, fontFamily:"Syne_700Bold" },
+  inputLabel:   { fontSize:10, fontFamily:"SpaceGrotesk_600SemiBold", letterSpacing:2 },
+  input:        { height:48, borderWidth:1, borderRadius:10, paddingHorizontal:14, fontSize:15, fontFamily:"SpaceGrotesk_400Regular" },
+  modalBtns:    { flexDirection:"row", gap:10, marginTop:4 },
+  modalBtn:     { flex:1, height:48, borderRadius:10, borderWidth:1, justifyContent:"center", alignItems:"center" },
+  modalBtnText: { fontSize:15, fontFamily:"SpaceGrotesk_600SemiBold" },
   disponLabel:{ fontSize: 11, fontFamily: "SpaceGrotesk_500Medium" },
 });

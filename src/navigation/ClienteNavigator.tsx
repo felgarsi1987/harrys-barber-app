@@ -11,6 +11,7 @@ import { ClienteSaldoScreen }      from "../screens/cliente/ClienteSaldoScreen";
 import { ClientePerfilScreen }     from "../screens/cliente/ClientePerfilScreen";
 import { ClienteHistorialScreen }  from "../screens/cliente/ClienteHistorialScreen";
 import { ClienteReagendarScreen }  from "../screens/cliente/ClienteReagendarScreen";
+import { ClientePedidosScreen }    from "../screens/cliente/ClientePedidosScreen";
 
 const Tab   = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -68,6 +69,7 @@ export function ClienteNavigator() {
       <Stack.Screen name="ClienteTabs"      component={ClienteTabs} />
       <Stack.Screen name="ClienteHistorial" component={ClienteHistorialScreen} />
       <Stack.Screen name="ClienteReagendar" component={ClienteReagendarScreen} />
+      <Stack.Screen name="ClientePedidos"    component={ClientePedidosScreen} />
     </Stack.Navigator>
   );
 }

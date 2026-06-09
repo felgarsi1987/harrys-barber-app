@@ -4,6 +4,7 @@ import { NavigationContainer } from "@react-navigation/native";
 import { createStackNavigator } from "@react-navigation/stack";
 import { useAuth } from "../hooks/useAuth";
 import { useThemeStore } from "../store/themeStore";
+import { useGuestStore } from "../store/guestStore";
 import { getThemeColors } from "../theme/colors";
 import { AuthNavigator } from "./AuthNavigator";
 import { AdminNavigator } from "./AdminNavigator";
@@ -14,7 +15,8 @@ const Stack = createStackNavigator();
 
 export function RootNavigator() {
   const { user, isLoading } = useAuth();
-  const mode = useThemeStore((state) => state.mode);
+  const mode  = useThemeStore((state) => state.mode);
+  const guest = useGuestStore((state) => state.guest);
   const c = getThemeColors(mode);
 
   if (isLoading) {
@@ -35,11 +37,11 @@ export function RootNavigator() {
   return (
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
-        {!user ? (
+        {!user && !guest ? (
           <Stack.Screen name="Auth" component={AuthNavigator} />
-        ) : user.role === "admin" ? (
+        ) : user?.role === "admin" ? (
           <Stack.Screen name="Admin" component={AdminNavigator} />
-        ) : user.role === "empleado" ? (
+        ) : user?.role === "empleado" ? (
           <Stack.Screen name="Empleado" component={EmpleadoNavigator} />
         ) : (
           <Stack.Screen name="Cliente" component={ClienteNavigator} />

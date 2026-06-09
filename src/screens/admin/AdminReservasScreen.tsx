@@ -7,7 +7,7 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import {
   collection, getDocs, addDoc, query, orderBy,
-  doc, updateDoc, Timestamp,
+  doc, updateDoc, getDoc, Timestamp,
 } from "firebase/firestore";
 import { db } from "../../services/firebase";
 import { notificarCambioEstado, cancelarRecordatorio } from "../../services/notifications";
@@ -26,7 +26,10 @@ interface Reserva {
   fecha:         Timestamp;
   hora:          string;
   estado:        "pendiente" | "confirmada" | "aplazada" | "negada" | "completada";
-  noRegistrado?: boolean;
+  noRegistrado?:    boolean;
+  peluqueroUid?:    string;
+  peluqueroNombre?: string;
+  modalidadPago?:   string;
 }
 
 const ESTADO_CHIP: Record<string, any> = {
@@ -99,46 +102,62 @@ export function AdminReservasScreen() {
     );
   };
 
-  // ── NUEVO: marcar servicio como realizado y registrar ingreso ──
+  // ── Marcar servicio realizado — pregunta modalidad de pago ──
   const marcarCompletado = async (reserva: Reserva) => {
+    const esRegistrado = !!reserva.clienteUid && !reserva.noRegistrado;
+    const opciones: any[] = [
+      { text: "Cancelar", style: "cancel" },
+      {
+        text: "💵 De contado",
+        onPress: () => completarConModalidad(reserva, "contado"),
+      },
+    ];
+    if (esRegistrado) {
+      opciones.push({
+        text: "💳 A crédito",
+        onPress: () => completarConModalidad(reserva, "credito"),
+      });
+    }
     Alert.alert(
-      "¿Servicio realizado?",
-      `Confirma que se realizó el servicio a ${reserva.clienteNombre}. Esto registrará el ingreso.`,
-      [
-        { text: "Cancelar", style: "cancel" },
-        {
-          text: "Sí, completado",
-          onPress: async () => {
-            try {
-              const ahora = Timestamp.now();
-              // 1. Actualizar estado de la reserva
-              await updateDoc(doc(db, "reservas", reserva.id), {
-                estado:           "completada",
-                fechaCompletado:  ahora,
-                updatedAt:        ahora,
-              });
-              // 2. Registrar ingreso en colección servicios_realizados
-              await addDoc(collection(db, "servicios_realizados"), {
-                reservaId:     reserva.id,
-                clienteNombre: reserva.clienteNombre,
-                clienteUid:    reserva.clienteUid ?? null,
-                servicio:      reserva.servicio,
-                precio:        reserva.precio ?? 0,
-                fecha:         ahora,
-                estado:        "completado",
-              });
-              setReservas(prev =>
-                prev.map(r => r.id === reserva.id ? { ...r, estado: "completada" } : r)
-              );
-              notificarCambioEstado(reserva.clienteUid, reserva.clienteNombre, reserva.servicio, "completada", reserva.hora);
-              Alert.alert("✅ Ingreso registrado", `Servicio completado para ${reserva.clienteNombre}`);
-            } catch {
-              Alert.alert("Error", "No se pudo registrar el servicio.");
-            }
-          },
-        },
-      ]
+      "¿Cómo se pagó el servicio?",
+      `${reserva.clienteNombre} — ${reserva.servicio}`,
+      opciones
     );
+  };
+
+  const completarConModalidad = async (reserva: Reserva, modalidad: "contado" | "credito") => {
+    try {
+      const ahora = Timestamp.now();
+      await updateDoc(doc(db, "reservas", reserva.id), {
+        estado: "completada", fechaCompletado: ahora, updatedAt: ahora, modalidadPago: modalidad,
+      });
+      await addDoc(collection(db, "servicios_realizados"), {
+        reservaId: reserva.id, clienteNombre: reserva.clienteNombre,
+        clienteUid: reserva.clienteUid ?? null,
+        peluqueroUid: reserva.peluqueroUid ?? null,
+        peluqueroNombre: reserva.peluqueroNombre ?? null,
+        servicio: reserva.servicio, precio: reserva.precio ?? 0,
+        fecha: ahora, estado: "completado", modalidadPago: modalidad,
+      });
+      // Si es crédito, registrar cargo en movimientos
+      if (modalidad === "credito" && reserva.clienteUid) {
+        const userRef  = doc(db, "users", reserva.clienteUid);
+        const userSnap = await getDoc(userRef);
+        const saldoActual = userSnap.exists() ? (userSnap.data().saldo ?? 0) : 0;
+        await updateDoc(userRef, { saldo: saldoActual + (reserva.precio ?? 0) });
+        await addDoc(collection(db, "movimientos"), {
+          clienteUid: reserva.clienteUid, tipo: "cargo",
+          descripcion: `Servicio: ${reserva.servicio}`,
+          monto: reserva.precio ?? 0, fecha: ahora,
+        });
+      }
+      setReservas(prev => prev.map(r => r.id === reserva.id ? { ...r, estado: "completada" } : r));
+      notificarCambioEstado(reserva.clienteUid, reserva.clienteNombre, reserva.servicio, "completada", reserva.hora);
+      Alert.alert("✅ Registrado", `${reserva.servicio} — ${modalidad === "credito" ? "A crédito" : "De contado"}`);
+    } catch(e) {
+      console.log(e);
+      Alert.alert("Error", "No se pudo registrar.");
+    }
   };
 
   // ── Marcar servicio fallido ──
