@@ -24,7 +24,7 @@ interface Producto {
   precio:    number;
 }
 
-const CATEGORIAS = ["Bebidas", "Comestibles", "Cuidado personal", "Otros"];
+const CATEGORIAS = ["Bebidas", "Comestibles", "Otros"];
 
 const EMPTY_FORM = {
   nombre: "", categoria: "Bebidas",

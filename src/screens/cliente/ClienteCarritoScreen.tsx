@@ -4,7 +4,7 @@ import {
   SafeAreaView, TouchableOpacity, Alert, ActivityIndicator,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
-import { collection, getDocs, addDoc, Timestamp } from "firebase/firestore";
+import { collection, getDocs, addDoc, updateDoc, getDoc, doc, Timestamp } from "firebase/firestore";
 import { db } from "../../services/firebase";
 import { useThemeColors } from "../../hooks/useThemeColors";
 import { useAuthStore }   from "../../store/authStore";
@@ -58,7 +58,7 @@ export function ClienteCarritoScreen() {
 
   const total = carrito.reduce((acc, i) => acc + i.precio * i.cantidad, 0);
 
-  const enviarPedido = async () => {
+  const enviarPedido = async (aCredito: boolean) => {
     if (carrito.length === 0) {
       Alert.alert("Carrito vacío", "Agrega productos.");
       return;
@@ -76,13 +76,53 @@ export function ClienteCarritoScreen() {
         })),
         total,
         estado:    "pendiente",
+        aCredito,
         createdAt: Timestamp.now(),
       });
+
+      // Si es a crédito, registrar cargo en movimientos y aumentar saldo
+      if (aCredito && user?.uid) {
+        const userRef  = doc(db, "users", user.uid);
+        const userSnap = await getDoc(userRef);
+        const saldoActual = userSnap.exists() ? (userSnap.data().saldo ?? 0) : 0;
+        await updateDoc(userRef, { saldo: saldoActual + total });
+        await addDoc(collection(db, "movimientos"), {
+          clienteUid:  user.uid,
+          tipo:        "cargo",
+          descripcion: `Pedido tienda — ${carrito.map(i => `${i.nombre} x${i.cantidad}`).join(", ")}`,
+          monto:       total,
+          fecha:       Timestamp.now(),
+        });
+      }
+
       setCarrito([]);
-      Alert.alert("✅ Pedido enviado", "El admin aprobará tu pedido pronto.");
+      Alert.alert(
+        "✅ Pedido enviado",
+        aCredito
+          ? `Tu pedido de $${total.toLocaleString("es-CO")} quedó registrado a crédito. El admin lo aprobará pronto.`
+          : "El admin aprobará tu pedido pronto."
+      );
     } catch {
       Alert.alert("Error", "No se pudo enviar el pedido.");
     } finally { setEnviando(false); }
+  };
+
+  const confirmarPedido = () => {
+    Alert.alert(
+      "¿Cómo pagas?",
+      `Total: $${total.toLocaleString("es-CO")}`,
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "💳 A crédito",
+          onPress: () => enviarPedido(true),
+        },
+        {
+          text: "💵 En efectivo",
+          onPress: () => enviarPedido(false),
+        },
+      ]
+    );
   };
 
   return (
@@ -182,12 +222,12 @@ export function ClienteCarritoScreen() {
 
             <TouchableOpacity
               style={[styles.enviarBtn, { backgroundColor: c.amber, opacity: enviando ? 0.7 : 1 }]}
-              onPress={enviarPedido}
+              onPress={confirmarPedido}
               disabled={enviando}
             >
               {enviando
                 ? <ActivityIndicator color="#000" />
-                : <Text style={styles.enviarBtnText}>Enviar pedido al admin</Text>
+                : <Text style={styles.enviarBtnText}>Enviar pedido</Text>
               }
             </TouchableOpacity>
           </>
