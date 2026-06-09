@@ -66,7 +66,6 @@ export function EmpleadoAgendaScreen() {
     .finally(() => setLoading(false));
   }, [diaOffset]);
 
-  // Generar los próximos 7 días
   const dias = Array.from({ length: 7 }, (_, i) => {
     const d = new Date();
     d.setDate(d.getDate() + i);
@@ -97,16 +96,10 @@ export function EmpleadoAgendaScreen() {
                 activo && { backgroundColor: c.amber },
               ]}
             >
-              <Text style={[
-                styles.diaNombre,
-                { color: activo ? "#000" : c.sub },
-              ]}>
+              <Text style={[styles.diaNombre, { color: activo ? "#000" : c.sub }]}>
                 {DIAS_SEMANA[d.getDay()]}
               </Text>
-              <Text style={[
-                styles.diaNumero,
-                { color: activo ? "#000" : c.text },
-              ]}>
+              <Text style={[styles.diaNumero, { color: activo ? "#000" : c.text }]}>
                 {d.getDate()}
               </Text>
             </TouchableOpacity>
@@ -122,7 +115,7 @@ export function EmpleadoAgendaScreen() {
         </Text>
       </View>
 
-      {/* Lista de reservas */}
+      {/* Lista */}
       {loading ? (
         <ActivityIndicator color={c.amber} style={{ marginTop: 40 }} />
       ) : (
@@ -137,12 +130,9 @@ export function EmpleadoAgendaScreen() {
           ) : (
             reservas.map((r, i) => (
               <ThemedCard key={i} style={styles.reservaCard}>
-                {/* Hora */}
                 <View style={[styles.horaBlock, { borderRightColor: c.border }]}>
                   <Text style={[styles.hora, { color: c.amber }]}>{r.hora}</Text>
                 </View>
-
-                {/* Info */}
                 <View style={{ flex: 1, gap: 4 }}>
                   <Text style={[styles.clienteNombre, { color: c.text }]}>
                     {r.clienteNombre}
@@ -165,15 +155,14 @@ export function EmpleadoAgendaScreen() {
           )}
         </ScrollView>
       )}
+
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
   safe:   { flex: 1 },
-  header: {
-    paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1,
-  },
+  header: { paddingHorizontal: 20, paddingVertical: 16, borderBottomWidth: 1 },
   title:  { fontSize: 22, fontFamily: "Syne_700Bold" },
   diasRow: {
     paddingHorizontal: 16, paddingVertical: 12,
@@ -181,8 +170,7 @@ const styles = StyleSheet.create({
   },
   diaBtn: {
     alignItems: "center", paddingHorizontal: 14,
-    paddingVertical: 8, borderRadius: 10, gap: 4,
-    minWidth: 52,
+    paddingVertical: 8, borderRadius: 10, gap: 4, minWidth: 52,
   },
   diaNombre:  { fontSize: 10, fontFamily: "SpaceGrotesk_600SemiBold" },
   diaNumero:  { fontSize: 18, fontFamily: "Syne_700Bold" },
@@ -191,11 +179,11 @@ const styles = StyleSheet.create({
     alignItems: "center", paddingHorizontal: 20,
     paddingVertical: 10, borderBottomWidth: 1,
   },
-  fechaText:   { fontSize: 10, fontFamily: "SpaceGrotesk_600SemiBold", letterSpacing: 1 },
-  citasCount:  { fontSize: 12, fontFamily: "SpaceGrotesk_600SemiBold" },
-  scroll:      { padding: 20, gap: 10 },
-  empty:       { alignItems: "center", marginTop: 60, gap: 12 },
-  emptyText:   { fontSize: 14, fontFamily: "SpaceGrotesk_400Regular" },
+  fechaText:  { fontSize: 10, fontFamily: "SpaceGrotesk_600SemiBold", letterSpacing: 1 },
+  citasCount: { fontSize: 12, fontFamily: "SpaceGrotesk_600SemiBold" },
+  scroll:     { padding: 20, gap: 10 },
+  empty:      { alignItems: "center", marginTop: 60, gap: 12 },
+  emptyText:  { fontSize: 14, fontFamily: "SpaceGrotesk_400Regular" },
   reservaCard: { flexDirection: "row", gap: 16, padding: 14 },
   horaBlock: {
     justifyContent: "center", alignItems: "center",

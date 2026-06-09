@@ -13,6 +13,7 @@ import { useThemeColors } from "../../hooks/useThemeColors";
 import { useAuthStore }   from "../../store/authStore";
 import { TagChip }        from "../../components/ui/TagChip";
 import { ThemedCard }     from "../../components/ui/ThemedCard";
+import { AixonFooter }   from "../../components/ui/AixonFooter";
 
 interface Reserva {
   id:       string;
@@ -170,6 +171,8 @@ export function ClienteHomeScreen() {
         </View>
 
       </ScrollView>
+
+      <AixonFooter />
     </SafeAreaView>
   );
 }
