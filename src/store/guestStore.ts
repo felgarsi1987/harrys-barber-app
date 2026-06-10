@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { signInAnonymously, signOut } from "firebase/auth";
+import { signInAnonymously, signOut, onAuthStateChanged } from "firebase/auth";
 import { auth } from "../services/firebase";
 
 interface GuestUser {
@@ -18,21 +18,34 @@ export const useGuestStore = create<GuestState>()((set) => ({
 
   setGuest: async (g) => {
     try {
-      // Sign in anonymously so Firestore rules allow reads
+      // Sign in anonymously and WAIT for auth state to confirm
       await signInAnonymously(auth);
+      // Wait for onAuthStateChanged to fire with the anonymous user
+      await new Promise<void>((resolve) => {
+        const unsub = onAuthStateChanged(auth, (user) => {
+          if (user) {
+            unsub();
+            resolve();
+          }
+        });
+        // Timeout after 3s to avoid hanging
+        setTimeout(() => { unsub(); resolve(); }, 3000);
+      });
     } catch(e) {
       console.log("Anonymous sign in failed:", e);
     }
+    // Set guest AFTER auth is confirmed - screens will load data correctly
     set({ guest: g });
   },
 
   clearGuest: async () => {
+    set({ guest: null });
     try {
-      // Sign out the anonymous session
-      await signOut(auth);
+      if (auth.currentUser?.isAnonymous) {
+        await signOut(auth);
+      }
     } catch(e) {
       console.log("Sign out failed:", e);
     }
-    set({ guest: null });
   },
 }));

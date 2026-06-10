@@ -5,6 +5,9 @@ import {
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { BackHeader }    from "../../components/ui/BackHeader";
+import { ScreenWrapper }  from "../../components/ui/ScreenWrapper";
+import { ThemedCard }  from "../../components/ui/ThemedCard";
+import { TagChip }  from "../../components/ui/TagChip";
 import {
   collection, getDocs, addDoc, updateDoc,
   deleteDoc, doc, Timestamp, orderBy, query,
