@@ -114,10 +114,16 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
   },
 
   initialize: () => {
+    // Timeout de seguridad: si en 5s no hay respuesta, mostrar Auth
+    const timeout = setTimeout(() => {
+      if (get().isLoading) {
+        set({ user: null, firebaseUser: null, isLoading: false });
+      }
+    }, 5000);
+
     const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
-      // Ignorar si hay login o registro en curso
+      clearTimeout(timeout);
       if (get().isLoading) return;
-      // Ignorar usuarios anónimos (son del modo invitado)
       if (firebaseUser?.isAnonymous) return;
       if (firebaseUser) {
         try {
@@ -131,13 +137,12 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
           set({ user: null, firebaseUser: null, isLoading: false });
         }
       } else {
-        // null = sesión cerrada — solo resetear si NO hay login activo
         if (!get().isLoading) {
           set({ user: null, firebaseUser: null, isLoading: false });
         }
       }
     });
-    return unsub;
+    return () => { clearTimeout(timeout); unsub(); };
   },
 
   clearError: () => set({ error: null }),
