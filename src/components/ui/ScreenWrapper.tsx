@@ -1,14 +1,26 @@
+/**
+ * ScreenWrapper — reemplaza SafeAreaView en todas las pantallas.
+ *
+ * Con NavigationBar en modo "absolute" (transparente), los insets de
+ * react-native-safe-area-context devuelven los valores REALES de las
+ * barras del sistema (status bar arriba + nav bar abajo).
+ *
+ * Esto garantiza que el contenido NUNCA quede detrás de las barras,
+ * sin importar si el dispositivo usa botones físicos, gestos, o
+ * nav bar con 2/3 botones.
+ */
 import React from "react";
 import {
-  KeyboardAvoidingView, Platform, StyleSheet,
-  ViewStyle, StatusBar, View,
+  View, KeyboardAvoidingView, Platform,
+  StyleSheet, ViewStyle,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useThemeColors } from "../../hooks/useThemeColors";
+import { useThemeColors }    from "../../hooks/useThemeColors";
 
 interface Props {
   children:  React.ReactNode;
   style?:    ViewStyle;
+  /** false en pantallas que no tienen inputs (listas, dashboards) */
   keyboard?: boolean;
 }
 
@@ -16,14 +28,15 @@ export function ScreenWrapper({ children, style, keyboard = true }: Props) {
   const c      = useThemeColors();
   const insets = useSafeAreaInsets();
 
-  const content = (
+  const inner = (
     <View
       style={[
         styles.root,
         {
           backgroundColor: c.bg,
-          paddingTop:    insets.top    > 0 ? insets.top    : Platform.OS === "android" ? (StatusBar.currentHeight ?? 0) : 0,
-          paddingBottom: insets.bottom > 0 ? insets.bottom : 0,
+          // Respetar las barras del sistema con insets reales
+          paddingTop:    insets.top,
+          paddingBottom: insets.bottom,
           paddingLeft:   insets.left,
           paddingRight:  insets.right,
         },
@@ -34,19 +47,20 @@ export function ScreenWrapper({ children, style, keyboard = true }: Props) {
     </View>
   );
 
-  if (!keyboard) return content;
+  if (!keyboard) return inner;
 
   return (
     <KeyboardAvoidingView
-      style={{ flex: 1, backgroundColor: c.bg }}
+      style={[styles.kav, { backgroundColor: c.bg }]}
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       keyboardVerticalOffset={0}
     >
-      {content}
+      {inner}
     </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   root: { flex: 1 },
+  kav:  { flex: 1 },
 });
