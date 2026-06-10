@@ -4,12 +4,6 @@ import * as SplashScreen  from "expo-splash-screen";
 import * as Font          from "expo-font";
 import * as Network       from "expo-network";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import {
-  SpaceGrotesk_400Regular,
-  SpaceGrotesk_500Medium,
-  SpaceGrotesk_600SemiBold,
-} from "@expo-google-fonts/space-grotesk";
-import { Syne_700Bold, Syne_800ExtraBold } from "@expo-google-fonts/syne";
 import { RootNavigator }     from "./src/navigation/RootNavigator";
 import { SinConexionScreen } from "./src/screens/errors/SinConexionScreen";
 
@@ -24,18 +18,18 @@ export default function App() {
       StatusBar.setBackgroundColor("transparent", false);
       StatusBar.setTranslucent(true);
     }
+
     Font.loadAsync({
-      SpaceGrotesk_400Regular,
-      SpaceGrotesk_500Medium,
-      SpaceGrotesk_600SemiBold,
-      Syne_700Bold,
-      Syne_800ExtraBold,
+      SpaceGrotesk_400Regular: require("./assets/fonts/SpaceGrotesk_400Regular.ttf"),
+      SpaceGrotesk_500Medium:  require("./assets/fonts/SpaceGrotesk_500Medium.ttf"),
+      SpaceGrotesk_600SemiBold:require("./assets/fonts/SpaceGrotesk_600SemiBold.ttf"),
+      Syne_700Bold:            require("./assets/fonts/Syne_700Bold.ttf"),
+      Syne_800ExtraBold:       require("./assets/fonts/Syne_800ExtraBold.ttf"),
     })
       .then(() => setFontsLoaded(true))
-      .catch(() => setFontsLoaded(true)); // Si falla, continuar igual
+      .catch(() => setFontsLoaded(true));
 
-    // Timeout de seguridad: si las fuentes no cargan en 5s, continuar
-    setTimeout(() => setFontsLoaded(true), 5000);
+    setTimeout(() => setFontsLoaded(true), 3000);
     checkConnection();
   }, []);
 
