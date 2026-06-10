@@ -268,8 +268,8 @@ const styles = StyleSheet.create({
   formTitle: { fontSize: 16, fontFamily: "SpaceGrotesk_600SemiBold", marginBottom: 4 },
   fieldLabel:{ fontSize: 12, fontFamily: "SpaceGrotesk_500Medium" },
   input: {
-    height: 46, borderWidth: 1, borderRadius: 10,
-    paddingHorizontal: 14, fontSize: 14,
+    height: 48, borderWidth: 1, borderRadius: 10,
+    paddingHorizontal: 14, fontSize: 15, fontFamily: "SpaceGrotesk_400Regular",
   },
   saveBtn: {
     height: 48, borderRadius: 10,
@@ -291,7 +291,6 @@ const styles = StyleSheet.create({
   modalCard:    { borderTopLeftRadius:20, borderTopRightRadius:20, padding:24, gap:14 },
   modalTitle:   { fontSize:20, fontFamily:"Syne_700Bold" },
   inputLabel:   { fontSize:10, fontFamily:"SpaceGrotesk_600SemiBold", letterSpacing:2 },
-  input:        { height:48, borderWidth:1, borderRadius:10, paddingHorizontal:14, fontSize:15, fontFamily:"SpaceGrotesk_400Regular" },
   modalBtns:    { flexDirection:"row", gap:10, marginTop:4 },
   modalBtn:     { flex:1, height:48, borderRadius:10, borderWidth:1, justifyContent:"center", alignItems:"center" },
   modalBtnText: { fontSize:15, fontFamily:"SpaceGrotesk_600SemiBold" },

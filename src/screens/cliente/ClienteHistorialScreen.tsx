@@ -5,7 +5,7 @@ import {
 import { MaterialIcons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import {
-  collection, getDocs, query, where, orderBy, Timestamp,
+  collection, getDocs, query, where, Timestamp,
 } from "firebase/firestore";
 import { db } from "../../services/firebase";
 import { useThemeColors } from "../../hooks/useThemeColors";
@@ -57,8 +57,7 @@ export function ClienteHistorialScreen() {
     try {
       const snap = await getDocs(query(
         collection(db, "reservas"),
-        where("clienteUid", "==", user.uid),
-        orderBy("fecha", "desc")
+        where("clienteUid", "==", user.uid)
       ));
       setReservas(snap.docs.map(d => ({ id: d.id, ...d.data() }) as Reserva));
     } catch(e) { console.log(e); }

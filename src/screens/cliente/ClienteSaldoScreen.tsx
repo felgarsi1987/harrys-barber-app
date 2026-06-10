@@ -4,7 +4,7 @@ import {
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import {
-  collection, getDocs, query, where, orderBy,
+  collection, getDocs, query, where,
 } from "firebase/firestore";
 import { db } from "../../services/firebase";
 import { useThemeColors } from "../../hooks/useThemeColors";
@@ -33,8 +33,7 @@ export function ClienteSaldoScreen() {
     if (!user?.uid) return;
     getDocs(query(
       collection(db, "movimientos"),
-      where("clienteUid", "==", user.uid),
-      orderBy("fecha", "desc")
+      where("clienteUid", "==", user.uid)
     )).then(snap => {
       const data = snap.docs.map(d => ({ id: d.id, ...d.data() }) as Movimiento);
       setMovimientos(data);

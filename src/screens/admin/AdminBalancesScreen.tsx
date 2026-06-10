@@ -6,7 +6,7 @@ import {
 import { MaterialIcons } from "@expo/vector-icons";
 import { BarChart } from "react-native-chart-kit";
 import {
-  collection, getDocs, query, where, Timestamp, orderBy,
+  collection, getDocs, query, where, Timestamp,
 } from "firebase/firestore";
 import { db } from "../../services/firebase";
 import { useThemeColors } from "../../hooks/useThemeColors";
@@ -51,16 +51,18 @@ export function AdminBalancesScreen() {
         getDocs(query(
           collection(db, "servicios_realizados"),
           where("estado", "==", "completado"),
-          orderBy("fecha", "asc"),
         )),
         getDocs(query(
           collection(db, "pedidos"),
           where("estado", "==", "aprobado"),
-          orderBy("createdAt", "asc"),
         )),
       ]);
-      setServicios(serviciosSnap.docs.map(d => d.data() as ServicioRealizado));
-      setPedidos(pedidosSnap.docs.map(d => d.data() as PedidoAprobado));
+      const serviciosData = serviciosSnap.docs.map(d => d.data() as ServicioRealizado)
+        .sort((a, b) => a.fecha.toMillis() - b.fecha.toMillis());
+      const pedidosData = pedidosSnap.docs.map(d => d.data() as PedidoAprobado)
+        .sort((a, b) => (a.createdAt ?? a.fecha).toMillis() - (b.createdAt ?? b.fecha).toMillis());
+      setServicios(serviciosData);
+      setPedidos(pedidosData);
     } catch(e) { console.log(e); }
     finally { setLoading(false); }
   };

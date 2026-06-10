@@ -5,7 +5,7 @@ import {
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import {
-  collection, getDocs, query, where, orderBy,
+  collection, getDocs, query, where,
   doc, updateDoc, Timestamp,
 } from "firebase/firestore";
 import { db } from "../../services/firebase";
@@ -60,9 +60,9 @@ export function PedidosScreen({ mode, showBackHeader = true }: Props) {
     try {
       let q;
       if (mode === "cliente" && user?.uid) {
-        q = query(collection(db,"pedidos"), where("clienteUid","==",user.uid), orderBy("createdAt","desc"));
+        q = query(collection(db,"pedidos"), where("clienteUid","==",user.uid));
       } else {
-        q = query(collection(db,"pedidos"), orderBy("createdAt","desc"));
+        q = query(collection(db,"pedidos"));
       }
       const snap = await getDocs(q);
       setPedidos(snap.docs.map(d => ({ id: d.id, ...d.data() }) as Pedido));

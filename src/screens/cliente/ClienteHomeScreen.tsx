@@ -49,7 +49,6 @@ export function ClienteHomeScreen() {
         collection(db, "reservas"),
         where("clienteUid", "==", user.uid),
         where("estado", "in", ["pendiente", "confirmada"]),
-        orderBy("fecha", "asc"),
         limit(1)
       )).then(snap => {
         if (!snap.empty) {

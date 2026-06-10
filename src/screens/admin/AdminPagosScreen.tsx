@@ -7,7 +7,7 @@ import { MaterialIcons } from "@expo/vector-icons";
 import {
   collection, getDocs, query, where,
   doc, addDoc, updateDoc, getDoc,
-  Timestamp, orderBy,
+  Timestamp,
 } from "firebase/firestore";
 import { db } from "../../services/firebase";
 import { useThemeColors } from "../../hooks/useThemeColors";
@@ -66,11 +66,10 @@ export function AdminPagosScreen() {
     try {
       const [clientesSnap, movSnap, pedidosSnap] = await Promise.all([
         getDocs(query(collection(db, "users"), where("role", "==", "cliente"))),
-        getDocs(query(collection(db, "movimientos"), orderBy("fecha", "desc"))),
+        getDocs(query(collection(db, "movimientos"))),
         getDocs(query(
           collection(db, "pedidos"),
-          where("estado", "==", "pendiente_credito"),
-          orderBy("createdAt", "desc")
+          where("estado", "==", "pendiente_credito")
         )),
       ]);
 
