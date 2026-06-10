@@ -64,10 +64,15 @@ export function LoginScreen() {
           >
             <Text style={[Typography.body, { color: c.blue }]}>← Volver</Text>
           </TouchableOpacity>
+          <View style={styles.logoContainer}>
+            <Image
+              source={require("../../assets/images/harrys_logo_clean.png")}
+              style={styles.logo}
+              resizeMode="contain"
+            />
+          </View>
 
-          <Text style={[Typography.h2, { color: c.text }]}>
-            Ingreso — {ROLE_LABELS[role]}
-          </Text>
+          <Text style={[Typography.h2, { color: c.text }]}>Ingresar</Text>
 
           {/* Email */}
           <View style={styles.fieldGroup}>
@@ -150,6 +155,8 @@ export function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
+  logoContainer: { alignItems: 'center', marginVertical: 12 },
+  logo: { width: 80, height: 80, borderRadius: 40 },
   container:  {
     flex: 1, padding: Spacing.lg, gap: Spacing.md, justifyContent: "center",
   },

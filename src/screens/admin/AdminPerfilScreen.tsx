@@ -10,10 +10,10 @@ import { ThemedCard }     from "../../components/ui/ThemedCard";
 import { ScreenWrapper }  from "../../components/ui/ScreenWrapper";
 
 export function AdminPerfilScreen() {
-  const c = useThemeColors();
+  const { toggle, mode, ...colorProps } = useThemeColors();
+  const c = { toggle, mode, ...colorProps };
   const navigation = useNavigation<any>();
   const { user, logout, } = useAuthStore();
-  const { toggle, mode }  = useThemeColors();
 
   const handleLogout = () => {
     Alert.alert("Cerrar sesión", "¿Estás seguro?", [

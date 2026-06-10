@@ -102,9 +102,14 @@ export function ClienteHomeScreen() {
           <Text style={[styles.greeting, { color: c.sub }]}>
             {isBirthday() ? "🎂 ¡Feliz cumpleaños!" : "Bienvenido,"}
           </Text>
-          <Text style={[styles.greetingName, { color: c.text }]}>
-            {user?.nombre} {user?.apellido}
-          </Text>
+          <View style={styles.nameRow}>
+            <Text style={[styles.greetingName, { color: c.text }]}>
+              {user?.nombre} {user?.apellido}
+            </Text>
+            {user?.categoria && (
+              <FidelizacionBadge categoria={user.categoria as any} />
+            )}
+          </View>
           {isBirthday() && (
             <Text style={[styles.birthdayMsg, { color: c.amber }]}>
               Tu corte de hoy es gratis 🎉

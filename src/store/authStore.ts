@@ -45,7 +45,7 @@ interface AuthState {
   clearError:   () => void;
 }
 
-export const useAuthStore = create<AuthState>()((set) => ({
+export const useAuthStore = create<AuthState>()((set, get) => ({
   user:         null,
   firebaseUser: null,
   isLoading:    false,
@@ -104,6 +104,8 @@ export const useAuthStore = create<AuthState>()((set) => ({
 
   initialize: () => {
     const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
+      // Si hay un login en curso, ignorar el evento de auth state
+      if (get().isLoading) return;
       if (firebaseUser) {
         try {
           const snap = await getDoc(doc(db, "users", firebaseUser.uid));
