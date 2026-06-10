@@ -56,6 +56,10 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
   login: async (email, password) => {
     set({ isLoading: true, error: null });
     try {
+      // Si hay sesión anónima activa, cerrarla primero
+      if (auth.currentUser?.isAnonymous) {
+        await signOut(auth);
+      }
       const credential = await signInWithEmailAndPassword(auth, email, password);
       const snap = await getDoc(doc(db, "users", credential.user.uid));
       if (!snap.exists()) throw new Error("Perfil no encontrado.");
@@ -106,8 +110,10 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
 
   initialize: () => {
     const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
-      // Si hay un login en curso, ignorar el evento de auth state
+      // Ignorar si hay login en curso
       if (get().isLoading) return;
+      // Ignorar usuarios anónimos (son del modo invitado)
+      if (firebaseUser?.isAnonymous) return;
       if (firebaseUser) {
         try {
           const snap = await getDoc(doc(db, "users", firebaseUser.uid));
