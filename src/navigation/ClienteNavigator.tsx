@@ -2,6 +2,7 @@ import React from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createStackNavigator }     from "@react-navigation/stack";
 import { MaterialIcons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useThemeColors } from "../hooks/useThemeColors";
 
 import { ClienteHomeScreen }       from "../screens/cliente/ClienteHomeScreen";
@@ -17,7 +18,8 @@ const Tab   = createBottomTabNavigator();
 const Stack = createStackNavigator();
 
 function ClienteTabs() {
-  const c = useThemeColors();
+  const c      = useThemeColors();
+  const insets = useSafeAreaInsets();
 
   return (
     <Tab.Navigator
@@ -27,8 +29,8 @@ function ClienteTabs() {
           backgroundColor: c.surface,
           borderTopColor:  c.border,
           borderTopWidth:  1,
-          height:          60,
-          paddingBottom:   8,
+          height:          60 + insets.bottom,
+          paddingBottom:   8 + insets.bottom,
         },
         tabBarActiveTintColor:   c.amber,
         tabBarInactiveTintColor: c.sub,

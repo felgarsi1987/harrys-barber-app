@@ -18,11 +18,7 @@
       },
       "predictiveBackGestureEnabled": false,
       "package": "com.felgarsi.harrysbarberapp",
-      "softwareKeyboardLayoutMode": "adjustResize",
-      "navigationBar": {
-        "position": "absolute",
-        "backgroundColor": "#00000000"
-      }
+      "softwareKeyboardLayoutMode": "adjustResize"
     },
     "web": {
       "favicon": "./assets/favicon.png"
@@ -35,15 +31,6 @@
         {
           "style": "auto"
         }
-      ],
-      [
-        "expo-navigation-bar",
-        {
-          "position": "absolute",
-          "backgroundColor": "#00000000",
-          "borderColor": "#00000000",
-          "barStyle": "dark"
-        }
       ]
     ],
     "extra": {
@@ -51,6 +38,11 @@
         "projectId": "e1e52c92-60ac-4c73-85e4-007716a48dad"
       }
     },
-    "owner": "felgarsi"
+    "owner": "felgarsi",
+    "androidStatusBar": {
+      "barStyle": "light-content",
+      "backgroundColor": "#00000000",
+      "translucent": true
+    }
   }
 }

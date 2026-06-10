@@ -1,9 +1,8 @@
 import React, { useEffect, useState, useCallback } from "react";
 import { View, StatusBar, Platform } from "react-native";
-import * as SplashScreen   from "expo-splash-screen";
-import * as Font           from "expo-font";
-import * as Network        from "expo-network";
-import * as NavigationBar  from "expo-navigation-bar";
+import * as SplashScreen  from "expo-splash-screen";
+import * as Font          from "expo-font";
+import * as Network       from "expo-network";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import {
   SpaceGrotesk_400Regular,
@@ -21,17 +20,10 @@ export default function App() {
   const [sinConexion, setSinConexion] = useState(false);
 
   useEffect(() => {
-    // Android: make both status bar AND navigation bar transparent
-    // so the app content goes full screen and safe area insets
-    // handle the actual padding correctly
     if (Platform.OS === "android") {
       StatusBar.setBackgroundColor("transparent", false);
       StatusBar.setTranslucent(true);
-      // Make nav bar transparent so safe area insets work correctly
-      NavigationBar.setPositionAsync("absolute").catch(() => {});
-      NavigationBar.setBackgroundColorAsync("#00000000").catch(() => {});
     }
-
     Font.loadAsync({
       SpaceGrotesk_400Regular,
       SpaceGrotesk_500Medium,
@@ -39,7 +31,6 @@ export default function App() {
       Syne_700Bold,
       Syne_800ExtraBold,
     }).then(() => setFontsLoaded(true));
-
     checkConnection();
   }, []);
 

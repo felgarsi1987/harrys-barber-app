@@ -1,18 +1,7 @@
-/**
- * ScreenWrapper — reemplaza SafeAreaView en todas las pantallas.
- *
- * Con NavigationBar en modo "absolute" (transparente), los insets de
- * react-native-safe-area-context devuelven los valores REALES de las
- * barras del sistema (status bar arriba + nav bar abajo).
- *
- * Esto garantiza que el contenido NUNCA quede detrás de las barras,
- * sin importar si el dispositivo usa botones físicos, gestos, o
- * nav bar con 2/3 botones.
- */
 import React from "react";
 import {
   View, KeyboardAvoidingView, Platform,
-  StyleSheet, ViewStyle,
+  StyleSheet, ViewStyle, StatusBar,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useThemeColors }    from "../../hooks/useThemeColors";
@@ -20,7 +9,6 @@ import { useThemeColors }    from "../../hooks/useThemeColors";
 interface Props {
   children:  React.ReactNode;
   style?:    ViewStyle;
-  /** false en pantallas que no tienen inputs (listas, dashboards) */
   keyboard?: boolean;
 }
 
@@ -28,15 +16,21 @@ export function ScreenWrapper({ children, style, keyboard = true }: Props) {
   const c      = useThemeColors();
   const insets = useSafeAreaInsets();
 
+  // On Android, StatusBar.currentHeight is the most reliable fallback
+  // when insets.top is 0 (happens on some devices before SafeAreaProvider
+  // has measured correctly)
+  const statusBarH  = Platform.OS === "android" ? (StatusBar.currentHeight ?? 24) : 0;
+  const paddingTop  = insets.top    > 0 ? insets.top    : statusBarH;
+  const paddingBot  = insets.bottom > 0 ? insets.bottom : 0;
+
   const inner = (
     <View
       style={[
         styles.root,
         {
           backgroundColor: c.bg,
-          // Respetar las barras del sistema con insets reales
-          paddingTop:    insets.top,
-          paddingBottom: insets.bottom,
+          paddingTop,
+          paddingBottom: paddingBot,
           paddingLeft:   insets.left,
           paddingRight:  insets.right,
         },

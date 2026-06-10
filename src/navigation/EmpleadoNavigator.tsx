@@ -1,6 +1,7 @@
 import React from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { MaterialIcons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useThemeColors } from "../hooks/useThemeColors";
 
 import { EmpleadoAgendaScreen }    from "../screens/empleado/EmpleadoAgendaScreen";
@@ -26,8 +27,8 @@ export function EmpleadoNavigator() {
           backgroundColor: c.surface,
           borderTopColor:  c.border,
           borderTopWidth:  1,
-          height:          60,
-          paddingBottom:   8,
+          height:          60 + insets.bottom,
+          paddingBottom:   8 + insets.bottom,
         },
         tabBarActiveTintColor:   c.amber,
         tabBarInactiveTintColor: c.sub,
