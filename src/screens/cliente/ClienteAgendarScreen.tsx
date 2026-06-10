@@ -61,6 +61,7 @@ export function ClienteAgendarScreen() {
 
   // Cargar peluqueros disponibles y config de horario
   useEffect(() => {
+    // Load always - works for both logged in users and guests
     Promise.all([
       // Servicios desde Firestore
       getServicios().then(data => setServicios(data)),

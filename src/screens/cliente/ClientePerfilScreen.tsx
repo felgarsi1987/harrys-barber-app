@@ -6,6 +6,7 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { useThemeColors } from "../../hooks/useThemeColors";
 import { useAuthStore }   from "../../store/authStore";
+import { useGuestStore }  from "../../store/guestStore";
 import { ThemedCard }     from "../../components/ui/ThemedCard";
 import { TagChip }        from "../../components/ui/TagChip";
 import { ScreenWrapper }  from "../../components/ui/ScreenWrapper";
@@ -14,11 +15,12 @@ export function ClientePerfilScreen() {
   const c              = useThemeColors();
   const navigation     = useNavigation<any>();
   const { user, logout } = useAuthStore();
+  const { guest, clearGuest } = useGuestStore();
 
   const handleLogout = () => {
     Alert.alert("Cerrar sesión", "¿Estás seguro?", [
       { text: "Cancelar", style: "cancel" },
-      { text: "Salir", style: "destructive", onPress: logout },
+      { text: "Salir", style: "destructive", onPress: () => { logout(); clearGuest(); } },
     ]);
   };
 

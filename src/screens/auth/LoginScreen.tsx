@@ -4,7 +4,7 @@ import {
   StyleSheet,
   ActivityIndicator, Alert,
 } from "react-native";
-import { useNavigation, useRoute } from "@react-navigation/native";
+import { useNavigation } from "@react-navigation/native";
 import { sendPasswordResetEmail } from "firebase/auth";
 import { auth } from "../../services/firebase";
 import { useThemeColors }  from "../../hooks/useThemeColors";
@@ -13,17 +13,8 @@ import { ScreenWrapper }  from "../../components/ui/ScreenWrapper";
 import { Typography }      from "../../theme/typography";
 import { Spacing, Radius } from "../../theme/spacing";
 
-const ROLE_LABELS: Record<string, string> = {
-  admin:    "Administrador",
-  empleado: "Empleado",
-  cliente:  "Cliente",
-};
-
 export function LoginScreen() {
   const navigation = useNavigation<any>();
-  const route      = useRoute<any>();
-  const role       = route.params?.role ?? "cliente";
-
   const c = useThemeColors();
   const { login, isLoading, error, clearError } = useAuthStore();
 
@@ -117,8 +108,8 @@ export function LoginScreen() {
             <Text style={[Typography.bodySmall, { color: c.negative }]}>{error}</Text>
           ) : null}
 
-          {/* Recuperar contraseña — solo clientes */}
-          {role === "cliente" && (
+          {/* Recuperar contraseña */}
+          {(
             <TouchableOpacity
               onPress={handleRecuperarContrasena}
               disabled={enviando}
@@ -130,7 +121,7 @@ export function LoginScreen() {
           )}
 
           {/* Registro */}
-          {role === "cliente" && (
+          {(
             <TouchableOpacity onPress={() => navigation.navigate("Registro")}>
               <Text style={[Typography.body, { color: c.blue }]}>
                 ¿No tienes cuenta? Regístrate

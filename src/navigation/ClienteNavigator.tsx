@@ -40,7 +40,7 @@ function ClienteTabs() {
           const icons: Record<string, keyof typeof MaterialIcons.glyphMap> = {
             Inicio:  "home",
             Agendar: "event-available",
-            Carrito: "shopping-cart",
+            Tienda: "store",
             Saldo:   "account-balance-wallet",
             Perfil:  "person-outline",
           };
@@ -56,7 +56,7 @@ function ClienteTabs() {
     >
       <Tab.Screen name="Inicio"  component={ClienteHomeScreen} />
       <Tab.Screen name="Agendar" component={ClienteAgendarScreen} />
-      <Tab.Screen name="Carrito" component={ClienteCarritoScreen} />
+      <Tab.Screen name="Tienda" component={ClienteCarritoScreen} />
       <Tab.Screen name="Saldo"   component={ClienteSaldoScreen} />
       <Tab.Screen name="Perfil"  component={ClientePerfilScreen} />
     </Tab.Navigator>
