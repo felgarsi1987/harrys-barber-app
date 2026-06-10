@@ -17,7 +17,8 @@ function EmpleadoPedidosScreen() {
 const Tab = createBottomTabNavigator();
 
 export function EmpleadoNavigator() {
-  const c = useThemeColors();
+  const c      = useThemeColors();
+  const insets = useSafeAreaInsets();
 
   return (
     <Tab.Navigator
