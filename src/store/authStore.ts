@@ -57,19 +57,24 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
     set({ isLoading: true, error: null });
     try {
       // Si hay sesión anónima activa, cerrarla primero
+      // Mantenemos isLoading=true durante el signOut para evitar
+      // que onAuthStateChanged(null) lo resetee a false
       if (auth.currentUser?.isAnonymous) {
         await signOut(auth);
+        // Forzar isLoading=true de nuevo por si onAuthStateChanged lo reseteó
+        set({ isLoading: true });
       }
       const credential = await signInWithEmailAndPassword(auth, email, password);
       const snap = await getDoc(doc(db, "users", credential.user.uid));
       if (!snap.exists()) throw new Error("Perfil no encontrado.");
       set({
-        user: snap.data() as AppUser,
+        user:         snap.data() as AppUser,
         firebaseUser: credential.user,
-        isLoading: false,
+        isLoading:    false,
+        error:        null,
       });
     } catch (e: any) {
-      set({ error: mapFirebaseError(e.code), isLoading: false });
+      set({ error: mapFirebaseError(e?.code), isLoading: false });
     }
   },
 
@@ -110,7 +115,7 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
 
   initialize: () => {
     const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
-      // Ignorar si hay login en curso
+      // Ignorar si hay login o registro en curso
       if (get().isLoading) return;
       // Ignorar usuarios anónimos (son del modo invitado)
       if (firebaseUser?.isAnonymous) return;
@@ -118,11 +123,7 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
         try {
           const snap = await getDoc(doc(db, "users", firebaseUser.uid));
           if (snap.exists()) {
-            set({
-              user: snap.data() as AppUser,
-              firebaseUser,
-              isLoading: false,
-            });
+            set({ user: snap.data() as AppUser, firebaseUser, isLoading: false });
           } else {
             set({ user: null, firebaseUser: null, isLoading: false });
           }
@@ -130,7 +131,10 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
           set({ user: null, firebaseUser: null, isLoading: false });
         }
       } else {
-        set({ user: null, firebaseUser: null, isLoading: false });
+        // null = sesión cerrada — solo resetear si NO hay login activo
+        if (!get().isLoading) {
+          set({ user: null, firebaseUser: null, isLoading: false });
+        }
       }
     });
     return unsub;
