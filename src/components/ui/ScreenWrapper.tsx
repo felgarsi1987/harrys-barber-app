@@ -1,30 +1,29 @@
-/**
- * ScreenWrapper — solución definitiva Android edge-to-edge.
- * Usa windowSoftInputMode="adjustResize" + paddingBottom dinámico.
- */
 import React from "react";
-import { View, StyleSheet, Platform, ViewStyle } from "react-native";
+import {
+  KeyboardAvoidingView, Platform, StyleSheet,
+  ViewStyle, StatusBar, View,
+} from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useThemeColors } from "../../hooks/useThemeColors";
 
 interface Props {
-  children:   React.ReactNode;
-  style?:     ViewStyle;
-  noPadding?: boolean;
+  children:  React.ReactNode;
+  style?:    ViewStyle;
+  keyboard?: boolean;
 }
 
-export function ScreenWrapper({ children, style, noPadding = false }: Props) {
+export function ScreenWrapper({ children, style, keyboard = true }: Props) {
   const c      = useThemeColors();
   const insets = useSafeAreaInsets();
 
-  return (
+  const content = (
     <View
       style={[
         styles.root,
         {
           backgroundColor: c.bg,
-          paddingTop:    noPadding ? 0 : insets.top,
-          paddingBottom: insets.bottom,
+          paddingTop:    insets.top    > 0 ? insets.top    : Platform.OS === "android" ? (StatusBar.currentHeight ?? 0) : 0,
+          paddingBottom: insets.bottom > 0 ? insets.bottom : 0,
           paddingLeft:   insets.left,
           paddingRight:  insets.right,
         },
@@ -33,6 +32,18 @@ export function ScreenWrapper({ children, style, noPadding = false }: Props) {
     >
       {children}
     </View>
+  );
+
+  if (!keyboard) return content;
+
+  return (
+    <KeyboardAvoidingView
+      style={{ flex: 1, backgroundColor: c.bg }}
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      keyboardVerticalOffset={0}
+    >
+      {content}
+    </KeyboardAvoidingView>
   );
 }
 

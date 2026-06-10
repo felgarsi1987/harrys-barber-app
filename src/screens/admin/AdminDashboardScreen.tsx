@@ -49,7 +49,7 @@ export function AdminDashboardScreen() {
       setIngresosMes(total);
 
       const creditosSnap = await getDocs(
-        query(collection(db,"creditos"), where("saldo",">",0))
+        query(collection(db, "users"), where("role", "==", "cliente"), where("saldo", ">", 0))
       );
       let creditos = 0;
       creditosSnap.forEach(d => { creditos += d.data().saldo ?? 0; });

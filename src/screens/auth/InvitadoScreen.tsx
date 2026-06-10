@@ -8,7 +8,6 @@ import { MaterialIcons }  from "@expo/vector-icons";
 import { useThemeColors } from "../../hooks/useThemeColors";
 import { useGuestStore }  from "../../store/guestStore";
 import { ScreenWrapper }  from "../../components/ui/ScreenWrapper";
-import { AixonFooter }    from "../../components/ui/AixonFooter";
 
 export function InvitadoScreen() {
   const c          = useThemeColors();
@@ -94,7 +93,6 @@ export function InvitadoScreen() {
           </Text>
         </TouchableOpacity>
       </View>
-      <AixonFooter />
     </ScreenWrapper>
   );
 }

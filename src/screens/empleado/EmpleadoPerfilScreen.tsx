@@ -11,7 +11,6 @@ import { ScreenWrapper }  from "../../components/ui/ScreenWrapper";
 export function EmpleadoPerfilScreen() {
   const c                = useThemeColors();
   const { user, logout } = useAuthStore();
-  const { toggle, mode } = useThemeColors();
 
   const handleLogout = () => {
     Alert.alert("Cerrar sesión", "¿Estás seguro?", [
@@ -69,14 +68,14 @@ export function EmpleadoPerfilScreen() {
         {/* Tema */}
         <ThemedCard style={styles.themeCard}>
           <MaterialIcons
-            name={mode === "dark" ? "dark-mode" : "light-mode"}
+            name={c.mode === "dark" ? "dark-mode" : "light-mode"}
             size={20} color={c.amber}
           />
           <Text style={[styles.themeLabel, { color: c.text }]}>
-            Tema {mode === "dark" ? "oscuro" : "claro"}
+            Tema {c.mode === "dark" ? "oscuro" : "claro"}
           </Text>
           <TouchableOpacity
-            onPress={toggle}
+            onPress={c.toggle}
             style={[styles.themeBtn, { backgroundColor: c.amber + "22", borderColor: c.amber + "44" }]}
           >
             <Text style={[styles.themeBtnText, { color: c.amber }]}>Cambiar</Text>

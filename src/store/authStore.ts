@@ -22,6 +22,8 @@ export interface AppUser {
   pushToken?:        string;
   photoURL?:         string;
   canApproveOrders?: boolean;
+  saldo?:            number;
+  categoria?:        "plata" | "oro" | "diamante";
 }
 
 interface RegisterData {
