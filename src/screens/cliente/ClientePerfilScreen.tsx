@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert,
 } from "react-native";
@@ -107,17 +107,7 @@ export function ClientePerfilScreen() {
           <Text style={[styles.logoutText, { color: c.red }]}>Cerrar sesión</Text>
         </TouchableOpacity>
       </ScrollView>
-      {showPedidos && (
-        <View style={{ position: "absolute", top: 0, left: 0, right: 0, bottom: 0 }}>
-          <PedidosScreen mode="cliente" showBackHeader={false} />
-          <TouchableOpacity
-            onPress={() => setShowPedidos(false)}
-            style={{ position: "absolute", top: 16, left: 16, zIndex: 10 }}
-          >
-            <MaterialIcons name="arrow-back" size={24} color="#fff" />
-          </TouchableOpacity>
-        </View>
-      )}
+
     </ScreenWrapper>
   );
 }

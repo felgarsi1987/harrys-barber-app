@@ -1,47 +1,54 @@
 /**
- * ScreenWrapper
- * Reemplaza SafeAreaView en todas las pantallas.
- * - Maneja insets de barra de navegación Android (edge-to-edge)
- * - Maneja el teclado con KeyboardAvoidingView
- * - Aplica el color de fondo del tema
+ * ScreenWrapper — reemplaza SafeAreaView en todas las pantallas.
+ * 
+ * Solución definitiva para Android edge-to-edge:
+ * - Usa StatusBar.currentHeight para el padding top
+ * - Usa useSafeAreaInsets() para bottom/left/right
+ * - KeyboardAvoidingView solo en iOS (en Android causa más problemas que soluciona)
+ * - En Android el teclado se maneja con softwareKeyboardLayoutMode: "pan" en app.json
  */
 import React from "react";
 import {
-  KeyboardAvoidingView, Platform, StyleSheet,
-  ViewStyle, StatusBar,
+  View, StyleSheet, StatusBar,
+  Platform, ViewStyle,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useThemeColors } from "../../hooks/useThemeColors";
 
 interface Props {
-  children: React.ReactNode;
-  style?:   ViewStyle;
-  /** true por defecto — desactivar solo en pantallas sin inputs */
-  keyboard?: boolean;
+  children:  React.ReactNode;
+  style?:    ViewStyle;
+  noPadding?: boolean;
 }
 
-export function ScreenWrapper({ children, style, keyboard = true }: Props) {
+export function ScreenWrapper({ children, style, noPadding = false }: Props) {
   const c      = useThemeColors();
   const insets = useSafeAreaInsets();
 
+  // En Android, StatusBar.currentHeight es la altura real de la barra de estado.
+  // useSafeAreaInsets().top puede ser 0 en algunos dispositivos con edge-to-edge.
+  // Tomamos el máximo de los dos para garantizar que siempre haya padding suficiente.
+  const paddingTop = noPadding ? 0 : Math.max(
+    insets.top,
+    Platform.OS === "android" ? (StatusBar.currentHeight ?? 24) : 0
+  );
+
   return (
-    <KeyboardAvoidingView
+    <View
       style={[
         styles.root,
         {
           backgroundColor: c.bg,
-          paddingTop:    insets.top,
+          paddingTop,
           paddingBottom: insets.bottom,
           paddingLeft:   insets.left,
           paddingRight:  insets.right,
         },
         style,
       ]}
-      behavior={keyboard ? (Platform.OS === "ios" ? "padding" : "height") : undefined}
-      keyboardVerticalOffset={Platform.OS === "ios" ? 0 : StatusBar.currentHeight ?? 0}
     >
       {children}
-    </KeyboardAvoidingView>
+    </View>
   );
 }
 

@@ -4,7 +4,6 @@ import {
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useThemeColors } from "../../hooks/useThemeColors";
-import { AixonFooter }    from "../../components/ui/AixonFooter";
 import { ScreenWrapper }  from "../../components/ui/ScreenWrapper";
 
 interface Props {
@@ -39,7 +38,6 @@ export function SinConexionScreen({ onRetry }: Props) {
         </TouchableOpacity>
 
       </View>
-      <AixonFooter />
     </ScreenWrapper>
   );
 }

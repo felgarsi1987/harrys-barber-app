@@ -6,7 +6,6 @@ import {
 import { useNavigation } from "@react-navigation/native";
 import { useThemeColors }  from "../../hooks/useThemeColors";
 import { useAuthStore }    from "../../store/authStore";
-import { AixonFooter }     from "../../components/ui/AixonFooter";
 import { ScreenWrapper }  from "../../components/ui/ScreenWrapper";
 import { Typography }      from "../../theme/typography";
 import { Spacing, Radius } from "../../theme/spacing";
@@ -93,7 +92,6 @@ export function RegistroScreen() {
           }
         </TouchableOpacity>
       </ScrollView>
-      <AixonFooter />
     </ScreenWrapper>
   );
 }

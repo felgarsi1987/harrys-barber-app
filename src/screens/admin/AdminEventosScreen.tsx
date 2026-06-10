@@ -215,7 +215,7 @@ export function AdminEventosScreen() {
               {editando ? "Editar evento" : "Nuevo evento"}
             </Text>
 
-            <ScrollView showsVerticalScrollIndicator={false} style={{ maxHeight: 500 }} contentContainerStyle={{ gap: 14 }}>
+            <View style={{ gap: 14 }}>
 
             {[
               { key: "titulo",      label: "Título",      placeholder: "Ej. Descuento del 20%" },
@@ -298,7 +298,7 @@ export function AdminEventosScreen() {
               )}
             </View>
 
-            </ScrollView>
+            </View>
 
             <View style={styles.activoRow}>
               <Text style={[styles.activoLabel, { color: c.text }]}>Mostrar en home</Text>

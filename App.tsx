@@ -13,16 +13,22 @@ import {
   Syne_700Bold,
   Syne_800ExtraBold,
 } from "@expo-google-fonts/syne";
-import { RootNavigator }      from "./src/navigation/RootNavigator";
-import { SinConexionScreen }  from "./src/screens/errors/SinConexionScreen";
+import { RootNavigator }     from "./src/navigation/RootNavigator";
+import { SinConexionScreen } from "./src/screens/errors/SinConexionScreen";
 
 SplashScreen.preventAutoHideAsync();
 
 export default function App() {
-  const [fontsLoaded,   setFontsLoaded]   = useState(false);
-  const [sinConexion,   setSinConexion]   = useState(false);
+  const [fontsLoaded,  setFontsLoaded]  = useState(false);
+  const [sinConexion,  setSinConexion]  = useState(false);
 
   useEffect(() => {
+    // Configurar StatusBar de Android para edge-to-edge ANTES de cargar fuentes
+    if (Platform.OS === "android") {
+      StatusBar.setBackgroundColor("transparent");
+      StatusBar.setTranslucent(true);
+    }
+
     Font.loadAsync({
       SpaceGrotesk_400Regular,
       SpaceGrotesk_500Medium,
@@ -30,12 +36,6 @@ export default function App() {
       Syne_700Bold,
       Syne_800ExtraBold,
     }).then(() => setFontsLoaded(true));
-
-    // Android: status bar translucente para edge-to-edge
-    if (Platform.OS === "android") {
-      StatusBar.setBackgroundColor("transparent", false);
-      StatusBar.setTranslucent(true);
-    }
 
     checkConnection();
   }, []);
@@ -55,17 +55,6 @@ export default function App() {
 
   if (!fontsLoaded) return null;
 
-  if (sinConexion) {
-    return (
-      <SafeAreaProvider>
-        <SinConexionScreen onRetry={() => {
-          setSinConexion(false);
-          checkConnection();
-        }} />
-      </SafeAreaProvider>
-    );
-  }
-
   return (
     <SafeAreaProvider>
       <StatusBar
@@ -74,7 +63,14 @@ export default function App() {
         barStyle="light-content"
       />
       <View style={{ flex: 1 }} onLayout={onLayoutRootView}>
-        <RootNavigator />
+        {sinConexion ? (
+          <SinConexionScreen onRetry={() => {
+            setSinConexion(false);
+            checkConnection();
+          }} />
+        ) : (
+          <RootNavigator />
+        )}
       </View>
     </SafeAreaProvider>
   );
