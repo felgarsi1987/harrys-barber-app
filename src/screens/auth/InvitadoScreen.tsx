@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import {
   View, Text, TextInput, TouchableOpacity,
-  StyleSheet, Alert, ActivityIndicator,
+  StyleSheet, Alert, ActivityIndicator, Image,
 } from "react-native";
 import { useNavigation } from "@react-navigation/native";
 import { MaterialIcons }  from "@expo/vector-icons";
@@ -39,8 +39,12 @@ export function InvitadoScreen() {
           <MaterialIcons name="arrow-back" size={22} color={c.sub} />
         </TouchableOpacity>
 
-        <View style={styles.iconBox}>
-          <MaterialIcons name="visibility" size={40} color={c.amber} />
+        <View style={styles.logoBox}>
+          <Image
+            source={require("../../assets/images/harrys_logo_clean.png")}
+            style={styles.logo}
+            resizeMode="contain"
+          />
         </View>
 
         <Text style={[styles.title, { color: c.text }]}>Acceso invitado</Text>
@@ -100,7 +104,8 @@ export function InvitadoScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 28, justifyContent: "center", gap: 16 },
   back:      { position: "absolute", top: 20, left: 20 },
-  iconBox:   { alignItems: "center", marginBottom: 8 },
+  logoBox: { alignItems: "center", marginBottom: 4 },
+  logo:    { width: 100, height: 100, borderRadius: 50 },
   title:     { fontSize: 24, fontFamily: "Syne_700Bold", textAlign: "center" },
   desc:      { fontSize: 13, fontFamily: "SpaceGrotesk_400Regular", textAlign: "center", lineHeight: 20 },
   fields:    { gap: 14 },
