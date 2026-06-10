@@ -7,6 +7,7 @@ import { collection, getDocs, addDoc, Timestamp } from "firebase/firestore";
 import { db } from "../../services/firebase";
 import { useThemeColors } from "../../hooks/useThemeColors";
 import { useAuthStore }   from "../../store/authStore";
+import { useGuestStore }  from "../../store/guestStore";
 import { NumberText }     from "../../components/ui/NumberText";
 import { ThemedCard }     from "../../components/ui/ThemedCard";
 import { ScreenWrapper }  from "../../components/ui/ScreenWrapper";
@@ -26,6 +27,7 @@ interface ItemCarrito extends Producto {
 export function ClienteCarritoScreen() {
   const c = useThemeColors();
   const { user } = useAuthStore();
+  const guest = useGuestStore(s => s.guest);
   const [productos, setProductos] = useState<Producto[]>([]);
   const [carrito,   setCarrito]   = useState<ItemCarrito[]>([]);
   const [loading,   setLoading]   = useState(true);
@@ -66,8 +68,8 @@ export function ClienteCarritoScreen() {
     setEnviando(true);
     try {
       await addDoc(collection(db, "pedidos"), {
-        clienteUid:    user?.uid,
-        clienteNombre: `${user?.nombre} ${user?.apellido}`,
+        clienteUid:    user?.uid ?? null,
+        clienteNombre: user ? `${user.nombre} ${user.apellido}` : guest ? `${guest.nombre} ${guest.apellido}` : "Invitado",
         clienteEmail:  user?.email ?? null,
         items: carrito.map(i => ({
           productoId: i.id,
@@ -94,21 +96,28 @@ export function ClienteCarritoScreen() {
   };
 
   const confirmarPedido = () => {
-    Alert.alert(
-      "¿Cómo pagas?",
-      `Total: $${total.toLocaleString("es-CO")}`,
-      [
-        { text: "Cancelar", style: "cancel" },
-        {
-          text: "💳 A crédito",
-          onPress: () => enviarPedido(true),
-        },
-        {
-          text: "💵 De contado",
-          onPress: () => enviarPedido(false),
-        },
-      ]
-    );
+    const esRegistrado = !!user;
+    if (esRegistrado) {
+      Alert.alert(
+        "¿Cómo pagas?",
+        `Total: $${total.toLocaleString("es-CO")}`,
+        [
+          { text: "Cancelar", style: "cancel" },
+          { text: "💳 A crédito", onPress: () => enviarPedido(true) },
+          { text: "💵 De contado", onPress: () => enviarPedido(false) },
+        ]
+      );
+    } else {
+      // Guest — only contado
+      Alert.alert(
+        "Confirmar pedido",
+        `Total: $${total.toLocaleString("es-CO")}\nSolo de contado para invitados.`,
+        [
+          { text: "Cancelar", style: "cancel" },
+          { text: "💵 De contado", onPress: () => enviarPedido(false) },
+        ]
+      );
+    }
   };
 
   return (

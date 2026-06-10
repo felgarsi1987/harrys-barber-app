@@ -18,15 +18,19 @@ export function InvitadoScreen() {
   const [apellido, setApellido] = useState("");
   const [loading,  setLoading]  = useState(false);
 
-  const entrar = () => {
+  const entrar = async () => {
     if (!nombre.trim() || !apellido.trim()) {
       Alert.alert("Faltan datos", "Ingresa tu nombre y apellido para continuar.");
       return;
     }
     setLoading(true);
-    setGuest({ nombre: nombre.trim(), apellido: apellido.trim() });
-    // RootNavigator detectará el guest y mostrará ClienteNavigator
-    setLoading(false);
+    try {
+      await setGuest({ nombre: nombre.trim(), apellido: apellido.trim() });
+    } catch(e) {
+      console.log("Guest entry error:", e);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

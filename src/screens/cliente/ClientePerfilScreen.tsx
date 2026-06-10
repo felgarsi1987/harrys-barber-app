@@ -20,7 +20,7 @@ export function ClientePerfilScreen() {
   const handleLogout = () => {
     Alert.alert("Cerrar sesión", "¿Estás seguro?", [
       { text: "Cancelar", style: "cancel" },
-      { text: "Salir", style: "destructive", onPress: () => { logout(); clearGuest(); } },
+      { text: "Salir", style: "destructive", onPress: async () => { await clearGuest(); logout(); } },
     ]);
   };
 
