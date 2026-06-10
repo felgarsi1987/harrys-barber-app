@@ -30,7 +30,12 @@ export default function App() {
       SpaceGrotesk_600SemiBold,
       Syne_700Bold,
       Syne_800ExtraBold,
-    }).then(() => setFontsLoaded(true));
+    })
+      .then(() => setFontsLoaded(true))
+      .catch(() => setFontsLoaded(true)); // Si falla, continuar igual
+
+    // Timeout de seguridad: si las fuentes no cargan en 5s, continuar
+    setTimeout(() => setFontsLoaded(true), 5000);
     checkConnection();
   }, []);
 
