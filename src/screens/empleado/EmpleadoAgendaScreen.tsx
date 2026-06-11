@@ -231,7 +231,7 @@ export function EmpleadoAgendaScreen() {
             style={[styles.tabBtn, tab === t && { borderBottomWidth: 2, borderBottomColor: c.amber }]}
           >
             <Text style={[styles.tabText, { color: tab === t ? c.amber : c.sub }]}>
-              {t === "agenda" ? "Agenda" : t === "historial" ? "Mis citas" : `Por aprobar${pendingAll.length > 0 ? ` (${pendingAll.length})` : ""}`}
+              {t === "agenda" ? "Agenda" : t === "historial" ? "Mis citas" : `Pendientes${pendingAll.length > 0 ? ` (${pendingAll.length})` : ""}`}
             </Text>
           </TouchableOpacity>
         ))}
