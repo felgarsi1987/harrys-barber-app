@@ -60,7 +60,7 @@ export function ClienteHistorialScreen() {
         where("clienteUid", "==", user.uid)
       ));
       setReservas(snap.docs.map(d => ({ id: d.id, ...d.data() }) as Reserva));
-    } catch(e) { console.log(e); }
+    } catch(e) { /* */ }
     finally { setLoading(false); }
   };
 

@@ -27,7 +27,6 @@ export function InvitadoScreen() {
     try {
       await setGuest({ nombre: nombre.trim(), apellido: apellido.trim() });
     } catch(e) {
-      console.log("Guest entry error:", e);
     } finally {
       setLoading(false);
     }

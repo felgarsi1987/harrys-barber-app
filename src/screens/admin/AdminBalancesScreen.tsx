@@ -63,7 +63,7 @@ export function AdminBalancesScreen() {
         .sort((a, b) => (a.createdAt ?? a.fecha).toMillis() - (b.createdAt ?? b.fecha).toMillis());
       setServicios(serviciosData);
       setPedidos(pedidosData);
-    } catch(e) { console.log(e); }
+    } catch(e) { /* */ }
     finally { setLoading(false); }
   };
 

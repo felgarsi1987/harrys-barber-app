@@ -77,7 +77,7 @@ export function AdminPagosScreen() {
       setClientes(clientesData.filter(c => (c.saldo ?? 0) > 0));
       setMovimientos(movSnap.docs.map(d => ({ id: d.id, ...d.data() }) as Movimiento));
       setPedidos(pedidosSnap.docs.map(d => ({ id: d.id, ...d.data() }) as PedidoCredito));
-    } catch(e) { console.log(e); }
+    } catch(e) { /* */ }
     finally { setLoading(false); }
   };
 
@@ -104,7 +104,7 @@ export function AdminPagosScreen() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ to: pushToken, title, body, sound: "default" }),
       });
-    } catch(e) { console.log("Push error:", e); }
+    } catch(e) { /* silent */ }
   };
 
   // ── Aprobar crédito ───────────────────────────────────────────────────────

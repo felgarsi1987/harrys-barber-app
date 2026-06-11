@@ -12,7 +12,8 @@ import { db } from "../../services/firebase";
 import { useThemeColors } from "../../hooks/useThemeColors";
 import { useAuthStore }   from "../../store/authStore";
 import { TagChip }        from "../../components/ui/TagChip";
-import { ThemedCard }     from "../../components/ui/ThemedCard";
+import { FidelizacionBadge } from "../../components/ui/FidelizacionBadge";
+import { ThemedCard }        from "../../components/ui/ThemedCard";
 import { ScreenWrapper }  from "../../components/ui/ScreenWrapper";
 
 interface Reserva {

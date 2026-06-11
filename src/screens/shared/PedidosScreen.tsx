@@ -66,7 +66,7 @@ export function PedidosScreen({ mode, showBackHeader = true }: Props) {
       }
       const snap = await getDocs(q);
       setPedidos(snap.docs.map(d => ({ id: d.id, ...d.data() }) as Pedido));
-    } catch(e) { console.log(e); }
+    } catch(e) { /* */ }
     finally { setLoading(false); }
   };
 

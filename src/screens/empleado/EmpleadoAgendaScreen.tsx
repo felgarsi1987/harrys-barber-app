@@ -139,7 +139,7 @@ export function EmpleadoAgendaScreen() {
         orderBy("fecha", "asc")
       ));
       setReservas(snap.docs.map(d => ({ id: d.id, ...d.data() }) as Reserva));
-    } catch(e) { console.log(e); }
+    } catch(e) { /* */ }
     finally { setLoading(false); }
   };
 
@@ -165,7 +165,7 @@ export function EmpleadoAgendaScreen() {
         orderBy("fecha", "desc")
       ));
       setHistorial(snap.docs.map(d => ({ id: d.id, ...d.data() }) as Reserva));
-    } catch(e) { console.log(e); }
+    } catch(e) { /* */ }
     finally { setLoadingHist(false); }
   };
 

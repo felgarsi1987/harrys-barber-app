@@ -106,7 +106,6 @@ export async function notificarCambioEstado(
       }),
     });
   } catch (e) {
-    console.log("Push notification error:", e);
   }
 }
 
@@ -134,7 +133,6 @@ export async function programarRecordatorio(
       trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: unHoraAntes },
     });
   } catch (e) {
-    console.log("Schedule reminder error:", e);
   }
 }
 

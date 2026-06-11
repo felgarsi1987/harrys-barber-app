@@ -54,7 +54,7 @@ export function AdminDashboardScreen() {
       let creditos = 0;
       creditosSnap.forEach(d => { creditos += d.data().saldo ?? 0; });
       setCreditosPendientes(creditos);
-    } catch(e) { console.log(e); }
+    } catch(e) { /* silent */ }
   };
 
   useEffect(() => { loadStats(); }, []);

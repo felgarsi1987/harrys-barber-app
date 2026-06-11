@@ -30,7 +30,7 @@ export function AdminServiciosScreen() {
     try {
       const data = await getAllServicios();
       setServicios(data);
-    } catch(e) { console.log(e); }
+    } catch(e) { /* */ }
     finally { setLoading(false); }
   };
 

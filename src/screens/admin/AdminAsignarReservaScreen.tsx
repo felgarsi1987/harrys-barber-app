@@ -159,7 +159,6 @@ export function AdminAsignarReservaScreen() {
         }}]
       );
     } catch(e) {
-      console.log(e);
       Alert.alert("Error", "No se pudo crear la reserva.");
     } finally { setGuardando(false); }
   };

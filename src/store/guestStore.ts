@@ -32,7 +32,6 @@ export const useGuestStore = create<GuestState>()((set) => ({
         setTimeout(() => { unsub(); resolve(); }, 3000);
       });
     } catch(e) {
-      console.log("Anonymous sign in failed:", e);
     }
     // Set guest AFTER auth is confirmed - screens will load data correctly
     set({ guest: g });
@@ -45,7 +44,6 @@ export const useGuestStore = create<GuestState>()((set) => ({
         await signOut(auth);
       }
     } catch(e) {
-      console.log("Sign out failed:", e);
     }
   },
 }));

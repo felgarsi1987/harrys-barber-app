@@ -51,7 +51,7 @@ export function AdminEventosScreen() {
         query(collection(db, "eventos"), orderBy("createdAt", "desc"))
       );
       setEventos(snap.docs.map(d => ({ id: d.id, ...d.data() }) as Evento));
-    } catch(e) { console.log(e); }
+    } catch(e) { /* */ }
     finally { setLoading(false); }
   };
 

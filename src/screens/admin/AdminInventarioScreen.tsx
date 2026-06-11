@@ -44,7 +44,7 @@ export function AdminInventarioScreen() {
     try {
       const snap = await getDocs(collection(db, "inventario"));
       setProductos(snap.docs.map(d => ({ id: d.id, ...d.data() }) as Producto));
-    } catch(e) { console.log(e); }
+    } catch(e) { /* */ }
     finally { setLoading(false); }
   };
 

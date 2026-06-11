@@ -44,7 +44,7 @@ export function AdminEmpleadosScreen() {
         query(collection(db, "users"), where("role", "==", "empleado"))
       );
       setEmpleados(snap.docs.map(d => d.data() as Empleado));
-    } catch (e) { console.log(e); }
+    } catch(e) { /* */ }
     finally { setLoading(false); }
   };
 

@@ -79,7 +79,7 @@ export function AdminReservasScreen() {
         query(collection(db, "reservas"), orderBy("fecha", "asc"))
       );
       setReservas(snap.docs.map(d => ({ id: d.id, ...d.data() }) as Reserva));
-    } catch(e) { console.log(e); }
+    } catch(e) { /* silent */ }
     finally { setLoading(false); }
   };
 
@@ -163,7 +163,7 @@ export function AdminReservasScreen() {
       setReservas(prev => prev.map(r => r.id === reserva.id ? { ...r, estado:"completada" } : r));
       notificarCambioEstado(reserva.clienteUid, reserva.clienteNombre, reserva.servicio, "completada", reserva.hora);
       Alert.alert("✅ Registrado", `${modalidad === "credito" ? "A crédito" : "De contado"}`);
-    } catch(e) { console.log(e); Alert.alert("Error","No se pudo registrar."); }
+    } catch(e) { Alert.alert("Error","No se pudo registrar."); }
   };
 
   const marcarFallido = async (reserva: Reserva) => {

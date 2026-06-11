@@ -45,7 +45,6 @@ export async function getServicios(): Promise<Servicio[]> {
       .map(d => ({ id: d.id, ...d.data() } as Servicio))
       .filter(s => s.activo);
   } catch (e) {
-    console.log("getServicios error:", e);
     return DEFAULTS.map((s, i) => ({ ...s, id: `default_${i}` }));
   }
 }
