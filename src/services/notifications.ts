@@ -272,15 +272,10 @@ export async function notificarCancelacion(
   const pushToken = await getPushToken(uid);
   if (!pushToken) return;
 
-  const quien = canceladoPor === "cliente"
-    ? "tú mismo"
-    : canceladoPor === "empleado" ? "el empleado" : "la barbería";
-
-  const primerNombre = nombre.split(" ")[0];
   await enviarPush(
     pushToken,
-    "❌ Reserva cancelada",
-    `Hola ${primerNombre}, tu cita de ${servicio}${hora ? ` a las ${hora}` : ""} fue cancelada por ${quien}. Puedes reagendar cuando quieras 💈`,
+    "❌ Cita cancelada",
+    `Hola ${primerNombre}, tu cita de ${servicio}${hora ? ` a las ${hora}` : ""} ha sido cancelada.`,
     { tipo: "cancelacion", servicio },
     "reservas",
     servicio,
