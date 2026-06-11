@@ -71,7 +71,7 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
       set({
         user:         userData,
         firebaseUser: credential.user,
-        isLoading:    true,  // true until Firebase restores session
+        isLoading:    false,
         error:        null,
       });
     } catch (e: any) {

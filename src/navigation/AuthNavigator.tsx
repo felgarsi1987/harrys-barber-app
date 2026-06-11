@@ -8,10 +8,18 @@ import { InvitadoScreen }  from "../screens/auth/InvitadoScreen";
 
 const Stack = createStackNavigator();
 
+import { navState } from "../utils/navState";
+
 export function AuthNavigator() {
+  const initialRoute = navState.lastAuthScreen === "splash" ? "Splash"
+    : navState.lastAuthScreen === "login" ? "Login"
+    : "Entrada";
+  
+  if (navState.lastAuthScreen === "splash") navState.lastAuthScreen = "entrada";
+
   return (
     <Stack.Navigator
-      initialRouteName="Splash"
+      initialRouteName={initialRoute}
       screenOptions={{ headerShown: false }}
     >
       <Stack.Screen name="Splash"   component={SplashScreen} />
