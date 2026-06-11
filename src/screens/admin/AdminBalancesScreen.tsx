@@ -41,13 +41,14 @@ export function AdminBalancesScreen() {
   const c = useThemeColors();
   const [servicios,  setServicios]  = useState<ServicioRealizado[]>([]);
   const [pedidos,    setPedidos]    = useState<PedidoAprobado[]>([]);
+  const [creditoTotal, setCreditoTotal] = useState(0);
   const [loading,    setLoading]    = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [periodo,    setPeriodo]    = useState<Periodo>("30 días");
 
   const loadData = async () => {
     try {
-      const [serviciosSnap, pedidosSnap] = await Promise.all([
+      const [serviciosSnap, pedidosSnap, creditosSnap] = await Promise.all([
         getDocs(query(
           collection(db, "servicios_realizados"),
           where("estado", "==", "completado"),
@@ -56,6 +57,11 @@ export function AdminBalancesScreen() {
           collection(db, "pedidos"),
           where("estado", "==", "aprobado"),
         )),
+        getDocs(query(
+          collection(db, "users"),
+          where("role", "==", "cliente"),
+          where("saldo", ">", 0),
+        )),
       ]);
       const serviciosData = serviciosSnap.docs.map(d => d.data() as ServicioRealizado)
         .sort((a, b) => a.fecha.toMillis() - b.fecha.toMillis());
@@ -63,6 +69,8 @@ export function AdminBalancesScreen() {
         .sort((a, b) => (a.createdAt ?? a.fecha).toMillis() - (b.createdAt ?? b.fecha).toMillis());
       setServicios(serviciosData);
       setPedidos(pedidosData);
+      const totalCred = creditosSnap.docs.reduce((a, d) => a + (d.data().saldo ?? 0), 0);
+      setCreditoTotal(totalCred);
     } catch(e) { /* */ }
     finally { setLoading(false); }
   };
@@ -232,6 +240,16 @@ export function AdminBalancesScreen() {
             </ThemedCard>
           </View>
 
+          {creditoTotal > 0 && (
+            <ThemedCard style={[styles.creditoCard, { borderColor: c.negative + "44", backgroundColor: c.negative + "0A" }]}>
+              <MaterialIcons name="credit-card" size={18} color={c.negative} />
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.kpiLabel, { color: c.sub }]}>CRÉDITOS PENDIENTES</Text>
+                <NumberText size={20} negative>${creditoTotal.toLocaleString("es-CO")}</NumberText>
+              </View>
+            </ThemedCard>
+          )}
+
           {totalIngresos === 0 ? (
             <View style={styles.empty}>
               <MaterialIcons name="bar-chart" size={52} color={c.sub} />
@@ -372,6 +390,7 @@ const styles = StyleSheet.create({
   kpiRow:  { flexDirection: "row", gap: 10 },
   kpiCard: { flex: 1, gap: 6, alignItems: "center" },
   kpiLabel:{ fontSize: 10, fontFamily: "SpaceGrotesk_400Regular", textAlign: "center" },
+  creditoCard: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 12 },
   topCard: { gap: 8 },
   topRow:  { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
   topNombre: { fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold", flex: 1, marginRight: 8 },

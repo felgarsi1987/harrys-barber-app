@@ -67,8 +67,9 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
       const credential = await signInWithEmailAndPassword(auth, email, password);
       const snap = await getDoc(doc(db, "users", credential.user.uid));
       if (!snap.exists()) throw new Error("Perfil no encontrado.");
+      const userData = { ...snap.data() as AppUser, uid: credential.user.uid };
       set({
-        user:         snap.data() as AppUser,
+        user:         userData,
         firebaseUser: credential.user,
         isLoading:    false,
         error:        null,
@@ -129,7 +130,8 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
         try {
           const snap = await getDoc(doc(db, "users", firebaseUser.uid));
           if (snap.exists()) {
-            set({ user: snap.data() as AppUser, firebaseUser, isLoading: false });
+            const userData = { ...snap.data() as AppUser, uid: firebaseUser.uid };
+            set({ user: userData, firebaseUser, isLoading: false });
           } else {
             set({ user: null, firebaseUser: null, isLoading: false });
           }

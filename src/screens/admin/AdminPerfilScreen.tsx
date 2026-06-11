@@ -28,7 +28,6 @@ export function AdminPerfilScreen() {
     { icon: "campaign",        label: "Eventos y publicidad", action: () => navigation.navigate("AdminEventos") },
     { icon: "inventory",       label: "Inventario",           action: () => navigation.navigate("AdminInventario") },
     { icon: "bar-chart",       label: "Balances mensuales",   action: () => navigation.navigate("AdminBalances") },
-    { icon: "manage-accounts", label: "Roles temporales",     action: () => navigation.navigate("AdminEmpleados") },
   ];
 
   return (

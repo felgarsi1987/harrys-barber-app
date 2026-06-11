@@ -15,6 +15,7 @@ import { notificarCambioEstado, cancelarRecordatorio } from "../../services/noti
 import { useThemeColors } from "../../hooks/useThemeColors";
 import { useAuthStore }   from "../../store/authStore";
 import { ThemedCard }     from "../../components/ui/ThemedCard";
+import { FidelizacionBadge } from "../../components/ui/FidelizacionBadge";
 import { TagChip }        from "../../components/ui/TagChip";
 import { ScreenWrapper }  from "../../components/ui/ScreenWrapper";
 
@@ -280,7 +281,9 @@ export function AdminReservasScreen() {
                 <View style={styles.cardTop}>
                   <View style={{ flex:1, gap:4 }}>
                     <View style={styles.nameRow}>
-                      <Text style={[styles.clienteNombre, { color: c.text }]}>{r.clienteNombre}</Text>
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
+                    <Text style={[styles.clienteNombre, { color: c.text }]}>{r.clienteNombre}</Text>
+                  </View>
                       {r.noRegistrado && <TagChip label="Sin registro" variant="default" />}
                     </View>
                     <Text style={[styles.servicio, { color: c.amber }]}>

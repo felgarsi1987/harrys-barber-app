@@ -11,6 +11,7 @@ import {
 } from "firebase/firestore";
 import { db } from "../../services/firebase";
 import { useThemeColors } from "../../hooks/useThemeColors";
+import { FidelizacionBadge } from "../../components/ui/FidelizacionBadge";
 import { ThemedCard }     from "../../components/ui/ThemedCard";
 import { NumberText }     from "../../components/ui/NumberText";
 import { TagChip }        from "../../components/ui/TagChip";

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import {
-  View, Text, ScrollView, StyleSheet,
-  TouchableOpacity, TextInput, ActivityIndicator, Alert, Switch, Modal,
+  View, Text, ScrollView, StyleSheet, Modal,
+  TouchableOpacity, TextInput, ActivityIndicator, Alert, Switch,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { BackHeader }    from "../../components/ui/BackHeader";
@@ -12,74 +12,89 @@ import {
 import {
   createUserWithEmailAndPassword,
 } from "firebase/auth";
-import { auth, db } from "../../services/firebase";
-import { useThemeColors } from "../../hooks/useThemeColors";
-import { ThemedCard }     from "../../components/ui/ThemedCard";
-import { TagChip }        from "../../components/ui/TagChip";
-import { ScreenWrapper }  from "../../components/ui/ScreenWrapper";
+import { auth, db }        from "../../services/firebase";
+import { useThemeColors }  from "../../hooks/useThemeColors";
+import { ThemedCard }      from "../../components/ui/ThemedCard";
+import { TagChip }         from "../../components/ui/TagChip";
+import { ScreenWrapper }   from "../../components/ui/ScreenWrapper";
 
 interface Empleado {
-  uid:               string;
-  nombre:            string;
-  apellido:          string;
-  email:             string;
-  canApproveOrders?: boolean;
-  disponibleAgenda?: boolean;
+  uid:                string;
+  nombre:             string;
+  apellido:           string;
+  email:              string;
+  canApproveOrders?:  boolean;
+  canApproveReservas?:boolean;
+  disponibleAgenda?:  boolean;
 }
+
+const EMPTY_FORM = { nombre: "", apellido: "", email: "", password: "" };
 
 export function AdminEmpleadosScreen() {
   const c = useThemeColors();
-  const [empleados,  setEmpleados]  = useState<Empleado[]>([]);
-  const [loading,    setLoading]    = useState(true);
-  const [showForm,   setShowForm]   = useState(false);
-  const [saving,     setSaving]     = useState(false);
+  const [empleados,    setEmpleados]    = useState<Empleado[]>([]);
+  const [loading,      setLoading]      = useState(true);
+  const [creando,      setCreando]      = useState(false);
+  const [form,         setForm]         = useState(EMPTY_FORM);
+  const [showForm,     setShowForm]     = useState(false);
+  // Edit modal
+  const [editEmp,      setEditEmp]      = useState<Empleado | null>(null);
+  const [editNombre,   setEditNombre]   = useState("");
+  const [editApellido, setEditApellido] = useState("");
+  const [editGuardando,setEditGuardando]= useState(false);
 
-  const [form, setForm] = useState({
-    nombre: "", apellido: "", email: "", password: "",
-  });
-
-  const loadEmpleados = async () => {
-    try {
-      const snap = await getDocs(
-        query(collection(db, "users"), where("role", "==", "empleado"))
-      );
-      setEmpleados(snap.docs.map(d => d.data() as Empleado));
-    } catch(e) { /* */ }
-    finally { setLoading(false); }
-  };
-
-  useEffect(() => { loadEmpleados(); }, []);
+  useEffect(() => {
+    getDocs(query(collection(db, "users"), where("role", "==", "empleado")))
+      .then(snap => setEmpleados(snap.docs.map(d => d.data() as Empleado)))
+      .catch(() => {})
+      .finally(() => setLoading(false));
+  }, []);
 
   const crearEmpleado = async () => {
-    if (!form.nombre || !form.email || !form.password) {
-      Alert.alert("Error", "Completa todos los campos.");
+    const { nombre, apellido, email, password } = form;
+    if (!nombre || !apellido || !email || !password) {
+      Alert.alert("Faltan datos", "Completa todos los campos.");
       return;
     }
-    setSaving(true);
+    if (password.length < 6) {
+      Alert.alert("Contraseña corta", "Mínimo 6 caracteres.");
+      return;
+    }
+    setCreando(true);
     try {
-      const credential = await createUserWithEmailAndPassword(
-        auth, form.email.trim(), form.password
-      );
+      const credential = await createUserWithEmailAndPassword(auth, email.trim(), password);
       const newEmp: Empleado = {
-        uid:               credential.user.uid,
-        nombre:            form.nombre.trim(),
-        apellido:          form.apellido.trim(),
-        email:             form.email.trim(),
-        canApproveOrders:  false,
-        disponibleAgenda:  false,
+        uid:                credential.user.uid,
+        nombre:             nombre.trim(),
+        apellido:           apellido.trim(),
+        email:              email.trim(),
+        canApproveOrders:   false,
+        canApproveReservas: false,
+        disponibleAgenda:   false,
       };
       await setDoc(doc(db, "users", credential.user.uid), {
         ...newEmp,
         role:      "empleado",
         createdAt: serverTimestamp(),
+        saldo:     0,
       });
       setEmpleados(prev => [...prev, newEmp]);
-      setForm({ nombre: "", apellido: "", email: "", password: "" });
+      setForm(EMPTY_FORM);
       setShowForm(false);
       Alert.alert("✅ Empleado creado", `${newEmp.nombre} puede iniciar sesión.`);
     } catch (e: any) {
-      Alert.alert("Error", e.message);
-    } finally { setSaving(false); }
+      Alert.alert("Error", e.message ?? "No se pudo crear el empleado.");
+    } finally { setCreando(false); }
+  };
+
+  const toggle = async (emp: Empleado, field: keyof Empleado) => {
+    const nuevoValor = !emp[field];
+    try {
+      await updateDoc(doc(db, "users", emp.uid), { [field]: nuevoValor });
+      setEmpleados(prev =>
+        prev.map(e => e.uid === emp.uid ? { ...e, [field]: nuevoValor } : e)
+      );
+    } catch { Alert.alert("Error", "No se pudo actualizar."); }
   };
 
   const abrirEdicion = (emp: Empleado) => {
@@ -96,127 +111,123 @@ export function AdminEmpleadosScreen() {
         nombre: editNombre.trim(), apellido: editApellido.trim(),
       });
       setEmpleados(prev => prev.map(e =>
-        e.uid === editEmp.uid ? { ...e, nombre: editNombre.trim(), apellido: editApellido.trim() } : e
+        e.uid === editEmp.uid
+          ? { ...e, nombre: editNombre.trim(), apellido: editApellido.trim() }
+          : e
       ));
       setEditEmp(null);
     } catch { Alert.alert("Error", "No se pudo guardar."); }
     finally { setEditGuardando(false); }
   };
 
-  const toggleDisponibilidad = async (emp: Empleado) => {
-    const nuevo = !emp.disponibleAgenda;
-    try {
-      await updateDoc(doc(db, "users", emp.uid), { disponibleAgenda: nuevo });
-      setEmpleados(prev =>
-        prev.map(e => e.uid === emp.uid ? { ...e, disponibleAgenda: nuevo } : e)
-      );
-    } catch {
-      Alert.alert("Error", "No se pudo actualizar la disponibilidad.");
-    }
-  };
-
   return (
-    <ScreenWrapper>
+    <ScreenWrapper keyboard={false}>
       <BackHeader title="Empleados" />
-      <View style={[styles.subHeader, { borderBottomColor: c.border }]}>
-        <TouchableOpacity
-          onPress={() => setShowForm(!showForm)}
-          style={[styles.addBtn, { backgroundColor: c.blue }]}
-        >
-          <MaterialIcons name={showForm ? "close" : "add"} size={20} color="#fff" />
-        </TouchableOpacity>
-      </View>
 
       <ScrollView contentContainerStyle={styles.scroll}>
-        {/* Formulario crear empleado */}
+
+        {/* Botón nuevo empleado */}
+        <TouchableOpacity
+          onPress={() => setShowForm(!showForm)}
+          style={[styles.addBtn, { backgroundColor: c.amber }]}
+        >
+          <MaterialIcons name={showForm ? "close" : "person-add"} size={18} color="#000" />
+          <Text style={styles.addBtnText}>{showForm ? "Cancelar" : "Nuevo empleado"}</Text>
+        </TouchableOpacity>
+
+        {/* Formulario crear */}
         {showForm && (
-          <ThemedCard style={styles.formCard} elevated>
-            <Text style={[styles.formTitle, { color: c.text }]}>Nuevo empleado</Text>
+          <ThemedCard style={styles.formCard}>
+            <Text style={[styles.formTitle, { color: c.text }]}>Crear empleado</Text>
             {[
-              { key: "nombre",   label: "Nombre",      placeholder: "Ej. Juan" },
-              { key: "apellido", label: "Apellido",     placeholder: "Ej. Pérez" },
-              { key: "email",    label: "Correo",       placeholder: "juan@harrys.com" },
-              { key: "password", label: "Contraseña",   placeholder: "Mínimo 6 caracteres", secure: true },
+              { key: "nombre",   label: "Nombre",     placeholder: "Juan" },
+              { key: "apellido", label: "Apellido",    placeholder: "Pérez" },
+              { key: "email",    label: "Correo",      placeholder: "juan@harrys.com" },
+              { key: "password", label: "Contraseña",  placeholder: "Mínimo 6 caracteres", secure: true },
             ].map(f => (
               <View key={f.key} style={{ gap: 4 }}>
-                <Text style={[styles.fieldLabel, { color: c.sub }]}>{f.label}</Text>
+                <Text style={[styles.inputLabel, { color: c.sub }]}>{f.label.toUpperCase()}</Text>
                 <TextInput
                   style={[styles.input, { color: c.text, backgroundColor: c.bg, borderColor: c.border }]}
                   value={form[f.key as keyof typeof form]}
                   onChangeText={val => setForm(prev => ({ ...prev, [f.key]: val }))}
                   placeholder={f.placeholder}
                   placeholderTextColor={c.sub}
-                  secureTextEntry={f.secure}
+                  secureTextEntry={!!f.secure}
                   autoCapitalize={f.key === "email" ? "none" : "words"}
+                  keyboardType={f.key === "email" ? "email-address" : "default"}
                 />
               </View>
             ))}
             <TouchableOpacity
-              style={[styles.saveBtn, { backgroundColor: c.blue, opacity: saving ? 0.7 : 1 }]}
               onPress={crearEmpleado}
-              disabled={saving}
+              disabled={creando}
+              style={[styles.crearBtn, { backgroundColor: c.positive }]}
             >
-              {saving
-                ? <ActivityIndicator color="#fff" />
-                : <Text style={styles.saveBtnText}>Crear empleado</Text>
+              {creando
+                ? <ActivityIndicator color="#fff" size="small" />
+                : <Text style={styles.crearBtnText}>Crear empleado</Text>
               }
             </TouchableOpacity>
           </ThemedCard>
         )}
 
-        {/* Lista de empleados */}
+        {/* Lista empleados */}
         {loading ? (
           <ActivityIndicator color={c.blue} style={{ marginTop: 40 }} />
         ) : empleados.length === 0 ? (
           <View style={styles.empty}>
-            <MaterialIcons name="people-outline" size={48} color={c.sub} />
-            <Text style={[styles.emptyText, { color: c.sub }]}>
-              No hay empleados registrados
-            </Text>
+            <MaterialIcons name="group" size={48} color={c.sub} />
+            <Text style={[styles.emptyText, { color: c.sub }]}>Sin empleados registrados</Text>
           </View>
         ) : (
           empleados.map((emp, i) => (
             <ThemedCard key={i} style={styles.empCard}>
-              <View style={[styles.avatar, { backgroundColor: c.blue + "22" }]}>
-                <Text style={[styles.avatarText, { color: c.blue }]}>
-                  {emp.nombre[0]}{emp.apellido?.[0] ?? ""}
-                </Text>
-              </View>
-              <View style={{ flex: 1, gap: 4 }}>
-                <Text style={[styles.empName,  { color: c.text }]}>
-                  {emp.nombre} {emp.apellido}
-                </Text>
-                <Text style={[styles.empEmail, { color: c.sub }]}>{emp.email}</Text>
-                <View style={styles.disponRow}>
-                  <MaterialIcons
-                    name={emp.disponibleAgenda ? "event-available" : "event-busy"}
-                    size={13}
-                    color={emp.disponibleAgenda ? c.positive : c.sub}
-                  />
-                  <Text style={[styles.disponLabel, {
-                    color: emp.disponibleAgenda ? c.positive : c.sub
-                  }]}>
-                    {emp.disponibleAgenda ? "Disponible en agenda" : "No disponible"}
+              {/* Header */}
+              <View style={styles.empHeader}>
+                <View style={[styles.avatar, { backgroundColor: c.blue + "22" }]}>
+                  <Text style={[styles.avatarText, { color: c.blue }]}>
+                    {emp.nombre[0]}{emp.apellido?.[0] ?? ""}
                   </Text>
                 </View>
-                {emp.canApproveOrders && (
-                  <TagChip label="Rol temporal" variant="warning" />
-                )}
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.empName, { color: c.text }]}>
+                    {emp.nombre} {emp.apellido}
+                  </Text>
+                  <Text style={[styles.empEmail, { color: c.sub }]}>{emp.email}</Text>
+                </View>
+                <TouchableOpacity onPress={() => abrirEdicion(emp)} style={styles.editBtn}>
+                  <MaterialIcons name="edit" size={17} color={c.sub} />
+                </TouchableOpacity>
               </View>
-              <TouchableOpacity onPress={() => abrirEdicion(emp)} style={{ padding: 4 }}>
-                <MaterialIcons name="edit" size={18} color={c.sub} />
-              </TouchableOpacity>
-              <Switch
-                value={emp.disponibleAgenda ?? false}
-                onValueChange={() => toggleDisponibilidad(emp)}
-                trackColor={{ false: c.border, true: c.amber + "66" }}
-                thumbColor={emp.disponibleAgenda ? c.amber : c.sub}
-              />
+
+              {/* Toggles */}
+              <View style={[styles.divider, { borderTopColor: c.border }]} />
+
+              {[
+                { field: "disponibleAgenda",   label: "Disponible en agenda",    icon: "event-available",  color: c.amber },
+                { field: "canApproveOrders",    label: "Puede aprobar pedidos",    icon: "shopping-bag",     color: c.positive },
+                { field: "canApproveReservas",  label: "Puede aprobar reservas",   icon: "event-note",       color: c.blue },
+              ].map(t => (
+                <View key={t.field} style={styles.toggleRow}>
+                  <MaterialIcons name={t.icon as any} size={16} color={emp[t.field as keyof Empleado] ? t.color : c.sub} />
+                  <Text style={[styles.toggleLabel, { color: emp[t.field as keyof Empleado] ? c.text : c.sub, flex: 1 }]}>
+                    {t.label}
+                  </Text>
+                  <Switch
+                    value={!!emp[t.field as keyof Empleado]}
+                    onValueChange={() => toggle(emp, t.field as keyof Empleado)}
+                    trackColor={{ false: c.border, true: t.color + "66" }}
+                    thumbColor={emp[t.field as keyof Empleado] ? t.color : c.sub}
+                  />
+                </View>
+              ))}
             </ThemedCard>
           ))
         )}
       </ScrollView>
-      {/* Modal editar nombre */}
+
+      {/* Modal editar */}
       <Modal visible={!!editEmp} transparent animationType="slide">
         <View style={styles.modalOverlay}>
           <View style={[styles.modalCard, { backgroundColor: c.surface }]}>
@@ -232,16 +243,22 @@ export function AdminEmpleadosScreen() {
                   value={f.value}
                   onChangeText={f.set}
                   autoCapitalize="words"
-                  placeholder={f.label}
                   placeholderTextColor={c.sub}
                 />
               </View>
             ))}
             <View style={styles.modalBtns}>
-              <TouchableOpacity onPress={() => setEditEmp(null)} style={[styles.modalBtn, { borderColor: c.border }]}>
+              <TouchableOpacity
+                onPress={() => setEditEmp(null)}
+                style={[styles.modalBtn, { borderColor: c.border }]}
+              >
                 <Text style={[styles.modalBtnText, { color: c.sub }]}>Cancelar</Text>
               </TouchableOpacity>
-              <TouchableOpacity onPress={guardarEdicion} disabled={editGuardando} style={[styles.modalBtn, { backgroundColor: c.amber }]}>
+              <TouchableOpacity
+                onPress={guardarEdicion}
+                disabled={editGuardando}
+                style={[styles.modalBtn, { backgroundColor: c.amber }]}
+              >
                 {editGuardando
                   ? <ActivityIndicator color="#000" size="small" />
                   : <Text style={[styles.modalBtnText, { color: "#000" }]}>Guardar</Text>
@@ -256,43 +273,31 @@ export function AdminEmpleadosScreen() {
 }
 
 const styles = StyleSheet.create({
-  subHeader: {
-    flexDirection: "row", justifyContent: "space-between",
-    alignItems: "center", paddingHorizontal: 20,
-    paddingVertical: 16, borderBottomWidth: 1,
-  },
-  title:     { fontSize: 22, fontFamily: "Syne_700Bold" },
-  addBtn:    { width: 36, height: 36, borderRadius: 18, justifyContent: "center", alignItems: "center" },
-  scroll:    { padding: 20, gap: 12 },
-  formCard:  { gap: 12 },
-  formTitle: { fontSize: 16, fontFamily: "SpaceGrotesk_600SemiBold", marginBottom: 4 },
-  fieldLabel:{ fontSize: 12, fontFamily: "SpaceGrotesk_500Medium" },
-  input: {
-    height: 48, borderWidth: 1, borderRadius: 10,
-    paddingHorizontal: 14, fontSize: 15, fontFamily: "SpaceGrotesk_400Regular",
-  },
-  saveBtn: {
-    height: 48, borderRadius: 10,
-    justifyContent: "center", alignItems: "center", marginTop: 4,
-  },
-  saveBtnText: { color: "#fff", fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 15 },
-  empty:     { alignItems: "center", marginTop: 60, gap: 12 },
-  emptyText: { fontSize: 14, fontFamily: "SpaceGrotesk_400Regular" },
-  empCard:   { flexDirection: "row", alignItems: "center", gap: 12 },
-  avatar: {
-    width: 44, height: 44, borderRadius: 22,
-    justifyContent: "center", alignItems: "center",
-  },
-  avatarText: { fontSize: 16, fontFamily: "Syne_700Bold" },
-  empName:    { fontSize: 15, fontFamily: "SpaceGrotesk_600SemiBold" },
-  empEmail:   { fontSize: 12, fontFamily: "SpaceGrotesk_400Regular", marginTop: 2 },
-  disponRow:  { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 2 },
-  modalOverlay: { flex:1, backgroundColor:"rgba(0,0,0,0.6)", justifyContent:"flex-end" },
-  modalCard:    { borderTopLeftRadius:20, borderTopRightRadius:20, padding:24, gap:14 },
-  modalTitle:   { fontSize:20, fontFamily:"Syne_700Bold" },
-  inputLabel:   { fontSize:10, fontFamily:"SpaceGrotesk_600SemiBold", letterSpacing:2 },
-  modalBtns:    { flexDirection:"row", gap:10, marginTop:4 },
-  modalBtn:     { flex:1, height:48, borderRadius:10, borderWidth:1, justifyContent:"center", alignItems:"center" },
-  modalBtnText: { fontSize:15, fontFamily:"SpaceGrotesk_600SemiBold" },
-  disponLabel:{ fontSize: 11, fontFamily: "SpaceGrotesk_500Medium" },
+  scroll:       { padding: 20, gap: 14 },
+  addBtn:       { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 8, height: 48, borderRadius: 12 },
+  addBtnText:   { fontSize: 15, fontFamily: "SpaceGrotesk_600SemiBold", color: "#000" },
+  formCard:     { gap: 12 },
+  formTitle:    { fontSize: 17, fontFamily: "Syne_700Bold" },
+  inputLabel:   { fontSize: 10, fontFamily: "SpaceGrotesk_600SemiBold", letterSpacing: 2 },
+  input:        { height: 48, borderWidth: 1, borderRadius: 10, paddingHorizontal: 14, fontSize: 15, fontFamily: "SpaceGrotesk_400Regular" },
+  crearBtn:     { height: 48, borderRadius: 10, justifyContent: "center", alignItems: "center" },
+  crearBtnText: { fontSize: 15, fontFamily: "SpaceGrotesk_600SemiBold", color: "#fff" },
+  empty:        { alignItems: "center", marginTop: 40, gap: 12 },
+  emptyText:    { fontSize: 14, fontFamily: "SpaceGrotesk_400Regular" },
+  empCard:      { gap: 10 },
+  empHeader:    { flexDirection: "row", alignItems: "center", gap: 12 },
+  avatar:       { width: 44, height: 44, borderRadius: 22, justifyContent: "center", alignItems: "center" },
+  avatarText:   { fontSize: 16, fontFamily: "Syne_700Bold" },
+  empName:      { fontSize: 15, fontFamily: "SpaceGrotesk_600SemiBold" },
+  empEmail:     { fontSize: 12, fontFamily: "SpaceGrotesk_400Regular", marginTop: 2 },
+  editBtn:      { width: 34, height: 34, borderRadius: 8, justifyContent: "center", alignItems: "center" },
+  divider:      { borderTopWidth: 1, marginVertical: 4 },
+  toggleRow:    { flexDirection: "row", alignItems: "center", gap: 10 },
+  toggleLabel:  { fontSize: 13, fontFamily: "SpaceGrotesk_500Medium" },
+  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "flex-end" },
+  modalCard:    { borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 24, gap: 14 },
+  modalTitle:   { fontSize: 20, fontFamily: "Syne_700Bold" },
+  modalBtns:    { flexDirection: "row", gap: 10, marginTop: 4 },
+  modalBtn:     { flex: 1, height: 48, borderRadius: 10, borderWidth: 1, justifyContent: "center", alignItems: "center" },
+  modalBtnText: { fontSize: 15, fontFamily: "SpaceGrotesk_600SemiBold" },
 });
