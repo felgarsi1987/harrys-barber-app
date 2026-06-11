@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator,
   Dimensions, RefreshControl,
@@ -10,6 +10,7 @@ import {
 } from "firebase/firestore";
 import { db }             from "../../services/firebase";
 import { useThemeColors } from "../../hooks/useThemeColors";
+import { useFocusEffect } from "@react-navigation/native";
 import { BackHeader }     from "../../components/ui/BackHeader";
 import { ThemedCard }     from "../../components/ui/ThemedCard";
 import { NumberText }     from "../../components/ui/NumberText";
@@ -66,7 +67,10 @@ export function AdminBalancesScreen() {
     finally { setLoading(false); }
   };
 
-  useEffect(() => { loadData(); }, []);
+  // Reload when screen comes into focus so data is always fresh
+  useFocusEffect(
+    useCallback(() => { loadData(); }, [])
+  );
   const onRefresh = async () => { setRefreshing(true); await loadData(); setRefreshing(false); };
 
   const ahora = new Date();

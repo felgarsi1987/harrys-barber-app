@@ -4,6 +4,7 @@ import {
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
+import { getServicios, Servicio } from "../../services/serviciosService";
 import {
   collection, getDocs, query, where,
   orderBy, limit,
@@ -43,6 +44,12 @@ export function ClienteHomeScreen() {
     const bd  = new Date(user.birthdate);
     return bd.getMonth() === hoy.getMonth() && bd.getDate() === hoy.getDate();
   };
+
+  useFocusEffect(
+    useCallback(() => {
+      getServicios().then(data => setServicios(data.filter(s => s.activo !== false)));
+    }, [])
+  );
 
   useEffect(() => {
     if (user?.uid) {
@@ -166,17 +173,28 @@ export function ClienteHomeScreen() {
         {/* Servicios */}
         <Text style={[styles.sectionTitle, { color: c.sub }]}>SERVICIOS</Text>
         <View style={styles.serviciosGrid}>
-          {SERVICIOS.map((s, i) => (
-            <TouchableOpacity
-              key={i}
-              style={[styles.servicioCard, { borderColor: c.border }]}
-              activeOpacity={0.7}
-            >
-              <MaterialIcons name={s.icon as any} size={20} color={c.text} />
-              <Text style={[styles.servicioLabel,  { color: c.text  }]}>{s.label}</Text>
-              <Text style={[styles.servicioPrecio, { color: c.amber }]}>{s.precio}</Text>
-            </TouchableOpacity>
-          ))}
+          {servicios.length > 0
+            ? servicios.map((s, i) => (
+                <TouchableOpacity
+                  key={i}
+                  style={[styles.servicioCard, { borderColor: c.border }]}
+                  activeOpacity={0.7}
+                >
+                  <MaterialIcons name="content-cut" size={20} color={c.text} />
+                  <Text style={[styles.servicioLabel, { color: c.text }]}>{s.label}</Text>
+                  <Text style={[styles.servicioPrecio, { color: c.amber }]}>
+                    ${s.precio.toLocaleString("es-CO")}
+                  </Text>
+                </TouchableOpacity>
+              ))
+            : [{label:"Corte",precio:"$15.000"},{label:"Barba",precio:"$10.000"},{label:"Corte + Barba",precio:"$22.000"}].map((s,i)=>(
+                <TouchableOpacity key={i} style={[styles.servicioCard,{borderColor:c.border}]} activeOpacity={0.7}>
+                  <MaterialIcons name="content-cut" size={20} color={c.text}/>
+                  <Text style={[styles.servicioLabel,{color:c.text}]}>{s.label}</Text>
+                  <Text style={[styles.servicioPrecio,{color:c.amber}]}>{s.precio}</Text>
+                </TouchableOpacity>
+              ))
+          }
         </View>
 
       </ScrollView>
@@ -184,12 +202,6 @@ export function ClienteHomeScreen() {
     </ScreenWrapper>
   );
 }
-
-const SERVICIOS = [
-  { icon: "content-cut",  label: "Corte",        precio: "Desde $15.000" },
-  { icon: "face",         label: "Barba",         precio: "Desde $10.000" },
-  { icon: "auto-awesome", label: "Corte + Barba", precio: "Desde $22.000" },
-];
 
 const styles = StyleSheet.create({
   header: {
