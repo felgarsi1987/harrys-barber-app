@@ -214,6 +214,7 @@ const styles = StyleSheet.create({
   eventoTop:     { flexDirection: "row", alignItems: "center", gap: 6 },
   eventoTag:     { fontSize: 10, fontFamily: "SpaceGrotesk_600SemiBold", letterSpacing: 2 },
   eventoTitulo:  { fontSize: 16, fontFamily: "Syne_700Bold" },
+  eventoBannerImg: { width: "100%", height: 140, borderRadius: 10, marginBottom: 4 },
   eventoDesc:    { fontSize: 13, fontFamily: "SpaceGrotesk_400Regular" },
   sectionTitle:  { fontSize: 10, fontFamily: "SpaceGrotesk_600SemiBold", letterSpacing: 2 },
   citaCard:      { gap: 8 },
