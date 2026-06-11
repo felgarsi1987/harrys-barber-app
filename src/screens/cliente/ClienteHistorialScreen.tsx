@@ -1,13 +1,15 @@
 import React, { useEffect, useState } from "react";
 import {
   View, Text, ScrollView, StyleSheet,
-  ActivityIndicator, RefreshControl, TouchableOpacity,
+  ActivityIndicator, RefreshControl, TouchableOpacity, Alert,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import {
   collection, getDocs, query, where, Timestamp,
+  doc, updateDoc,
 } from "firebase/firestore";
 import { db }             from "../../services/firebase";
+import { notificarCancelacion, cancelarRecordatorio } from "../../services/notifications";
 import { useThemeColors } from "../../hooks/useThemeColors";
 import { useAuthStore }   from "../../store/authStore";
 import { ThemedCard }     from "../../components/ui/ThemedCard";
@@ -23,6 +25,7 @@ interface Reserva {
   fecha:           Timestamp;
   estado:          string;
   peluqueroNombre?: string;
+  peluqueroUid?:    string;
 }
 
 const ESTADO_CHIP: Record<string, any> = {
@@ -63,6 +66,39 @@ export function ClienteHistorialScreen() {
 
   const onRefresh = async () => { setRefreshing(true); await load(); setRefreshing(false); };
 
+
+  const cancelarReserva = async (reserva: Reserva) => {
+    Alert.alert(
+      "Cancelar cita",
+      `¿Cancelar tu cita de ${reserva.servicio}${reserva.hora ? ` a las ${reserva.hora}` : ""}?`,
+      [
+        { text: "No", style: "cancel" },
+        {
+          text: "Sí, cancelar",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await updateDoc(doc(db, "reservas", reserva.id), {
+                estado: "negada", updatedAt: Timestamp.now(),
+              });
+              cancelarRecordatorio(reserva.id);
+              setReservas(prev => prev.map(r =>
+                r.id === reserva.id ? { ...r, estado: "negada" } : r
+              ));
+              // Notificar al barbero si hay uno asignado
+              if (reserva.peluqueroUid) {
+                notificarCancelacion(
+                  reserva.peluqueroUid,
+                  reserva.peluqueroNombre ?? "Empleado",
+                  reserva.servicio, reserva.hora, "cliente"
+                );
+              }
+            } catch {}
+          },
+        },
+      ]
+    );
+  };
   const formatFecha = (ts: Timestamp) =>
     ts.toDate().toLocaleDateString("es-CO", {
       weekday: "short", day: "numeric", month: "short",
@@ -137,6 +173,15 @@ export function ClienteHistorialScreen() {
                     ) : null}
                   </View>
                   <TagChip label={r.estado} variant={ESTADO_CHIP[r.estado] ?? "default"} />
+                  {["pendiente","confirmada"].includes(r.estado) && (
+                    <TouchableOpacity
+                      onPress={() => cancelarReserva(r)}
+                      style={[styles.cancelBtn, { borderColor: c.negative + "44", backgroundColor: c.negative + "0A" }]}
+                    >
+                      <MaterialIcons name="cancel" size={13} color={c.negative} />
+                      <Text style={[styles.cancelBtnText, { color: c.negative }]}>Cancelar cita</Text>
+                    </TouchableOpacity>
+                  )}
                 </View>
               </ThemedCard>
             ))
@@ -164,4 +209,6 @@ const styles = StyleSheet.create({
   fechaRow:  { flexDirection: "row", alignItems: "center", gap: 6 },
   fecha:     { fontSize: 12, fontFamily: "SpaceGrotesk_400Regular" },
   precio:    { fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold" },
+  cancelBtn: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, borderWidth: 1, alignSelf: "flex-start", marginTop: 4 },
+  cancelBtnText: { fontSize: 12, fontFamily: "SpaceGrotesk_500Medium" },
 });

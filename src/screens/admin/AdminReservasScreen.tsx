@@ -11,7 +11,7 @@ import {
   doc, updateDoc, getDoc, Timestamp, where,
 } from "firebase/firestore";
 import { db } from "../../services/firebase";
-import { notificarCambioEstado, cancelarRecordatorio } from "../../services/notifications";
+import { notificarCambioEstado, cancelarRecordatorio, notificarCancelacion } from "../../services/notifications";
 import { useThemeColors } from "../../hooks/useThemeColors";
 import { useAuthStore }   from "../../store/authStore";
 import { ThemedCard }     from "../../components/ui/ThemedCard";
@@ -180,6 +180,44 @@ export function AdminReservasScreen() {
     ]);
   };
 
+  const cancelarReserva = async (reserva: Reserva) => {
+    Alert.alert(
+      "Cancelar reserva",
+      `¿Cancelar la cita de ${reserva.clienteNombre} — ${reserva.servicio}?`,
+      [
+        { text: "No", style: "cancel" },
+        {
+          text: "Sí, cancelar",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              await updateDoc(doc(db,"reservas",reserva.id), {
+                estado: "negada", updatedAt: Timestamp.now(),
+              });
+              cancelarRecordatorio(reserva.id);
+              setReservas(prev => prev.map(r =>
+                r.id === reserva.id ? { ...r, estado: "negada" as any } : r
+              ));
+              // Notificar al cliente
+              notificarCancelacion(
+                reserva.clienteUid, reserva.clienteNombre,
+                reserva.servicio, reserva.hora, "admin"
+              );
+              // Notificar al empleado si hay uno asignado
+              if (reserva.peluqueroUid) {
+                notificarCancelacion(
+                  reserva.peluqueroUid,
+                  reserva.peluqueroNombre ?? "Empleado",
+                  reserva.servicio, reserva.hora, "admin"
+                );
+              }
+            } catch { Alert.alert("Error","No se pudo cancelar."); }
+          },
+        },
+      ]
+    );
+  };
+
   const formatFecha = (ts: Timestamp) =>
     ts.toDate().toLocaleDateString("es-CO", { weekday:"short", day:"numeric", month:"short" });
 
@@ -326,9 +364,13 @@ export function AdminReservasScreen() {
                       <MaterialIcons name="task-alt" size={16} color={c.positive} />
                       <Text style={[styles.confirmadaBtnText, { color: c.positive }]}>Realizado</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity onPress={() => marcarFallido(r)} style={[styles.confirmadaBtn, { backgroundColor: c.negative+"18", borderColor: c.negative+"44" }]}>
+                    <TouchableOpacity onPress={() => marcarFallido(r)} style={[styles.confirmadaBtn, { backgroundColor: c.amber+"18", borderColor: c.amber+"44" }]}>
+                      <MaterialIcons name="event-busy" size={16} color={c.amber} />
+                      <Text style={[styles.confirmadaBtnText, { color: c.amber }]}>Fallido</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => cancelarReserva(r)} style={[styles.confirmadaBtn, { backgroundColor: c.negative+"18", borderColor: c.negative+"44" }]}>
                       <MaterialIcons name="cancel" size={16} color={c.negative} />
-                      <Text style={[styles.confirmadaBtnText, { color: c.negative }]}>Fallido</Text>
+                      <Text style={[styles.confirmadaBtnText, { color: c.negative }]}>Cancelar</Text>
                     </TouchableOpacity>
                   </View>
                 )}

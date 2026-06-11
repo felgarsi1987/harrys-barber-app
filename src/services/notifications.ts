@@ -260,6 +260,33 @@ export async function programarRecordatorio(
   } catch {}
 }
 
+// ── Notificar cancelación de reserva ────────────────────────────────────────
+export async function notificarCancelacion(
+  uid:          string | null | undefined,
+  nombre:       string,
+  servicio:     string,
+  hora?:        string,
+  canceladoPor: "cliente" | "admin" | "empleado" = "admin",
+) {
+  if (!uid) return;
+  const pushToken = await getPushToken(uid);
+  if (!pushToken) return;
+
+  const quien = canceladoPor === "cliente"
+    ? "tú mismo"
+    : canceladoPor === "empleado" ? "el empleado" : "la barbería";
+
+  const primerNombre = nombre.split(" ")[0];
+  await enviarPush(
+    pushToken,
+    "❌ Reserva cancelada",
+    `Hola ${primerNombre}, tu cita de ${servicio}${hora ? ` a las ${hora}` : ""} fue cancelada por ${quien}. Puedes reagendar cuando quieras 💈`,
+    { tipo: "cancelacion", servicio },
+    "reservas",
+    servicio,
+  );
+}
+
 // ── Cancelar recordatorio ────────────────────────────────────────────────────
 export async function cancelarRecordatorio(reservaId: string) {
   try {

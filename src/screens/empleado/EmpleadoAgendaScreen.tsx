@@ -321,10 +321,17 @@ export function EmpleadoAgendaScreen() {
                       </TouchableOpacity>
                       <TouchableOpacity
                         onPress={() => marcarFallido(r)}
+                        style={[styles.confirmadaBtn, { backgroundColor: c.amber + "18", borderColor: c.amber + "44" }]}
+                      >
+                        <MaterialIcons name="event-busy" size={14} color={c.amber} />
+                        <Text style={[styles.confirmadaBtnText, { color: c.amber }]}>Fallido</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        onPress={() => cancelarReserva(r)}
                         style={[styles.confirmadaBtn, { backgroundColor: c.negative + "18", borderColor: c.negative + "44" }]}
                       >
                         <MaterialIcons name="cancel" size={14} color={c.negative} />
-                        <Text style={[styles.confirmadaBtnText, { color: c.negative }]}>Fallido</Text>
+                        <Text style={[styles.confirmadaBtnText, { color: c.negative }]}>Cancelar</Text>
                       </TouchableOpacity>
                     </View>
                   )}
