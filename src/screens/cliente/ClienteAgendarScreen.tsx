@@ -354,27 +354,36 @@ export function ClienteAgendarScreen() {
               {horasConfig.map((hora, i) => {
                 const ocupada     = horasOcupadas.includes(hora);
                 const seleccionada = horaSeleccionada === hora;
+                // Block past hours when today is selected
+                const hoy = new Date();
+                const esHoy = fechaSeleccionada === hoy.toISOString().split("T")[0];
+                const [hh, mm] = hora.split(":").map(Number);
+                const pasada = esHoy && (hh * 60 + mm) <= (hoy.getHours() * 60 + hoy.getMinutes());
+                const noDisponible = ocupada || pasada;
                 return (
                   <TouchableOpacity
                     key={i}
-                    disabled={ocupada}
+                    disabled={noDisponible}
                     onPress={() => setHoraSeleccionada(hora)}
                     style={[
                       styles.horaBtn,
                       {
-                        borderColor:     seleccionada ? c.amber : ocupada ? c.negative + "44" : c.border,
+                        borderColor:     seleccionada ? c.amber : noDisponible ? c.border : c.border,
                         backgroundColor: seleccionada ? c.amber + "18" : c.surface,
-                        opacity:         ocupada ? 0.4 : 1,
+                        opacity:         noDisponible ? 0.35 : 1,
                       },
                     ]}
                   >
                     <Text style={[styles.horaText, {
-                      color: seleccionada ? c.amber : ocupada ? c.negative : c.text,
+                      color: seleccionada ? c.amber : noDisponible ? c.sub : c.text,
                     }]}>
                       {hora}
                     </Text>
                     {ocupada && (
-                      <Text style={[styles.ocupadaText, { color: c.negative }]}>No disp.</Text>
+                      <Text style={[styles.ocupadaText, { color: c.negative }]}>Ocupada</Text>
+                    )}
+                    {pasada && !ocupada && (
+                      <Text style={[styles.ocupadaText, { color: c.sub }]}>Pasada</Text>
                     )}
                   </TouchableOpacity>
                 );

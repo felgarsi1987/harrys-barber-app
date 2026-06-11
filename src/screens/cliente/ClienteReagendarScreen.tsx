@@ -70,16 +70,20 @@ export function ClienteReagendarScreen({ route }: Props) {
       Alert.alert("Faltan datos", "Selecciona fecha y hora.");
       return;
     }
+    // Validate not in the past
+    const nuevaFecha = new Date(fecha + "T" + hora);
+    if (nuevaFecha <= new Date()) {
+      Alert.alert("Hora no válida", "No puedes reagendar en una hora que ya pasó.");
+      return;
+    }
     setGuardando(true);
     try {
-      const nuevaFecha = new Date(fecha + "T" + hora);
       await updateDoc(doc(db, "reservas", reservaId), {
         fecha:      Timestamp.fromDate(nuevaFecha),
         hora,
         estado:     "pendiente",
         updatedAt:  Timestamp.now(),
       });
-      // Cancelar recordatorio anterior y programar nuevo
       await cancelarRecordatorio(reservaId);
       await programarRecordatorio(reservaId, servicio, nuevaFecha, peluqueroNombre);
       Alert.alert("✅ Reagendado", `Tu cita quedó para el ${fecha} a las ${hora}.`);
@@ -88,7 +92,15 @@ export function ClienteReagendarScreen({ route }: Props) {
     } finally { setGuardando(false); }
   };
 
-  const horasDisponibles = horasConfig.filter(h => !horasOcupadas.includes(h));
+  const esHoy = fecha === hoy.toISOString().split("T")[0];
+  const horasDisponibles = horasConfig.filter(h => {
+    if (horasOcupadas.includes(h)) return false;
+    if (esHoy) {
+      const [hh, mm] = h.split(":").map(Number);
+      if (hh * 60 + mm <= hoy.getHours() * 60 + hoy.getMinutes()) return false;
+    }
+    return true;
+  });
 
   return (
     <ScreenWrapper>

@@ -25,6 +25,7 @@ interface Cliente {
   saldo?:     number;
   birthdate?: string;
   categoria?: Categoria;
+  visitas?:   number;
 }
 
 const CATEGORIAS: { key: Categoria; label: string; icon: string; color: string }[] = [
@@ -42,13 +43,23 @@ export function AdminClientesScreen() {
   const [modalCli,  setModalCli]  = useState<Cliente | null>(null);
 
   useEffect(() => {
-    getDocs(query(collection(db, "users"), where("role", "==", "cliente")))
-      .then(snap => {
-        const data = snap.docs.map(d => d.data() as Cliente);
-        setClientes(data);
-        setFiltered(data);
-      })
-      .finally(() => setLoading(false));
+    Promise.all([
+      getDocs(query(collection(db, "users"), where("role", "==", "cliente"))),
+      getDocs(query(collection(db, "servicios_realizados"), where("estado", "==", "completado"))),
+    ]).then(([usersSnap, servSnap]) => {
+      // Count visits per client
+      const visitasPorCliente: Record<string, number> = {};
+      servSnap.docs.forEach(d => {
+        const uid = d.data().clienteUid;
+        if (uid) visitasPorCliente[uid] = (visitasPorCliente[uid] ?? 0) + 1;
+      });
+      const data = usersSnap.docs.map(d => ({
+        ...d.data() as Cliente,
+        visitas: visitasPorCliente[d.data().uid] ?? 0,
+      }));
+      setClientes(data);
+      setFiltered(data);
+    }).finally(() => setLoading(false));
   }, []);
 
   useEffect(() => {
@@ -123,6 +134,14 @@ export function AdminClientesScreen() {
                   )}
                 </View>
                 <Text style={[styles.email, { color: c.sub }]}>{cli.email}</Text>
+                <View style={styles.visitasRow}>
+                  <MaterialIcons name="content-cut" size={11} color={c.sub} />
+                  <Text style={[styles.visitasTxt, { color: c.sub }]}>
+                    {cli.visitas ?? 0} visita{(cli.visitas ?? 0) !== 1 ? "s" : ""}
+                    {(cli.visitas ?? 0) >= 10 ? " · Cliente frecuente ⭐" :
+                     (cli.visitas ?? 0) >= 5  ? " · Cliente regular" : ""}
+                  </Text>
+                </View>
                 {(cli.saldo ?? 0) > 0 && (
                   <NumberText size={13} negative>
                     Deuda: ${(cli.saldo ?? 0).toLocaleString("es-CO")}
@@ -215,6 +234,8 @@ const styles = StyleSheet.create({
   nameRow:     { flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap" },
   nombre:      { fontSize: 15, fontFamily: "SpaceGrotesk_600SemiBold" },
   email:       { fontSize: 12, fontFamily: "SpaceGrotesk_400Regular" },
+  visitasRow:  { flexDirection: "row", alignItems: "center", gap: 4 },
+  visitasTxt:  { fontSize: 11, fontFamily: "SpaceGrotesk_400Regular" },
   editBtn:     { width: 34, height: 34, borderRadius: 8, borderWidth: 1, justifyContent: "center", alignItems: "center" },
   overlay:     { flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "flex-end" },
   modalCard:   { borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 24, gap: 16 },

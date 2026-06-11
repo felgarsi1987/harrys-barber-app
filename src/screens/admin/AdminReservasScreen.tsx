@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import {
   View, Text, ScrollView, StyleSheet,
   TouchableOpacity, ActivityIndicator, Alert,
-  RefreshControl,
+  RefreshControl, TextInput,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
@@ -65,6 +65,7 @@ export function AdminReservasScreen() {
   const [diaFilter,    setDiaFilter]    = useState<DiaFilter>("hoy");
   const [estadoFilter, setEstadoFilter] = useState<EstadoFilter>("todas");
   const [empleadoFil,  setEmpleadoFil]  = useState<string>("todos");
+  const [busqueda,     setBusqueda]     = useState("");
 
   const loadEmpleados = async () => {
     const snap = await getDocs(query(
@@ -110,6 +111,11 @@ export function AdminReservasScreen() {
     if (range && (rDate < range.start || rDate >= range.end)) return false;
     if (estadoFilter !== "todas" && r.estado !== estadoFilter) return false;
     if (empleadoFil !== "todos" && r.peluqueroUid !== empleadoFil) return false;
+    if (busqueda.trim()) {
+      const q = busqueda.toLowerCase();
+      if (!r.clienteNombre.toLowerCase().includes(q) &&
+          !r.servicio.toLowerCase().includes(q)) return false;
+    }
     return true;
   });
 
@@ -301,6 +307,23 @@ export function AdminReservasScreen() {
         ))}
       </ScrollView>
 
+      {/* Búsqueda */}
+      <View style={[styles.searchBox, { backgroundColor: c.surface, borderColor: c.border }]}>
+        <MaterialIcons name="search" size={18} color={c.sub} />
+        <TextInput
+          style={[styles.searchInput, { color: c.text }]}
+          value={busqueda}
+          onChangeText={setBusqueda}
+          placeholder="Buscar por cliente o servicio..."
+          placeholderTextColor={c.sub}
+        />
+        {busqueda.length > 0 && (
+          <TouchableOpacity onPress={() => setBusqueda("")}>
+            <MaterialIcons name="close" size={16} color={c.sub} />
+          </TouchableOpacity>
+        )}
+      </View>
+
       {loading ? (
         <ActivityIndicator color={c.amber} style={{ marginTop: 40 }} />
       ) : (
@@ -384,6 +407,8 @@ export function AdminReservasScreen() {
 }
 
 const styles = StyleSheet.create({
+  searchBox:   { flexDirection:"row", alignItems:"center", gap:8, marginHorizontal:16, marginVertical:8, borderRadius:10, borderWidth:1, paddingHorizontal:12, height:42 },
+  searchInput: { flex:1, fontSize:14, fontFamily:"SpaceGrotesk_400Regular" },
   header:      { flexDirection:"row", justifyContent:"space-between", alignItems:"center", paddingHorizontal:20, paddingVertical:16, borderBottomWidth:1 },
   title:       { fontSize:22, fontFamily:"Syne_700Bold" },
   addBtn:      { width:36, height:36, borderRadius:18, borderWidth:1, justifyContent:"center", alignItems:"center" },

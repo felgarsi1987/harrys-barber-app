@@ -282,6 +282,39 @@ export async function notificarCancelacion(
   );
 }
 
+// ── Programar resumen diario para el admin ──────────────────────────────────
+export async function programarResumenDiario(
+  adminUid:    string,
+  totalCitas:  number,
+  hora:        string = "07:00",
+) {
+  try {
+    await Notifications.cancelScheduledNotificationAsync("resumen_diario").catch(() => {});
+
+    const [hh, mm] = hora.split(":").map(Number);
+    const manana = new Date();
+    manana.setDate(manana.getDate() + 1);
+    manana.setHours(hh, mm, 0, 0);
+
+    await Notifications.scheduleNotificationAsync({
+      identifier: "resumen_diario",
+      content: {
+        title:    "📋 Resumen del día",
+        body:     totalCitas > 0
+          ? `Hoy tienes ${totalCitas} cita${totalCitas !== 1 ? "s" : ""} programada${totalCitas !== 1 ? "s" : ""}. ¡Buen día! 💈`
+          : "No hay citas programadas para hoy. Buen momento para revisar el inventario.",
+        sound:    true,
+        data:     { tipo: "resumen_diario" },
+        ...(Platform.OS === "android" && { channelId: "reservas" }),
+      },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.DATE,
+        date: manana,
+      },
+    });
+  } catch {}
+}
+
 // ── Cancelar recordatorio ────────────────────────────────────────────────────
 export async function cancelarRecordatorio(reservaId: string) {
   try {

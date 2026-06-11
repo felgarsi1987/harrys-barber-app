@@ -35,13 +35,19 @@ export function ClienteSaldoScreen() {
       collection(db, "movimientos"),
       where("clienteUid", "==", user.uid)
     )).then(snap => {
-      const data = snap.docs.map(d => ({ id: d.id, ...d.data() }) as Movimiento);
+      const data = snap.docs
+        .map(d => ({ id: d.id, ...d.data() }) as Movimiento)
+        .sort((a, b) => {
+          const ta = a.fecha?.toMillis ? a.fecha.toMillis() : 0;
+          const tb = b.fecha?.toMillis ? b.fecha.toMillis() : 0;
+          return tb - ta; // más reciente primero
+        });
       setMovimientos(data);
       const total = data.reduce((acc, m) =>
         m.tipo === "cargo" ? acc + m.monto : acc - m.monto, 0
       );
       setSaldo(total);
-    }).catch(console.log)
+    }).catch(() => {})
     .finally(() => setLoading(false));
   }, [user?.uid]);
 
@@ -91,11 +97,20 @@ export function ClienteSaldoScreen() {
                   i < movimientos.length - 1 && { borderBottomWidth: 1, borderBottomColor: c.border },
                 ]}
               >
-                <View style={{ flex: 1, gap: 4 }}>
+                <View style={[styles.movIcon, {
+                  backgroundColor: m.tipo === "cargo" ? c.negative+"18" : c.positive+"18"
+                }]}>
+                  <MaterialIcons
+                    name={m.tipo === "cargo" ? "shopping-cart" : "payments"}
+                    size={16}
+                    color={m.tipo === "cargo" ? c.negative : c.positive}
+                  />
+                </View>
+                <View style={{ flex: 1, gap: 2 }}>
                   <Text style={[styles.movDesc, { color: c.text }]}>{m.descripcion}</Text>
                   <Text style={[styles.movFecha, { color: c.sub }]}>{formatFecha(m.fecha)}</Text>
                 </View>
-                <View style={{ alignItems: "flex-end", gap: 4 }}>
+                <View style={{ alignItems: "flex-end", gap: 2 }}>
                   <NumberText
                     size={15}
                     negative={m.tipo === "cargo"}
@@ -103,10 +118,9 @@ export function ClienteSaldoScreen() {
                   >
                     {m.tipo === "cargo" ? "-" : "+"}${m.monto.toLocaleString("es-CO")}
                   </NumberText>
-                  <TagChip
-                    label={m.tipo}
-                    variant={m.tipo === "cargo" ? "danger" : "success"}
-                  />
+                  <Text style={[styles.movTipo, { color: m.tipo === "cargo" ? c.negative : c.positive }]}>
+                    {m.tipo === "cargo" ? "Cargo" : "Abono"}
+                  </Text>
                 </View>
               </View>
             ))}
@@ -132,6 +146,8 @@ const styles = StyleSheet.create({
     flexDirection: "row", alignItems: "center",
     padding: 14, gap: 12,
   },
+  movIcon:  { width: 36, height: 36, borderRadius: 18, justifyContent: "center", alignItems: "center" },
   movDesc:  { fontSize: 14, fontFamily: "SpaceGrotesk_500Medium" },
+  movTipo:  { fontSize: 10, fontFamily: "SpaceGrotesk_600SemiBold" },
   movFecha: { fontSize: 11, fontFamily: "SpaceGrotesk_400Regular" },
 });

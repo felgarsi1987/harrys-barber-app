@@ -6,6 +6,7 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { collection, getDocs, query, where, Timestamp } from "firebase/firestore";
 import { db } from "../../services/firebase";
+import { programarResumenDiario } from "../../services/notifications";
 import { useThemeColors } from "../../hooks/useThemeColors";
 import { useAuthStore }   from "../../store/authStore";
 import { NumberText }     from "../../components/ui/NumberText";
@@ -28,6 +29,8 @@ export function AdminDashboardScreen() {
         query(collection(db, "users"), where("role", "==", "cliente"))
       );
       setTotalClientes(clientesSnap.size);
+      // Schedule tomorrow's daily summary
+      if (user?.uid) programarResumenDiario(user.uid, citasHoy.length);
 
       const hoy = new Date(); hoy.setHours(0,0,0,0);
       const manana = new Date(hoy); manana.setDate(manana.getDate()+1);
