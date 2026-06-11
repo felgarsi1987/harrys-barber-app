@@ -10,6 +10,7 @@ import {
   Timestamp,
 } from "firebase/firestore";
 import { db } from "../../services/firebase";
+import { notificarAbono, notificarEstadoPedido } from "../../services/notifications";
 import { useThemeColors } from "../../hooks/useThemeColors";
 import { FidelizacionBadge } from "../../components/ui/FidelizacionBadge";
 import { ThemedCard }     from "../../components/ui/ThemedCard";
@@ -91,22 +92,8 @@ export function AdminPagosScreen() {
   };
 
   // ── Notificar al cliente via Expo Push ────────────────────────────────────
-  const notificarCliente = async (
-    clienteUid: string,
-    title: string,
-    body: string,
-  ) => {
-    try {
-      const snap = await getDoc(doc(db, "users", clienteUid));
-      const pushToken = snap.exists() ? snap.data().pushToken : null;
-      if (!pushToken) return;
-      await fetch("https://exp.host/--/api/v2/push/send", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ to: pushToken, title, body, sound: "default" }),
-      });
-    } catch(e) { /* silent */ }
-  };
+  // notifications handled by notifications.ts service
+
 
   // ── Aprobar crédito ───────────────────────────────────────────────────────
   const aprobarCredito = async (pedido: PedidoCredito) => {

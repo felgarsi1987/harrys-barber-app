@@ -3,6 +3,7 @@ import { Platform } from "react-native";
 import { doc, updateDoc } from "firebase/firestore";
 import { db } from "./firebase";
 
+// ── Configuración global de notificaciones ───────────────────────────────────
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
     shouldShowAlert:  true,
@@ -13,130 +14,251 @@ Notifications.setNotificationHandler({
   }),
 });
 
+// ── Registrar dispositivo para push notifications ────────────────────────────
 export async function registerForPushNotifications(userId: string): Promise<string | null> {
-  const { status: existing } = await Notifications.getPermissionsAsync();
-  let finalStatus = existing;
-
-  if (existing !== "granted") {
-    const { status } = await Notifications.requestPermissionsAsync();
-    finalStatus = status;
-  }
-
-  if (finalStatus !== "granted") return null;
-
-  const token = (await Notifications.getExpoPushTokenAsync()).data;
-
-  await updateDoc(doc(db, "users", userId), { pushToken: token });
-
-  if (Platform.OS === "android") {
-    await Notifications.setNotificationChannelAsync("default", {
-      name:             "Harrys Barber",
-      importance:       Notifications.AndroidImportance.MAX,
-      vibrationPattern: [0, 250, 250, 250],
-      lightColor:       "#0511F2",
-    });
-  }
-
-  return token;
-}
-
-export async function sendLocalNotification(title: string, body: string) {
-  await Notifications.scheduleNotificationAsync({
-    content: { title, body, sound: true },
-    trigger: null,
-  });
-}
-
-// ── Enviar push al cliente cuando cambia su reserva ──────────────────────────
-export async function notificarCambioEstado(
-  clienteUid: string | null | undefined,
-  clienteNombre: string,
-  servicio: string,
-  nuevoEstado: string,
-  hora?: string,
-) {
-  if (!clienteUid) return; // cliente sin registro no tiene token
-
   try {
-    const { getDoc, doc } = await import("firebase/firestore");
-    const { db } = await import("./firebase");
+    const { status: existing } = await Notifications.getPermissionsAsync();
+    let finalStatus = existing;
 
-    const snap = await getDoc(doc(db, "users", clienteUid));
-    if (!snap.exists()) return;
+    if (existing !== "granted") {
+      const { status } = await Notifications.requestPermissionsAsync();
+      finalStatus = status;
+    }
 
-    const pushToken: string | undefined = snap.data().pushToken;
-    if (!pushToken) return;
+    if (finalStatus !== "granted") return null;
 
-    const mensajes: Record<string, { title: string; body: string }> = {
-      confirmada: {
-        title: "✅ Cita confirmada",
-        body:  `Tu cita de ${servicio} a las ${hora ?? ""} está confirmada. ¡Te esperamos!`,
-      },
-      aplazada: {
-        title: "📅 Cita aplazada",
-        body:  `Tu cita de ${servicio} fue aplazada. El equipo te contactará para reagendar.`,
-      },
-      negada: {
-        title: "❌ Cita no disponible",
-        body:  `Lo sentimos, tu cita de ${servicio} no pudo ser agendada.`,
-      },
-      completada: {
-        title: "🎉 Servicio completado",
-        body:  `Gracias por visitarnos, ${clienteNombre.split(" ")[0]}. ¡Hasta la próxima!`,
-      },
-      fallida: {
-        title: "⚠️ Cita no realizada",
-        body:  `Tu cita de ${servicio} fue marcada como no realizada.`,
-      },
-    };
+    const token = (await Notifications.getExpoPushTokenAsync()).data;
+    await updateDoc(doc(db, "users", userId), { pushToken: token });
 
-    const msg = mensajes[nuevoEstado];
-    if (!msg) return;
+    if (Platform.OS === "android") {
+      // Canal principal — reservas y estados
+      await Notifications.setNotificationChannelAsync("reservas", {
+        name:             "Reservas",
+        description:      "Confirmaciones, cambios y recordatorios de citas",
+        importance:       Notifications.AndroidImportance.HIGH,
+        vibrationPattern: [0, 200, 100, 200],
+        lightColor:       "#F2B90C",
+        sound:            "default",
+        lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
+        bypassDnd:        false,
+      });
 
-    // Expo Push Notifications API
+      // Canal pedidos
+      await Notifications.setNotificationChannelAsync("pedidos", {
+        name:        "Pedidos",
+        description: "Estados de pedidos y aprobaciones",
+        importance:  Notifications.AndroidImportance.DEFAULT,
+        lightColor:  "#22C55E",
+        sound:       "default",
+      });
+
+      // Canal pagos
+      await Notifications.setNotificationChannelAsync("pagos", {
+        name:        "Pagos y créditos",
+        description: "Recordatorios de saldo y abonos",
+        importance:  Notifications.AndroidImportance.DEFAULT,
+        lightColor:  "#F43F5E",
+      });
+    }
+
+    return token;
+  } catch { return null; }
+}
+
+// ── Enviar push mediante Expo Push API ───────────────────────────────────────
+async function enviarPush(
+  pushToken:   string,
+  title:       string,
+  body:        string,
+  data?:       Record<string, any>,
+  channelId?:  string,
+  subtitle?:   string,
+) {
+  try {
     await fetch("https://exp.host/--/api/v2/push/send", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
+      method:  "POST",
+      headers: { "Content-Type": "application/json", "Accept-Encoding": "gzip, deflate" },
       body: JSON.stringify({
-        to:    pushToken,
-        title: msg.title,
-        body:  msg.body,
-        sound: "default",
-        data:  { estado: nuevoEstado },
+        to:         pushToken,
+        title,
+        body,
+        subtitle:   subtitle ?? undefined,
+        sound:      "default",
+        data:       data ?? {},
+        channelId:  channelId ?? "reservas",
+        priority:   "high",
+        badge:      1,
       }),
     });
-  } catch (e) {
-  }
+  } catch {}
 }
 
-// ── Programar recordatorio local 1h antes de la cita ─────────────────────────
+// ── Obtener pushToken de un usuario ──────────────────────────────────────────
+async function getPushToken(uid: string): Promise<string | null> {
+  try {
+    const { getDoc, doc: fsDoc } = await import("firebase/firestore");
+    const snap = await getDoc(fsDoc(db, "users", uid));
+    if (!snap.exists()) return null;
+    return snap.data().pushToken ?? null;
+  } catch { return null; }
+}
+
+// ── Notificar cambio de estado de reserva ───────────────────────────────────
+export async function notificarCambioEstado(
+  clienteUid:    string | null | undefined,
+  clienteNombre: string,
+  servicio:      string,
+  nuevoEstado:   string,
+  hora?:         string,
+) {
+  if (!clienteUid) return;
+
+  const pushToken = await getPushToken(clienteUid);
+  if (!pushToken) return;
+
+  const nombre = clienteNombre.split(" ")[0];
+  const horaTxt = hora ? ` a las ${hora}` : "";
+
+  const mensajes: Record<string, { title: string; body: string; subtitle?: string }> = {
+    confirmada: {
+      title:    "✅ ¡Cita confirmada!",
+      subtitle: `${servicio}${horaTxt}`,
+      body:     `Hola ${nombre}, tu reserva está lista. Te esperamos ${horaTxt} 💈`,
+    },
+    aplazada: {
+      title:    "📅 Cita aplazada",
+      subtitle: servicio,
+      body:     `Hola ${nombre}, tu cita de ${servicio} fue aplazada. El equipo te contactará pronto para reagendar.`,
+    },
+    negada: {
+      title:    "❌ Cita no disponible",
+      subtitle: servicio,
+      body:     `Lo sentimos ${nombre}, no podemos atender tu cita de ${servicio}. Intenta agendar en otro horario.`,
+    },
+    completada: {
+      title:    "🎉 ¡Gracias por visitarnos!",
+      subtitle: "Harry's Barber Shop",
+      body:     `${nombre}, fue un placer atenderte. ¡Vuelve pronto! 💈⭐`,
+    },
+    fallida: {
+      title:    "⚠️ Cita no realizada",
+      subtitle: servicio,
+      body:     `Tu cita de ${servicio} fue marcada como no realizada${horaTxt}. Contáctanos si necesitas ayuda.`,
+    },
+  };
+
+  const msg = mensajes[nuevoEstado];
+  if (!msg) return;
+
+  await enviarPush(pushToken, msg.title, msg.body, { estado: nuevoEstado, servicio }, "reservas", msg.subtitle);
+}
+
+// ── Notificar al empleado cuando se le asigna una reserva ───────────────────
+export async function notificarEmpleadoAsignado(
+  empleadoUid:   string,
+  clienteNombre: string,
+  servicio:      string,
+  fecha:         string,
+  hora:          string,
+) {
+  const pushToken = await getPushToken(empleadoUid);
+  if (!pushToken) return;
+
+  await enviarPush(
+    pushToken,
+    "📋 Nueva cita asignada",
+    `${clienteNombre} — ${servicio}\n${fecha} a las ${hora}`,
+    { tipo: "asignacion" },
+    "reservas",
+    `${fecha} · ${hora}`,
+  );
+}
+
+// ── Notificar estado de pedido al cliente ────────────────────────────────────
+export async function notificarEstadoPedido(
+  clienteUid: string,
+  estado:     "aprobado" | "rechazado" | "entregado",
+  total:      number,
+) {
+  const pushToken = await getPushToken(clienteUid);
+  if (!pushToken) return;
+
+  const msgs = {
+    aprobado: {
+      title: "✅ Pedido aprobado",
+      body:  `Tu pedido por $${total.toLocaleString("es-CO")} fue aprobado. Pasa a recogerlo 🛍️`,
+    },
+    rechazado: {
+      title: "❌ Pedido rechazado",
+      body:  `Tu pedido por $${total.toLocaleString("es-CO")} no pudo ser procesado. Contáctanos.`,
+    },
+    entregado: {
+      title: "📦 Pedido entregado",
+      body:  `Tu pedido fue entregado. ¡Gracias por tu compra! 🎉`,
+    },
+  };
+
+  const msg = msgs[estado];
+  await enviarPush(pushToken, msg.title, msg.body, { tipo: "pedido", estado }, "pedidos");
+}
+
+// ── Notificar abono registrado ───────────────────────────────────────────────
+export async function notificarAbono(
+  clienteUid:   string,
+  clienteNombre: string,
+  monto:         number,
+  saldoRestante: number,
+) {
+  const pushToken = await getPushToken(clienteUid);
+  if (!pushToken) return;
+
+  const nombre = clienteNombre.split(" ")[0];
+  const body = saldoRestante > 0
+    ? `Hola ${nombre}, se registró un abono de $${monto.toLocaleString("es-CO")}. Saldo restante: $${saldoRestante.toLocaleString("es-CO")}`
+    : `Hola ${nombre}, registramos tu pago de $${monto.toLocaleString("es-CO")}. ¡Ya estás al día! 🎉`;
+
+  await enviarPush(
+    pushToken,
+    saldoRestante > 0 ? "💳 Abono registrado" : "✅ ¡Saldo al día!",
+    body,
+    { tipo: "abono" },
+    "pagos",
+  );
+}
+
+// ── Programar recordatorio 1h antes de la cita ──────────────────────────────
 export async function programarRecordatorio(
-  reservaId: string,
-  servicio: string,
-  fechaCita: Date,
+  reservaId:       string,
+  servicio:        string,
+  fechaCita:       Date,
   peluqueroNombre?: string,
 ) {
   try {
-    // Cancelar cualquier recordatorio previo con mismo identifier
     await Notifications.cancelScheduledNotificationAsync(reservaId).catch(() => {});
 
     const unHoraAntes = new Date(fechaCita.getTime() - 60 * 60 * 1000);
-    if (unHoraAntes <= new Date()) return; // ya pasó
+    if (unHoraAntes <= new Date()) return;
+
+    const hora = fechaCita.toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" });
 
     await Notifications.scheduleNotificationAsync({
       identifier: reservaId,
       content: {
-        title: "⏰ Tu cita es en 1 hora",
-        body:  `${servicio}${peluqueroNombre ? ` con ${peluqueroNombre}` : ""} — ¡No olvides venir!`,
-        sound: true,
+        title:    "⏰ Tu cita es en 1 hora",
+        body:     `${servicio}${peluqueroNombre ? ` con ${peluqueroNombre}` : ""} a las ${hora} — ¡Prepárate! 💈`,
+        sound:    true,
+        data:     { tipo: "recordatorio", reservaId },
+        ...(Platform.OS === "android" && { channelId: "reservas" }),
       },
-      trigger: { type: Notifications.SchedulableTriggerInputTypes.DATE, date: unHoraAntes },
+      trigger: {
+        type: Notifications.SchedulableTriggerInputTypes.DATE,
+        date: unHoraAntes,
+      },
     });
-  } catch (e) {
-  }
+  } catch {}
 }
 
-// ── Cancelar recordatorio al negar/aplazar una cita ──────────────────────────
+// ── Cancelar recordatorio ────────────────────────────────────────────────────
 export async function cancelarRecordatorio(reservaId: string) {
   try {
     await Notifications.cancelScheduledNotificationAsync(reservaId);
