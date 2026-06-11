@@ -8,7 +8,7 @@ import { BarChart } from "react-native-chart-kit";
 import {
   collection, getDocs, query, where, Timestamp,
 } from "firebase/firestore";
-import { db } from "../../services/firebase";
+import { db }             from "../../services/firebase";
 import { useThemeColors } from "../../hooks/useThemeColors";
 import { BackHeader }     from "../../components/ui/BackHeader";
 import { ThemedCard }     from "../../components/ui/ThemedCard";
@@ -19,350 +19,309 @@ const { width: SCREEN_W } = Dimensions.get("window");
 const CHART_W = SCREEN_W - 48;
 
 interface ServicioRealizado {
-  precio:          number;
-  servicio:        string;
-  fecha:           Timestamp;
-  peluqueroUid?:   string;
+  precio:           number;
+  servicio:         string;
+  fecha:            Timestamp;
+  modalidadPago?:   string;
+  peluqueroUid?:    string;
   peluqueroNombre?: string;
 }
-
 interface PedidoAprobado {
   total:     number;
   fecha:     Timestamp;
   createdAt: Timestamp;
-  items:     { nombre: string; cantidad: number; precio: number }[];
+  items:     { nombre: string; cantidad: number; precio: number; categoria?: string }[];
+}
+interface ClienteDeuda {
+  saldo: number;
 }
 
+const PERIODOS = ["7 días","30 días","Este año"] as const;
+type Periodo = typeof PERIODOS[number];
+type Vista   = "todo" | "peluqueria" | "tienda";
+
 const MESES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
-const PERIODO_OPTS = ["7 días","30 días","Este año"] as const;
-type Periodo = typeof PERIODO_OPTS[number];
 
 export function AdminBalancesScreen() {
   const c = useThemeColors();
-  const [servicios,  setServicios]  = useState<ServicioRealizado[]>([]);
-  const [pedidos,    setPedidos]    = useState<PedidoAprobado[]>([]);
-  const [creditoTotal, setCreditoTotal] = useState(0);
-  const [loading,    setLoading]    = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
-  const [periodo,    setPeriodo]    = useState<Periodo>("30 días");
+  const [servicios,     setServicios]     = useState<ServicioRealizado[]>([]);
+  const [pedidos,       setPedidos]       = useState<PedidoAprobado[]>([]);
+  const [creditoTotal,  setCreditoTotal]  = useState(0);
+  const [loading,       setLoading]       = useState(true);
+  const [refreshing,    setRefreshing]    = useState(false);
+  const [periodo,       setPeriodo]       = useState<Periodo>("30 días");
+  const [vista,         setVista]         = useState<Vista>("todo");
 
   const loadData = async () => {
     try {
-      const [serviciosSnap, pedidosSnap, creditosSnap] = await Promise.all([
-        getDocs(query(
-          collection(db, "servicios_realizados"),
-          where("estado", "==", "completado"),
-        )),
-        getDocs(query(
-          collection(db, "pedidos"),
-          where("estado", "==", "aprobado"),
-        )),
-        getDocs(query(
-          collection(db, "users"),
-          where("role", "==", "cliente"),
-          where("saldo", ">", 0),
-        )),
+      const [servSnap, pedSnap, credSnap] = await Promise.all([
+        getDocs(query(collection(db,"servicios_realizados"), where("estado","==","completado"))),
+        getDocs(query(collection(db,"pedidos"), where("estado","==","aprobado"))),
+        getDocs(query(collection(db,"users"), where("role","==","cliente"), where("saldo",">",0))),
       ]);
-      const serviciosData = serviciosSnap.docs.map(d => d.data() as ServicioRealizado)
-        .sort((a, b) => a.fecha.toMillis() - b.fecha.toMillis());
-      const pedidosData = pedidosSnap.docs.map(d => d.data() as PedidoAprobado)
-        .sort((a, b) => (a.createdAt ?? a.fecha).toMillis() - (b.createdAt ?? b.fecha).toMillis());
-      setServicios(serviciosData);
-      setPedidos(pedidosData);
-      const totalCred = creditosSnap.docs.reduce((a, d) => a + (d.data().saldo ?? 0), 0);
-      setCreditoTotal(totalCred);
-    } catch(e) { /* */ }
+      setServicios(servSnap.docs.map(d=>d.data() as ServicioRealizado).sort((a,b)=>a.fecha.toMillis()-b.fecha.toMillis()));
+      setPedidos(pedSnap.docs.map(d=>d.data() as PedidoAprobado).sort((a,b)=>(a.createdAt??a.fecha).toMillis()-(b.createdAt??b.fecha).toMillis()));
+      setCreditoTotal(credSnap.docs.reduce((acc,d)=>acc+(d.data().saldo??0),0));
+    } catch {}
     finally { setLoading(false); }
   };
 
   useEffect(() => { loadData(); }, []);
+  const onRefresh = async () => { setRefreshing(true); await loadData(); setRefreshing(false); };
 
-  const onRefresh = async () => {
-    setRefreshing(true);
-    await loadData();
-    setRefreshing(false);
-  };
-
-  // ── Filtrar por período ──────────────────────────────────────────────────
   const ahora = new Date();
   const enPeriodo = (ts: Timestamp) => {
-    const fecha = ts.toDate();
-    if (periodo === "7 días") {
-      const hace7 = new Date(ahora); hace7.setDate(ahora.getDate() - 7);
-      return fecha >= hace7;
-    } else if (periodo === "30 días") {
-      const hace30 = new Date(ahora); hace30.setDate(ahora.getDate() - 30);
-      return fecha >= hace30;
-    }
-    return fecha.getFullYear() === ahora.getFullYear();
+    const f = ts.toDate();
+    if (periodo === "7 días")   { const d=new Date(ahora); d.setDate(ahora.getDate()-7); return f>=d; }
+    if (periodo === "30 días")  { const d=new Date(ahora); d.setDate(ahora.getDate()-30); return f>=d; }
+    return f.getFullYear()===ahora.getFullYear();
   };
 
-  const serviciosFilt = servicios.filter(s => enPeriodo(s.fecha));
-  const pedidosFilt   = pedidos.filter(p => enPeriodo(p.createdAt ?? p.fecha));
+  const servFilt = servicios.filter(s=>enPeriodo(s.fecha));
+  const pedFilt  = pedidos.filter(p=>enPeriodo(p.createdAt??p.fecha));
 
-  // ── KPIs globales ────────────────────────────────────────────────────────
-  const ingresosServicios = serviciosFilt.reduce((a, s) => a + (s.precio ?? 0), 0);
-  const ingresosTienda    = pedidosFilt.reduce((a, p) => a + (p.total ?? 0), 0);
-  const totalIngresos     = ingresosServicios + ingresosTienda;
-  const totalServicios    = serviciosFilt.length;
-  const ticketPromedio    = totalServicios > 0 ? Math.round(ingresosServicios / totalServicios) : 0;
+  // KPIs
+  const ingServicios = servFilt.reduce((a,s)=>a+(s.precio??0),0);
+  const ingTienda    = pedFilt.reduce((a,p)=>a+(p.total??0),0);
+  const ingTotal     = ingServicios + ingTienda;
+  const ticketProm   = servFilt.length>0 ? Math.round(ingServicios/servFilt.length) : 0;
 
-  // ── Gráfica de barras (servicios) ────────────────────────────────────────
+  // Contado vs crédito en servicios
+  const ingContado = servFilt.filter(s=>s.modalidadPago==="contado").reduce((a,s)=>a+(s.precio??0),0);
+  const ingCredito = servFilt.filter(s=>s.modalidadPago==="credito").reduce((a,s)=>a+(s.precio??0),0);
+
+  // Gráfica
   const buildBarData = () => {
-    if (periodo === "Este año") {
-      const meses = Array(12).fill(0);
-      serviciosFilt.forEach(s => { meses[s.fecha.toDate().getMonth()] += s.precio ?? 0; });
-      return { labels: MESES, datasets: [{ data: meses }] };
-    } else if (periodo === "30 días") {
-      const semanas = [0, 0, 0, 0];
-      serviciosFilt.forEach(s => {
-        const dias = Math.floor((ahora.getTime() - s.fecha.toDate().getTime()) / 86400000);
-        const sem  = Math.min(3, Math.floor(dias / 7));
-        semanas[3 - sem] += s.precio ?? 0;
+    const source = vista==="tienda" ? [] : servFilt;
+    if (periodo==="Este año") {
+      const m=Array(12).fill(0);
+      source.forEach(s=>{m[s.fecha.toDate().getMonth()]+=(s.precio??0);});
+      return { labels:MESES, datasets:[{data:m}] };
+    }
+    if (periodo==="30 días") {
+      const sem=[0,0,0,0];
+      source.forEach(s=>{
+        const d=Math.floor((ahora.getTime()-s.fecha.toDate().getTime())/86400000);
+        sem[Math.min(3,Math.floor(d/7))]+=(s.precio??0);
       });
-      return { labels: ["Sem 1","Sem 2","Sem 3","Sem 4"], datasets: [{ data: semanas }] };
+      return { labels:["Sem 1","Sem 2","Sem 3","Sem 4"], datasets:[{data:sem}] };
     }
-    const dias = Array(7).fill(0);
-    const labDias: string[] = [];
-    for (let i = 6; i >= 0; i--) {
-      const d = new Date(ahora); d.setDate(ahora.getDate() - i);
-      labDias.push(["D","L","M","X","J","V","S"][d.getDay()]);
-    }
-    serviciosFilt.forEach(s => {
-      const diasAtras = Math.floor((ahora.getTime() - s.fecha.toDate().getTime()) / 86400000);
-      if (diasAtras < 7) dias[6 - diasAtras] += s.precio ?? 0;
-    });
-    return { labels: labDias, datasets: [{ data: dias }] };
+    const dias=Array(7).fill(0);
+    const labs=[];
+    for(let i=6;i>=0;i--){const d=new Date(ahora);d.setDate(ahora.getDate()-i);labs.push(["D","L","M","X","J","V","S"][d.getDay()]);}
+    source.forEach(s=>{const d=Math.floor((ahora.getTime()-s.fecha.toDate().getTime())/86400000);if(d<7)dias[6-d]+=(s.precio??0);});
+    return { labels:labs, datasets:[{data:dias}] };
   };
 
-  // ── Top servicios ────────────────────────────────────────────────────────
-  const topServicios: Record<string, number> = {};
-  serviciosFilt.forEach(s => {
-    topServicios[s.servicio] = (topServicios[s.servicio] ?? 0) + (s.precio ?? 0);
-  });
-  const topServSorted = Object.entries(topServicios).sort(([,a],[,b]) => b - a).slice(0, 4);
+  // Top servicios
+  const topServ: Record<string,number>={};
+  servFilt.forEach(s=>{topServ[s.servicio]=(topServ[s.servicio]??0)+(s.precio??0);});
+  const topServSorted = Object.entries(topServ).sort(([,a],[,b])=>b-a).slice(0,4);
 
-  // ── Top productos tienda ─────────────────────────────────────────────────
-  const topProductos: Record<string, number> = {};
-  pedidosFilt.forEach(p => {
-    p.items?.forEach(item => {
-      topProductos[item.nombre] = (topProductos[item.nombre] ?? 0) + item.precio * item.cantidad;
-    });
-  });
-  const topProdSorted = Object.entries(topProductos).sort(([,a],[,b]) => b - a).slice(0, 4);
+  // Top productos
+  const topProd: Record<string,number>={};
+  pedFilt.forEach(p=>p.items?.forEach(i=>{topProd[i.nombre]=(topProd[i.nombre]??0)+i.precio*i.cantidad;}));
+  const topProdSorted = Object.entries(topProd).sort(([,a],[,b])=>b-a).slice(0,4);
 
-  // ── Ingresos por empleado ────────────────────────────────────────────────
-  const porEmpleado: Record<string, { nombre: string; total: number; citas: number }> = {};
-  serviciosFilt.forEach(s => {
-    const uid    = s.peluqueroUid    ?? "sin_asignar";
-    const nombre = s.peluqueroNombre ?? "Sin asignar";
-    if (!porEmpleado[uid]) porEmpleado[uid] = { nombre, total: 0, citas: 0 };
-    porEmpleado[uid].total += s.precio ?? 0;
-    porEmpleado[uid].citas += 1;
+  // Por empleado
+  const porEmp: Record<string,{nombre:string;total:number;citas:number}>={};
+  servFilt.forEach(s=>{
+    const uid=s.peluqueroUid??"sin_asignar";
+    if(!porEmp[uid]) porEmp[uid]={nombre:s.peluqueroNombre??"Sin asignar",total:0,citas:0};
+    porEmp[uid].total+=(s.precio??0);
+    porEmp[uid].citas+=1;
   });
-  const empleadosSorted = Object.values(porEmpleado).sort((a, b) => b.total - a.total);
+  const empSorted = Object.values(porEmp).sort((a,b)=>b.total-a.total);
 
   const barData = buildBarData();
-
   const chartConfig = {
-    backgroundGradientFrom: c.surface,
-    backgroundGradientTo:   c.surface,
-    color: (opacity = 1) => `rgba(242, 185, 12, ${opacity})`,
-    labelColor: () => c.sub,
-    strokeWidth: 2,
-    barPercentage: 0.6,
-    decimalPlaces: 0,
-    propsForLabels: { fontFamily: "SpaceGrotesk_500Medium", fontSize: 10 },
+    backgroundGradientFrom: c.surface, backgroundGradientTo: c.surface,
+    color:(o=1)=>`rgba(242,185,12,${o})`, labelColor:()=>c.sub,
+    strokeWidth:2, barPercentage:0.6, decimalPlaces:0,
+    propsForLabels:{fontFamily:"SpaceGrotesk_500Medium",fontSize:10},
   };
 
+  const showPeluqueria = vista==="todo" || vista==="peluqueria";
+  const showTienda     = vista==="todo" || vista==="tienda";
+
   return (
-    <ScreenWrapper>
+    <ScreenWrapper keyboard={false}>
       <BackHeader title="Balances" />
-
-      {loading ? (
-        <ActivityIndicator color={c.amber} style={{ marginTop: 40 }} />
-      ) : (
-        <ScrollView
-          contentContainerStyle={styles.scroll}
-          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={c.amber} />}
+      {loading ? <ActivityIndicator color={c.amber} style={{marginTop:40}}/> : (
+        <ScrollView contentContainerStyle={styles.scroll}
+          refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={c.amber}/>}
         >
-
-          {/* Selector de período */}
-          <View style={[styles.periodoRow, { backgroundColor: c.surface, borderColor: c.border }]}>
-            {PERIODO_OPTS.map(p => (
-              <TouchableOpacity
-                key={p}
-                onPress={() => setPeriodo(p)}
-                style={[styles.periodoBtn, periodo === p && { backgroundColor: c.amber }]}
-              >
-                <Text style={[styles.periodoBtnText, { color: periodo === p ? "#000" : c.sub }]}>
-                  {p}
-                </Text>
+          {/* Periodo */}
+          <View style={[styles.segRow,{backgroundColor:c.surface,borderColor:c.border}]}>
+            {PERIODOS.map(p=>(
+              <TouchableOpacity key={p} onPress={()=>setPeriodo(p)}
+                style={[styles.segBtn, periodo===p&&{backgroundColor:c.amber}]}>
+                <Text style={[styles.segTxt,{color:periodo===p?"#000":c.sub}]}>{p}</Text>
               </TouchableOpacity>
             ))}
           </View>
 
-          {/* ── KPIs GLOBALES ── */}
-          <Text style={[styles.sectionTitle, { color: c.sub }]}>RESUMEN GENERAL</Text>
-          <View style={styles.kpiRow}>
-            <ThemedCard style={styles.kpiCard}>
-              <MaterialIcons name="trending-up" size={16} color={c.sub} />
-              <Text style={[styles.kpiLabel, { color: c.sub }]}>Total</Text>
-              <NumberText size={18} positive>${totalIngresos.toLocaleString("es-CO")}</NumberText>
-            </ThemedCard>
-            <ThemedCard style={styles.kpiCard}>
-              <MaterialIcons name="content-cut" size={16} color={c.sub} />
-              <Text style={[styles.kpiLabel, { color: c.sub }]}>Servicios</Text>
-              <NumberText size={18} positive>${ingresosServicios.toLocaleString("es-CO")}</NumberText>
-            </ThemedCard>
-            <ThemedCard style={styles.kpiCard}>
-              <MaterialIcons name="shopping-cart" size={16} color={c.sub} />
-              <Text style={[styles.kpiLabel, { color: c.sub }]}>Tienda</Text>
-              <NumberText size={18} positive>${ingresosTienda.toLocaleString("es-CO")}</NumberText>
-            </ThemedCard>
+          {/* Vista tienda/peluquería */}
+          <View style={[styles.segRow,{backgroundColor:c.surface,borderColor:c.border}]}>
+            {([["todo","Todo"],["peluqueria","Peluquería"],["tienda","Tienda"]] as const).map(([k,l])=>(
+              <TouchableOpacity key={k} onPress={()=>setVista(k)}
+                style={[styles.segBtn, vista===k&&{backgroundColor:c.blue}]}>
+                <Text style={[styles.segTxt,{color:vista===k?"#fff":c.sub}]}>{l}</Text>
+              </TouchableOpacity>
+            ))}
           </View>
 
+          {/* KPIs */}
+          <Text style={[styles.sec,{color:c.sub}]}>RESUMEN</Text>
           <View style={styles.kpiRow}>
-            <ThemedCard style={styles.kpiCard}>
-              <MaterialIcons name="event" size={16} color={c.sub} />
-              <Text style={[styles.kpiLabel, { color: c.sub }]}>Citas</Text>
-              <NumberText size={18}>{totalServicios.toString()}</NumberText>
+            <ThemedCard style={styles.kpi}>
+              <MaterialIcons name="trending-up" size={16} color={c.sub}/>
+              <Text style={[styles.kpiL,{color:c.sub}]}>Total</Text>
+              <NumberText size={18} positive>${(showPeluqueria&&showTienda?ingTotal:showPeluqueria?ingServicios:ingTienda).toLocaleString("es-CO")}</NumberText>
             </ThemedCard>
-            <ThemedCard style={styles.kpiCard}>
-              <MaterialIcons name="receipt" size={16} color={c.sub} />
-              <Text style={[styles.kpiLabel, { color: c.sub }]}>Ticket prom.</Text>
-              <NumberText size={18}>${ticketPromedio.toLocaleString("es-CO")}</NumberText>
-            </ThemedCard>
-            <ThemedCard style={styles.kpiCard}>
-              <MaterialIcons name="store" size={16} color={c.sub} />
-              <Text style={[styles.kpiLabel, { color: c.sub }]}>Pedidos</Text>
-              <NumberText size={18}>{pedidosFilt.length.toString()}</NumberText>
-            </ThemedCard>
+            {showPeluqueria&&(
+              <ThemedCard style={styles.kpi}>
+                <MaterialIcons name="content-cut" size={16} color={c.sub}/>
+                <Text style={[styles.kpiL,{color:c.sub}]}>Servicios</Text>
+                <NumberText size={18} positive>${ingServicios.toLocaleString("es-CO")}</NumberText>
+              </ThemedCard>
+            )}
+            {showTienda&&(
+              <ThemedCard style={styles.kpi}>
+                <MaterialIcons name="store" size={16} color={c.sub}/>
+                <Text style={[styles.kpiL,{color:c.sub}]}>Tienda</Text>
+                <NumberText size={18} positive>${ingTienda.toLocaleString("es-CO")}</NumberText>
+              </ThemedCard>
+            )}
           </View>
 
-          {creditoTotal > 0 && (
-            <ThemedCard style={[styles.creditoCard, { borderColor: c.negative + "44", backgroundColor: c.negative + "0A" }]}>
-              <MaterialIcons name="credit-card" size={18} color={c.negative} />
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.kpiLabel, { color: c.sub }]}>CRÉDITOS PENDIENTES</Text>
+          {showPeluqueria&&(
+            <View style={styles.kpiRow}>
+              <ThemedCard style={styles.kpi}>
+                <MaterialIcons name="event" size={16} color={c.sub}/>
+                <Text style={[styles.kpiL,{color:c.sub}]}>Citas</Text>
+                <NumberText size={18}>{servFilt.length.toString()}</NumberText>
+              </ThemedCard>
+              <ThemedCard style={styles.kpi}>
+                <MaterialIcons name="receipt" size={16} color={c.sub}/>
+                <Text style={[styles.kpiL,{color:c.sub}]}>Ticket prom.</Text>
+                <NumberText size={18}>${ticketProm.toLocaleString("es-CO")}</NumberText>
+              </ThemedCard>
+              <ThemedCard style={styles.kpi}>
+                <MaterialIcons name="payments" size={16} color={c.sub}/>
+                <Text style={[styles.kpiL,{color:c.sub}]}>Crédito</Text>
+                <NumberText size={18} negative>${ingCredito.toLocaleString("es-CO")}</NumberText>
+              </ThemedCard>
+            </View>
+          )}
+
+          {/* Créditos pendientes */}
+          {creditoTotal>0&&(
+            <ThemedCard style={[styles.creditCard,{borderColor:c.negative+"44",backgroundColor:c.negative+"0A"}]}>
+              <MaterialIcons name="credit-card" size={18} color={c.negative}/>
+              <View style={{flex:1}}>
+                <Text style={[styles.kpiL,{color:c.sub}]}>CRÉDITOS PENDIENTES CLIENTES</Text>
                 <NumberText size={20} negative>${creditoTotal.toLocaleString("es-CO")}</NumberText>
               </View>
             </ThemedCard>
           )}
 
-          {totalIngresos === 0 ? (
+          {ingTotal===0 ? (
             <View style={styles.empty}>
-              <MaterialIcons name="bar-chart" size={52} color={c.sub} />
-              <Text style={[styles.emptyTitle, { color: c.text }]}>Sin datos aún</Text>
-              <Text style={[styles.emptyDesc, { color: c.sub }]}>
-                Los ingresos aparecerán cuando se completen servicios o aprueben pedidos
-              </Text>
+              <MaterialIcons name="bar-chart" size={52} color={c.sub}/>
+              <Text style={[styles.emptyT,{color:c.text}]}>Sin datos aún</Text>
+              <Text style={[styles.emptyD,{color:c.sub}]}>Los ingresos aparecen cuando se completen servicios o se aprueben pedidos</Text>
             </View>
           ) : (<>
 
-            {/* ── GRÁFICA SERVICIOS ── */}
-            {totalServicios > 0 && (<>
-              <Text style={[styles.sectionTitle, { color: c.sub }]}>INGRESOS POR SERVICIOS</Text>
-              <ThemedCard style={{ padding: 8 }}>
-                <BarChart
-                  data={barData}
-                  width={CHART_W}
-                  height={180}
-                  chartConfig={chartConfig}
-                  style={{ borderRadius: 12 }}
-                  showValuesOnTopOfBars
-                  fromZero
-                  yAxisLabel="$"
-                  yAxisSuffix=""
-                />
+            {/* Gráfica servicios */}
+            {showPeluqueria&&servFilt.length>0&&(<>
+              <Text style={[styles.sec,{color:c.sub}]}>INGRESOS SERVICIOS</Text>
+              <ThemedCard style={{padding:8}}>
+                <BarChart data={barData} width={CHART_W} height={180} chartConfig={chartConfig}
+                  style={{borderRadius:12}} showValuesOnTopOfBars fromZero yAxisLabel="$" yAxisSuffix=""/>
               </ThemedCard>
-
-              <Text style={[styles.sectionTitle, { color: c.sub }]}>TOP SERVICIOS</Text>
-              {topServSorted.map(([nombre, total], i) => {
-                const pct = ingresosServicios > 0 ? (total / ingresosServicios) * 100 : 0;
-                return (
+              <Text style={[styles.sec,{color:c.sub}]}>TOP SERVICIOS</Text>
+              {topServSorted.map(([n,t],i)=>{
+                const pct=ingServicios>0?(t/ingServicios)*100:0;
+                return(
                   <ThemedCard key={i} style={styles.topCard}>
                     <View style={styles.topRow}>
-                      <Text style={[styles.topNombre, { color: c.text }]}>{nombre}</Text>
-                      <Text style={[styles.topTotal,  { color: c.amber }]}>${total.toLocaleString("es-CO")}</Text>
+                      <Text style={[styles.topN,{color:c.text}]}>{n}</Text>
+                      <Text style={[styles.topT,{color:c.amber}]}>${t.toLocaleString("es-CO")}</Text>
                     </View>
-                    <View style={[styles.barBg, { backgroundColor: c.border }]}>
-                      <View style={[styles.barFill, { width: `${pct}%`, backgroundColor: c.amber }]} />
+                    <View style={[styles.barBg,{backgroundColor:c.border}]}>
+                      <View style={[styles.barFill,{width:`${pct}%`,backgroundColor:c.amber}]}/>
                     </View>
-                    <Text style={[styles.topPct, { color: c.sub }]}>{pct.toFixed(1)}% de servicios</Text>
+                    <Text style={[styles.topP,{color:c.sub}]}>{pct.toFixed(1)}%</Text>
                   </ThemedCard>
                 );
               })}
             </>)}
 
-            {/* ── VENTAS TIENDA ── */}
-            {pedidosFilt.length > 0 && (<>
-              <Text style={[styles.sectionTitle, { color: c.sub }]}>VENTAS TIENDA</Text>
+            {/* Tienda */}
+            {showTienda&&pedFilt.length>0&&(<>
+              <Text style={[styles.sec,{color:c.sub}]}>VENTAS TIENDA</Text>
               <View style={styles.kpiRow}>
-                <ThemedCard style={styles.kpiCard}>
-                  <MaterialIcons name="shopping-bag" size={16} color={c.sub} />
-                  <Text style={[styles.kpiLabel, { color: c.sub }]}>Ventas</Text>
-                  <NumberText size={18} positive>${ingresosTienda.toLocaleString("es-CO")}</NumberText>
+                <ThemedCard style={styles.kpi}>
+                  <MaterialIcons name="shopping-bag" size={16} color={c.sub}/>
+                  <Text style={[styles.kpiL,{color:c.sub}]}>Total</Text>
+                  <NumberText size={18} positive>${ingTienda.toLocaleString("es-CO")}</NumberText>
                 </ThemedCard>
-                <ThemedCard style={styles.kpiCard}>
-                  <MaterialIcons name="inventory" size={16} color={c.sub} />
-                  <Text style={[styles.kpiLabel, { color: c.sub }]}>Pedidos</Text>
-                  <NumberText size={18}>{pedidosFilt.length.toString()}</NumberText>
+                <ThemedCard style={styles.kpi}>
+                  <MaterialIcons name="inventory" size={16} color={c.sub}/>
+                  <Text style={[styles.kpiL,{color:c.sub}]}>Pedidos</Text>
+                  <NumberText size={18}>{pedFilt.length.toString()}</NumberText>
                 </ThemedCard>
-                <ThemedCard style={styles.kpiCard}>
-                  <MaterialIcons name="receipt" size={16} color={c.sub} />
-                  <Text style={[styles.kpiLabel, { color: c.sub }]}>Prom. pedido</Text>
-                  <NumberText size={18}>
-                    ${pedidosFilt.length > 0
-                      ? Math.round(ingresosTienda / pedidosFilt.length).toLocaleString("es-CO")
-                      : "0"}
-                  </NumberText>
+                <ThemedCard style={styles.kpi}>
+                  <MaterialIcons name="receipt" size={16} color={c.sub}/>
+                  <Text style={[styles.kpiL,{color:c.sub}]}>Prom.</Text>
+                  <NumberText size={18}>${Math.round(ingTienda/pedFilt.length).toLocaleString("es-CO")}</NumberText>
                 </ThemedCard>
               </View>
-
-              {topProdSorted.length > 0 && (<>
-                <Text style={[styles.sectionTitle, { color: c.sub }]}>TOP PRODUCTOS</Text>
-                {topProdSorted.map(([nombre, total], i) => {
-                  const pct = ingresosTienda > 0 ? (total / ingresosTienda) * 100 : 0;
-                  return (
+              {topProdSorted.length>0&&(<>
+                <Text style={[styles.sec,{color:c.sub}]}>TOP PRODUCTOS</Text>
+                {topProdSorted.map(([n,t],i)=>{
+                  const pct=ingTienda>0?(t/ingTienda)*100:0;
+                  return(
                     <ThemedCard key={i} style={styles.topCard}>
                       <View style={styles.topRow}>
-                        <Text style={[styles.topNombre, { color: c.text }]}>{nombre}</Text>
-                        <Text style={[styles.topTotal,  { color: c.positive }]}>${total.toLocaleString("es-CO")}</Text>
+                        <Text style={[styles.topN,{color:c.text}]}>{n}</Text>
+                        <Text style={[styles.topT,{color:c.positive}]}>${t.toLocaleString("es-CO")}</Text>
                       </View>
-                      <View style={[styles.barBg, { backgroundColor: c.border }]}>
-                        <View style={[styles.barFill, { width: `${pct}%`, backgroundColor: c.positive }]} />
+                      <View style={[styles.barBg,{backgroundColor:c.border}]}>
+                        <View style={[styles.barFill,{width:`${pct}%`,backgroundColor:c.positive}]}/>
                       </View>
-                      <Text style={[styles.topPct, { color: c.sub }]}>{pct.toFixed(1)}% de tienda</Text>
+                      <Text style={[styles.topP,{color:c.sub}]}>{pct.toFixed(1)}%</Text>
                     </ThemedCard>
                   );
                 })}
               </>)}
             </>)}
 
-            {/* ── INGRESOS POR EMPLEADO ── */}
-            {empleadosSorted.length > 0 && (<>
-              <Text style={[styles.sectionTitle, { color: c.sub }]}>INGRESOS POR EMPLEADO</Text>
-              {empleadosSorted.map((emp, i) => {
-                const pct = ingresosServicios > 0 ? (emp.total / ingresosServicios) * 100 : 0;
-                return (
+            {/* Por empleado */}
+            {showPeluqueria&&empSorted.length>0&&(<>
+              <Text style={[styles.sec,{color:c.sub}]}>POR EMPLEADO</Text>
+              {empSorted.map((e,i)=>{
+                const pct=ingServicios>0?(e.total/ingServicios)*100:0;
+                return(
                   <ThemedCard key={i} style={styles.empCard}>
-                    <View style={[styles.empAvatar, { backgroundColor: c.blue + "22" }]}>
-                      <Text style={[styles.empAvatarText, { color: c.blue }]}>
-                        {emp.nombre.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase()}
+                    <View style={[styles.empAv,{backgroundColor:c.blue+"22"}]}>
+                      <Text style={[styles.empAvT,{color:c.blue}]}>
+                        {e.nombre.split(" ").map((n:string)=>n[0]).join("").slice(0,2).toUpperCase()}
                       </Text>
                     </View>
-                    <View style={{ flex: 1, gap: 6 }}>
+                    <View style={{flex:1,gap:6}}>
                       <View style={styles.topRow}>
-                        <Text style={[styles.topNombre, { color: c.text }]}>{emp.nombre}</Text>
-                        <Text style={[styles.topTotal, { color: c.blue }]}>${emp.total.toLocaleString("es-CO")}</Text>
+                        <Text style={[styles.topN,{color:c.text}]}>{e.nombre}</Text>
+                        <Text style={[styles.topT,{color:c.blue}]}>${e.total.toLocaleString("es-CO")}</Text>
                       </View>
-                      <View style={[styles.barBg, { backgroundColor: c.border }]}>
-                        <View style={[styles.barFill, { width: `${pct}%`, backgroundColor: c.blue }]} />
+                      <View style={[styles.barBg,{backgroundColor:c.border}]}>
+                        <View style={[styles.barFill,{width:`${pct}%`,backgroundColor:c.blue}]}/>
                       </View>
-                      <View style={styles.empMeta}>
-                        <Text style={[styles.topPct, { color: c.sub }]}>{emp.citas} cita{emp.citas !== 1 ? "s" : ""}</Text>
-                        <Text style={[styles.topPct, { color: c.sub }]}>{pct.toFixed(1)}% del total</Text>
+                      <View style={{flexDirection:"row",justifyContent:"space-between"}}>
+                        <Text style={[styles.topP,{color:c.sub}]}>{e.citas} cita{e.citas!==1?"s":""}</Text>
+                        <Text style={[styles.topP,{color:c.sub}]}>{pct.toFixed(1)}%</Text>
                       </View>
                     </View>
                   </ThemedCard>
@@ -371,7 +330,6 @@ export function AdminBalancesScreen() {
             </>)}
 
           </>)}
-
         </ScrollView>
       )}
     </ScreenWrapper>
@@ -379,33 +337,26 @@ export function AdminBalancesScreen() {
 }
 
 const styles = StyleSheet.create({
-  scroll: { padding: 20, gap: 16 },
-  periodoRow: {
-    flexDirection: "row", borderRadius: 12,
-    borderWidth: 1, overflow: "hidden",
-  },
-  periodoBtn:     { flex: 1, paddingVertical: 10, alignItems: "center", borderRadius: 10 },
-  periodoBtnText: { fontSize: 12, fontFamily: "SpaceGrotesk_600SemiBold" },
-  sectionTitle:   { fontSize: 10, fontFamily: "SpaceGrotesk_600SemiBold", letterSpacing: 2, marginTop: 4 },
-  kpiRow:  { flexDirection: "row", gap: 10 },
-  kpiCard: { flex: 1, gap: 6, alignItems: "center" },
-  kpiLabel:{ fontSize: 10, fontFamily: "SpaceGrotesk_400Regular", textAlign: "center" },
-  creditoCard: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 12 },
-  topCard: { gap: 8 },
-  topRow:  { flexDirection: "row", justifyContent: "space-between", alignItems: "center" },
-  topNombre: { fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold", flex: 1, marginRight: 8 },
-  topTotal:  { fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold" },
-  barBg:   { height: 6, borderRadius: 3, width: "100%" },
-  barFill: { height: 6, borderRadius: 3 },
-  topPct:  { fontSize: 11, fontFamily: "SpaceGrotesk_400Regular" },
-  empCard: { flexDirection: "row", alignItems: "flex-start", gap: 12 },
-  empAvatar: {
-    width: 40, height: 40, borderRadius: 20,
-    justifyContent: "center", alignItems: "center", marginTop: 2,
-  },
-  empAvatarText: { fontSize: 13, fontFamily: "Syne_700Bold" },
-  empMeta: { flexDirection: "row", justifyContent: "space-between" },
-  empty:     { alignItems: "center", marginTop: 40, gap: 12, paddingHorizontal: 20 },
-  emptyTitle:{ fontSize: 18, fontFamily: "Syne_700Bold" },
-  emptyDesc: { fontSize: 13, fontFamily: "SpaceGrotesk_400Regular", textAlign: "center" },
+  scroll:    { padding:20, gap:16 },
+  segRow:    { flexDirection:"row", borderRadius:12, borderWidth:1, overflow:"hidden" },
+  segBtn:    { flex:1, paddingVertical:10, alignItems:"center", borderRadius:10 },
+  segTxt:    { fontSize:12, fontFamily:"SpaceGrotesk_600SemiBold" },
+  sec:       { fontSize:10, fontFamily:"SpaceGrotesk_600SemiBold", letterSpacing:2, marginTop:4 },
+  kpiRow:    { flexDirection:"row", gap:10 },
+  kpi:       { flex:1, gap:6, alignItems:"center" },
+  kpiL:      { fontSize:10, fontFamily:"SpaceGrotesk_400Regular", textAlign:"center" },
+  creditCard:{ flexDirection:"row", alignItems:"center", gap:12, paddingVertical:12, borderWidth:1, borderRadius:12 },
+  topCard:   { gap:8 },
+  topRow:    { flexDirection:"row", justifyContent:"space-between", alignItems:"center" },
+  topN:      { fontSize:13, fontFamily:"SpaceGrotesk_600SemiBold", flex:1, marginRight:8 },
+  topT:      { fontSize:13, fontFamily:"SpaceGrotesk_600SemiBold" },
+  barBg:     { height:6, borderRadius:3, width:"100%" },
+  barFill:   { height:6, borderRadius:3 },
+  topP:      { fontSize:11, fontFamily:"SpaceGrotesk_400Regular" },
+  empCard:   { flexDirection:"row", alignItems:"flex-start", gap:12 },
+  empAv:     { width:40, height:40, borderRadius:20, justifyContent:"center", alignItems:"center", marginTop:2 },
+  empAvT:    { fontSize:13, fontFamily:"Syne_700Bold" },
+  empty:     { alignItems:"center", marginTop:40, gap:12, paddingHorizontal:20 },
+  emptyT:    { fontSize:18, fontFamily:"Syne_700Bold" },
+  emptyD:    { fontSize:13, fontFamily:"SpaceGrotesk_400Regular", textAlign:"center" },
 });

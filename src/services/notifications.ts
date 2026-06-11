@@ -27,7 +27,9 @@ export async function registerForPushNotifications(userId: string): Promise<stri
 
     if (finalStatus !== "granted") return null;
 
-    const token = (await Notifications.getExpoPushTokenAsync()).data;
+    const token = (await Notifications.getExpoPushTokenAsync({
+      projectId: "e1e52c92-60ac-4c73-85e4-007716a48dad",
+    })).data;
     await updateDoc(doc(db, "users", userId), { pushToken: token });
 
     if (Platform.OS === "android") {

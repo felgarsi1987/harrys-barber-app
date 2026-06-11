@@ -47,7 +47,9 @@ export function EmpleadoAgendaScreen() {
   const [loading,        setLoading]        = useState(true);
   const [refreshing,     setRefreshing]     = useState(false);
   const [diaOffset,      setDiaOffset]      = useState(0);
-  const [tab,            setTab]            = useState<"agenda" | "historial">("agenda");
+  const [tab,            setTab]            = useState<"agenda" | "historial" | "porAprobar">("agenda");
+  const [pendingAll,     setPendingAll]     = useState<Reserva[]>([]);
+  const [loadingPending, setLoadingPending] = useState(false);
   const [historial,      setHistorial]      = useState<Reserva[]>([]);
   const [loadingHist,    setLoadingHist]    = useState(false);
 
@@ -154,6 +156,28 @@ export function EmpleadoAgendaScreen() {
     setRefreshing(false);
   };
 
+  const loadPendingAll = async () => {
+    setLoadingPending(true);
+    try {
+      const snap = await getDocs(query(
+        collection(db, "reservas"),
+        where("estado", "==", "pendiente")
+      ));
+      setPendingAll(snap.docs
+        .map(d => ({ id: d.id, ...d.data() }) as Reserva)
+        .sort((a,b) => a.fecha.toMillis() - b.fecha.toMillis())
+      );
+    } catch {}
+    finally { setLoadingPending(false); }
+  };
+
+  const aprobarReserva = async (reserva: Reserva) => {
+    try {
+      await updateDoc(doc(db, "reservas", reserva.id), { estado: "confirmada", updatedAt: Timestamp.now() });
+      setPendingAll(prev => prev.filter(r => r.id !== reserva.id));
+    } catch {}
+  };
+
   const loadHistorial = async () => {
     if (!user?.uid) return;
     setLoadingHist(true);
@@ -196,17 +220,18 @@ export function EmpleadoAgendaScreen() {
 
       {/* Tabs */}
       <View style={[styles.tabsRow, { borderBottomColor: c.border }]}>
-        {(["agenda", "historial"] as const).map(t => (
+        {(["agenda", "historial", ...(user?.canApproveReservas ? ["porAprobar"] : [])] as const).map(t => (
           <TouchableOpacity
             key={t}
             onPress={() => {
               setTab(t);
               if (t === "historial" && historial.length === 0) loadHistorial();
+              if (t === "porAprobar") loadPendingAll();
             }}
             style={[styles.tabBtn, tab === t && { borderBottomWidth: 2, borderBottomColor: c.amber }]}
           >
             <Text style={[styles.tabText, { color: tab === t ? c.amber : c.sub }]}>
-              {t === "agenda" ? "Agenda" : "Mis citas"}
+              {t === "agenda" ? "Agenda" : t === "historial" ? "Mis citas" : `Por aprobar${pendingAll.length > 0 ? ` (${pendingAll.length})` : ""}`}
             </Text>
           </TouchableOpacity>
         ))}

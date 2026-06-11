@@ -55,6 +55,7 @@ export function PedidosScreen({ mode, showBackHeader = true }: Props) {
   const [loading,    setLoading]    = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [tab,        setTab]        = useState<"pendientes"|"historial">("pendientes");
+  const [filtroCateg, setFiltroCateg] = useState<string>("todos");
 
   const load = async () => {
     try {
@@ -98,8 +99,11 @@ export function PedidosScreen({ mode, showBackHeader = true }: Props) {
   const formatFecha = (ts: Timestamp) =>
     ts.toDate().toLocaleDateString("es-CO", { day:"numeric", month:"short", year:"numeric" });
 
-  const pendientes = pedidos.filter(p => ["pendiente","pendiente_credito"].includes(p.estado));
-  const historial  = pedidos.filter(p => !["pendiente","pendiente_credito"].includes(p.estado));
+  const pedidosFiltrados = filtroCateg === "todos" ? pedidos : pedidos.filter(p =>
+    p.items?.some((i: any) => i.categoria === filtroCateg || i.nombre?.toLowerCase().includes(filtroCateg.toLowerCase()))
+  );
+  const pendientes = pedidosFiltrados.filter(p => ["pendiente","pendiente_credito"].includes(p.estado));
+  const historial  = pedidosFiltrados.filter(p => !["pendiente","pendiente_credito"].includes(p.estado));
   const mostrar    = tab === "pendientes" ? pendientes : historial;
 
   return (
@@ -127,6 +131,21 @@ export function PedidosScreen({ mode, showBackHeader = true }: Props) {
           </TouchableOpacity>
         ))}
       </View>
+
+      {/* Filtro categoría - solo para admin/empleado */}
+      {mode !== "cliente" && (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false}
+          style={[styles.categRow, { borderBottomColor: c.border }]}>
+          {["todos","Bebidas","Comestibles","Otros"].map(cat => (
+            <TouchableOpacity key={cat} onPress={() => setFiltroCateg(cat)}
+              style={[styles.categBtn, filtroCateg===cat && { backgroundColor: c.amber+"22", borderColor: c.amber }]}>
+              <Text style={[styles.categTxt, { color: filtroCateg===cat ? c.amber : c.sub }]}>
+                {cat === "todos" ? "Todos" : cat}
+              </Text>
+            </TouchableOpacity>
+          ))}
+        </ScrollView>
+      )}
 
       {loading ? (
         <ActivityIndicator color={c.amber} style={{ marginTop: 40 }} />
@@ -194,6 +213,9 @@ export function PedidosScreen({ mode, showBackHeader = true }: Props) {
 }
 
 const styles = StyleSheet.create({
+  categRow: { borderBottomWidth: 1, paddingVertical: 8, paddingHorizontal: 16 },
+  categBtn: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20, borderWidth: 1, borderColor: "transparent", marginRight: 8 },
+  categTxt: { fontSize: 12, fontFamily: "SpaceGrotesk_600SemiBold" },
   tabs:       { flexDirection:"row", borderBottomWidth:1, paddingHorizontal:20 },
   tabBtn:     { paddingVertical:12, paddingHorizontal:12 },
   tabInner:   { flexDirection:"row", alignItems:"center", gap:6 },

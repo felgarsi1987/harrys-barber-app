@@ -34,11 +34,14 @@ export function ClienteCarritoScreen() {
   const [enviando,  setEnviando]  = useState(false);
 
   useEffect(() => {
+    const timer = setTimeout(() => {
     getDocs(collection(db, "inventario"))
       .then(snap => {
         setProductos(snap.docs.map(d => ({ id: d.id, ...d.data() }) as Producto));
       })
       .finally(() => setLoading(false));
+    }, 500);
+    return () => clearTimeout(timer);
   }, []);
 
   const agregar = (producto: Producto) => {

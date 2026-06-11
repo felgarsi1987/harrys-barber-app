@@ -61,7 +61,8 @@ export function ClienteAgendarScreen() {
 
   // Cargar peluqueros disponibles y config de horario
   useEffect(() => {
-    // Load always - works for both logged in users and guests
+    // Small delay to ensure anonymous auth is confirmed before Firestore queries
+    const timer = setTimeout(() => {
     Promise.all([
       // Servicios desde Firestore
       getServicios().then(data => setServicios(data)),
@@ -107,8 +108,10 @@ export function ClienteAgendarScreen() {
           ]);
         }
       }),
-    ]).catch(console.log)
+    ]).catch(() => {})
     .finally(() => setLoadingPeluqueros(false));
+    }, 500); // wait for auth
+    return () => clearTimeout(timer);
   }, []);
 
   // Cargar horas ocupadas + bloqueadas del peluquero en la fecha
@@ -149,6 +152,13 @@ export function ClienteAgendarScreen() {
       }
       const servicio = servicios[servicioSel];
       const fecha    = new Date(fechaSeleccionada + "T" + horaSeleccionada);
+      // Check autoConfirmar setting
+      let estadoInicial = "pendiente";
+      try {
+        const cfg = await getDoc(doc(db, "horario", "config"));
+        if (cfg.exists() && cfg.data().autoConfirmar) estadoInicial = "confirmada";
+      } catch {}
+
       const docRef = await addDoc(collection(db, "reservas"), {
         clienteUid:      user?.uid,
         clienteNombre:   `${user?.nombre} ${user?.apellido}`,
@@ -159,7 +169,8 @@ export function ClienteAgendarScreen() {
         precio:          servicio.precio,
         fecha:           Timestamp.fromDate(fecha),
         hora:            horaSeleccionada,
-        estado:          "pendiente",
+        // Check if admin has autoConfirmar enabled
+        estado: estadoInicial,
         noRegistrado:    false,
         createdAt:       Timestamp.now(),
       });

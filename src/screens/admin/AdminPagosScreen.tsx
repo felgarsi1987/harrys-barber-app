@@ -47,7 +47,7 @@ interface PedidoCredito {
   createdAt:     Timestamp;
 }
 
-type Tab = "solicitudes" | "deudas" | "historial";
+type Tab = "deudas" | "historial";
 
 export function AdminPagosScreen() {
   const c = useThemeColors();
@@ -57,7 +57,7 @@ export function AdminPagosScreen() {
   const [pedidos,      setPedidos]      = useState<PedidoCredito[]>([]);
   const [loading,      setLoading]      = useState(true);
   const [refreshing,   setRefreshing]   = useState(false);
-  const [tab,          setTab]          = useState<Tab>("solicitudes");
+  const [tab,          setTab]          = useState<Tab>("deudas");
   const [modalVisible, setModalVisible] = useState(false);
   const [clienteSel,   setClienteSel]   = useState<ClienteConSaldo | null>(null);
   const [monto,        setMonto]        = useState("");
@@ -227,7 +227,6 @@ export function AdminPagosScreen() {
     ts.toDate().toLocaleDateString("es-CO", { day: "numeric", month: "short", year: "numeric" });
 
   const TABS: { key: Tab; label: string; badge?: number }[] = [
-    { key: "solicitudes", label: "Solicitudes", badge: pedidos.length },
     { key: "deudas",      label: "Deudas" },
     { key: "historial",   label: "Historial" },
   ];
@@ -279,63 +278,6 @@ export function AdminPagosScreen() {
           contentContainerStyle={styles.scroll}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={c.amber} />}
         >
-
-          {/* ── TAB SOLICITUDES ── */}
-          {tab === "solicitudes" && (
-            pedidos.length === 0 ? (
-              <View style={styles.empty}>
-                <MaterialIcons name="check-circle-outline" size={48} color={c.positive} />
-                <Text style={[styles.emptyText, { color: c.sub }]}>Sin solicitudes pendientes</Text>
-              </View>
-            ) : (
-              pedidos.map((p, i) => (
-                <ThemedCard key={i} style={styles.solicitudCard}>
-                  {/* Header */}
-                  <View style={styles.solicitudHeader}>
-                    <View style={{ flex: 1 }}>
-                      <Text style={[styles.solicitudNombre, { color: c.text }]}>{p.clienteNombre}</Text>
-                      <Text style={[styles.solicitudFecha,  { color: c.sub  }]}>
-                        {formatFecha(p.createdAt)}
-                      </Text>
-                    </View>
-                    <NumberText size={18} negative>${p.total.toLocaleString("es-CO")}</NumberText>
-                  </View>
-
-                  {/* Detalle items */}
-                  <View style={[styles.itemsBox, { backgroundColor: c.bg, borderColor: c.border }]}>
-                    {p.items.map((item, j) => (
-                      <View key={j} style={styles.itemRow}>
-                        <Text style={[styles.itemNombre, { color: c.text }]}>
-                          {item.nombre} x{item.cantidad}
-                        </Text>
-                        <Text style={[styles.itemPrecio, { color: c.sub }]}>
-                          ${(item.precio * item.cantidad).toLocaleString("es-CO")}
-                        </Text>
-                      </View>
-                    ))}
-                  </View>
-
-                  {/* Botones */}
-                  <View style={styles.solicitudBtns}>
-                    <TouchableOpacity
-                      onPress={() => rechazarCredito(p)}
-                      style={[styles.solicitudBtn, { backgroundColor: c.negative + "18", borderColor: c.negative + "44" }]}
-                    >
-                      <MaterialIcons name="close" size={16} color={c.negative} />
-                      <Text style={[styles.solicitudBtnText, { color: c.negative }]}>Rechazar</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      onPress={() => aprobarCredito(p)}
-                      style={[styles.solicitudBtn, { backgroundColor: c.positive + "18", borderColor: c.positive + "44" }]}
-                    >
-                      <MaterialIcons name="check" size={16} color={c.positive} />
-                      <Text style={[styles.solicitudBtnText, { color: c.positive }]}>Aprobar</Text>
-                    </TouchableOpacity>
-                  </View>
-                </ThemedCard>
-              ))
-            )
-          )}
 
           {/* ── TAB DEUDAS ── */}
           {tab === "deudas" && (

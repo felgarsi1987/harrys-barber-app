@@ -3,6 +3,7 @@ import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
+import { ProfilePhoto }   from "../../components/ui/ProfilePhoto";
 import { useThemeColors } from "../../hooks/useThemeColors";
 import { useAuthStore }   from "../../store/authStore";
 import { ThemedCard }     from "../../components/ui/ThemedCard";

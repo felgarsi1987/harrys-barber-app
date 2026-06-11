@@ -50,7 +50,7 @@ interface AuthState {
 export const useAuthStore = create<AuthState>()((set, get) => ({
   user:         null,
   firebaseUser: null,
-  isLoading:    false,
+  isLoading:    true,  // true until Firebase restores session
   error:        null,
 
   login: async (email, password) => {
@@ -71,7 +71,7 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
       set({
         user:         userData,
         firebaseUser: credential.user,
-        isLoading:    false,
+        isLoading:    true,  // true until Firebase restores session
         error:        null,
       });
     } catch (e: any) {
@@ -87,6 +87,12 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
   register: async (data) => {
     set({ isLoading: true, error: null });
     try {
+      // Check if email already exists
+      const methods = await fetchSignInMethodsForEmail(auth, data.email);
+      if (methods.length > 0) {
+        set({ error: "Este correo ya está registrado.", isLoading: false });
+        return;
+      }
       const credential = await createUserWithEmailAndPassword(
         auth, data.email, data.password
       );

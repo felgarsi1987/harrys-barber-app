@@ -46,6 +46,12 @@ export function AdminDashboardScreen() {
       );
       let total = 0;
       serviciosSnap.forEach(d => { total += d.data().precio ?? 0; });
+      // Add tienda sales
+      const pedidosSnap = await getDocs(query(
+        collection(db,"pedidos"), where("estado","==","aprobado"),
+        where("createdAt",">=",Timestamp.fromDate(inicioMes))
+      ));
+      pedidosSnap.forEach(d => { total += d.data().total ?? 0; });
       setIngresosMes(total);
 
       const creditosSnap = await getDocs(

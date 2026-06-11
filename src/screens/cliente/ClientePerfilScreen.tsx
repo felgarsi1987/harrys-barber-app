@@ -4,6 +4,7 @@ import {
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
+import { ProfilePhoto }   from "../../components/ui/ProfilePhoto";
 import { useThemeColors } from "../../hooks/useThemeColors";
 import { useAuthStore }   from "../../store/authStore";
 import { useGuestStore }  from "../../store/guestStore";
