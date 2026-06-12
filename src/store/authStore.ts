@@ -121,17 +121,22 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
   },
 
   initialize: () => {
-    // Timeout de seguridad: si en 5s no hay respuesta, mostrar Auth
+    // Timeout de seguridad: si en 8s no hay respuesta, mostrar Auth
     const timeout = setTimeout(() => {
       if (get().isLoading) {
         set({ user: null, firebaseUser: null, isLoading: false });
       }
-    }, 5000);
+    }, 8000);
 
     const unsub = onAuthStateChanged(auth, async (firebaseUser) => {
       clearTimeout(timeout);
-      if (get().isLoading) return;
-      if (firebaseUser?.isAnonymous) return;
+      // Solo ignorar si hay un LOGIN/REGISTER activo (no el initialize inicial)
+      if (get().isLoading && get().user !== null) return;
+      if (firebaseUser?.isAnonymous) {
+        // Sesión anónima - no bloquear, solo marcar como no logueado
+        set({ user: null, firebaseUser: null, isLoading: false });
+        return;
+      }
       if (firebaseUser) {
         try {
           const snap = await getDoc(doc(db, "users", firebaseUser.uid));
@@ -145,9 +150,7 @@ export const useAuthStore = create<AuthState>()((set, get) => ({
           set({ user: null, firebaseUser: null, isLoading: false });
         }
       } else {
-        if (!get().isLoading) {
-          set({ user: null, firebaseUser: null, isLoading: false });
-        }
+        set({ user: null, firebaseUser: null, isLoading: false });
       }
     });
     return () => { clearTimeout(timeout); unsub(); };
