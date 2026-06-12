@@ -18,18 +18,12 @@ export function InvitadoScreen() {
   const [apellido, setApellido] = useState("");
   const [loading,  setLoading]  = useState(false);
 
-  const entrar = async () => {
+  const entrar = () => {
     if (!nombre.trim() || !apellido.trim()) {
       Alert.alert("Faltan datos", "Ingresa tu nombre y apellido para continuar.");
       return;
     }
-    setLoading(true);
-    try {
-      await setGuest({ nombre: nombre.trim(), apellido: apellido.trim() });
-    } catch(e) {
-    } finally {
-      setLoading(false);
-    }
+    setGuest({ nombre: nombre.trim(), apellido: apellido.trim() });
   };
 
   return (

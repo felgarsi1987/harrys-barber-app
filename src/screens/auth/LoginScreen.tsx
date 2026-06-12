@@ -18,7 +18,8 @@ export function LoginScreen() {
   // Track that we're on login so remount returns here after error
   useFocusEffect(useCallback(() => {
     navState.lastAuthScreen = "login";
-    return () => { navState.lastAuthScreen = "entrada"; };
+    // Don't reset on unmount - we want to return to Login after error
+    return () => {};
   }, []));
   const navigation = useNavigation<any>();
   const c = useThemeColors();

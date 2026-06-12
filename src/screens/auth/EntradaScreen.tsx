@@ -1,12 +1,17 @@
 import React from "react";
 import { View, Text, TouchableOpacity, StyleSheet, Image } from "react-native";
-import { useNavigation } from "@react-navigation/native";
+import { useNavigation, useFocusEffect } from "@react-navigation/native";
+import { navState } from "../../utils/navState";
+import { useCallback } from "react";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useThemeColors } from "../../hooks/useThemeColors";
 import { AixonFooter }   from "../../components/ui/AixonFooter";
 import { ScreenWrapper }  from "../../components/ui/ScreenWrapper";
 
 export function EntradaScreen() {
+  useFocusEffect(useCallback(() => {
+    navState.lastAuthScreen = "entrada";
+  }, []));
   const navigation = useNavigation<any>();
   const c = useThemeColors();
 
