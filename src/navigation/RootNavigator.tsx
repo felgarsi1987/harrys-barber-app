@@ -16,7 +16,6 @@ const Stack = createStackNavigator();
 
 export function RootNavigator() {
   const { user, isLoading } = useAuth();
-  const error  = useAuthStore((state) => state.error);
   const mode   = useThemeStore((state) => state.mode);
   const guest  = useGuestStore((state) => state.guest);
   const c      = getThemeColors(mode);
@@ -38,7 +37,7 @@ export function RootNavigator() {
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {!user && !guest ? (
-          <Stack.Screen name="Auth" component={AuthNavigator} />
+          <Stack.Screen name="Auth" component={AuthNavigator} options={{ animationEnabled: false }} />
         ) : user?.role === "admin" ? (
           <Stack.Screen name="Admin" component={AdminNavigator} />
         ) : user?.role === "empleado" ? (

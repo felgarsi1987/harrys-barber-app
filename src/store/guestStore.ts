@@ -9,32 +9,24 @@ interface GuestUser {
 
 interface GuestState {
   guest:     GuestUser | null;
-  setGuest:  (g: GuestUser) => Promise<void>;
-  clearGuest:() => Promise<void>;
+  setGuest:  (g: GuestUser) => void;
+  clearGuest:() => void;
 }
 
 export const useGuestStore = create<GuestState>()((set) => ({
   guest: null,
 
-  setGuest: async (g) => {
-    try {
-      // Sign in anonymously so Firestore rules allow reads
-      await signInAnonymously(auth);
-      // Small delay to let auth state propagate
-      await new Promise(resolve => setTimeout(resolve, 1500));
-    } catch (e) {
-      // If anonymous auth fails, still allow guest mode
-      // (user can browse but Firestore queries may fail)
-    }
+  setGuest: (g) => {
+    // Navigate immediately - don't block on anonymous auth
     set({ guest: g });
+    // Sign in anonymously in the background for Firestore access
+    signInAnonymously(auth).catch(() => {});
   },
 
-  clearGuest: async () => {
+  clearGuest: () => {
     set({ guest: null });
-    try {
-      if (auth.currentUser?.isAnonymous) {
-        await signOut(auth);
-      }
-    } catch {}
+    if (auth.currentUser?.isAnonymous) {
+      signOut(auth).catch(() => {});
+    }
   },
 }));

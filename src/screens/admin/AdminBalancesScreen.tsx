@@ -6,7 +6,7 @@ import {
 import { MaterialIcons } from "@expo/vector-icons";
 import { BarChart } from "react-native-chart-kit";
 import {
-  collection, getDocs, query, where, Timestamp,
+  collection, getDocs, Timestamp,
 } from "firebase/firestore";
 import { db }             from "../../services/firebase";
 import { useThemeColors } from "../../hooks/useThemeColors";
@@ -57,7 +57,7 @@ export function AdminBalancesScreen() {
     try {
       const [servSnap, pedSnap, credSnap] = await Promise.all([
         getDocs(collection(db, "servicios_realizados")),
-        getDocs(query(collection(db,"pedidos"), where("estado","in",["aprobado","entregado"]))),
+        getDocs(collection(db, "pedidos")),
         getDocs(query(collection(db,"users"), where("role","==","cliente"), where("saldo",">",0))),
       ]);
       setServicios(servSnap.docs.map(d=>d.data() as ServicioRealizado).sort((a,b)=>a.fecha.toMillis()-b.fecha.toMillis()));
