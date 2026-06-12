@@ -110,7 +110,7 @@ export function ClienteAgendarScreen() {
       }),
     ]).catch(() => {})
     .finally(() => setLoadingPeluqueros(false));
-    }, 500); // wait for auth
+    }, 1000); // wait for anonymous auth to fully initialize
     return () => clearTimeout(timer);
   }, []);
 

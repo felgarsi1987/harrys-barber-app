@@ -40,7 +40,7 @@ export function ClienteCarritoScreen() {
         setProductos(snap.docs.map(d => ({ id: d.id, ...d.data() }) as Producto));
       })
       .finally(() => setLoading(false));
-    }, 500);
+    }, 1000); // wait for anonymous auth
     return () => clearTimeout(timer);
   }, []);
 
