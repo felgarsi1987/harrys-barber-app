@@ -33,6 +33,13 @@ export function SplashScreen() {
     }).start(() => {
       navigation.replace("Entrada");
     });
+
+    // Safety timeout in case animation callback doesn't fire
+    const timeout = setTimeout(() => {
+      navigation.replace("Entrada");
+    }, 3000);
+
+    return () => clearTimeout(timeout);
   }, []);
 
   const barWidth = progress.interpolate({
@@ -93,13 +100,14 @@ const styles = StyleSheet.create({
   },
   brand: {
     fontSize:      28,
-    fontFamily:    "Syne_800ExtraBold",
+    fontFamily:    "System",
+    fontWeight:    "800",
     color:         "#F4F2EE",
     letterSpacing: 8,
   },
   brandSub: {
     fontSize:      10,
-    fontFamily:    "SpaceGrotesk_500Medium",
+    fontFamily:    "System",
     color:         "#F2B90C",
     letterSpacing: 4,
   },
@@ -130,7 +138,7 @@ const styles = StyleSheet.create({
   },
   aixonText: {
     fontSize:   11,
-    fontFamily: "SpaceGrotesk_400Regular",
+    fontFamily: "System",
     color:      "#8A8580",
   },
 });
