@@ -56,8 +56,8 @@ export function AdminBalancesScreen() {
   const loadData = async () => {
     try {
       const [servSnap, pedSnap, credSnap] = await Promise.all([
-        getDocs(query(collection(db,"servicios_realizados"), where("estado","==","completado"))),
-        getDocs(query(collection(db,"pedidos"), where("estado","==","aprobado"))),
+        getDocs(collection(db, "servicios_realizados")),
+        getDocs(query(collection(db,"pedidos"), where("estado","in",["aprobado","entregado"]))),
         getDocs(query(collection(db,"users"), where("role","==","cliente"), where("saldo",">",0))),
       ]);
       setServicios(servSnap.docs.map(d=>d.data() as ServicioRealizado).sort((a,b)=>a.fecha.toMillis()-b.fecha.toMillis()));
