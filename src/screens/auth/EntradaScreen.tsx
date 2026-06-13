@@ -1,92 +1,146 @@
-import React from "react";
-import { View, Text, TouchableOpacity, StyleSheet, Image } from "react-native";
+import React, { useState, useCallback } from "react";
+import {
+  View, Text, StyleSheet, TouchableOpacity,
+  ActivityIndicator, Alert, Image,
+} from "react-native";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
-import { navState } from "../../utils/navState";
-import { useCallback } from "react";
+import { GoogleSignin, statusCodes } from "@react-native-google-signin/google-signin";
+import { GoogleAuthProvider, signInWithCredential } from "firebase/auth";
+import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
 import { MaterialIcons } from "@expo/vector-icons";
-import { useThemeColors } from "../../hooks/useThemeColors";
-import { AixonFooter }   from "../../components/ui/AixonFooter";
-import { ScreenWrapper }  from "../../components/ui/ScreenWrapper";
+import { auth, db }        from "../../services/firebase";
+import { useAuthStore }    from "../../store/authStore";
+import { useThemeColors }  from "../../hooks/useThemeColors";
+import { navState }        from "../../utils/navState";
+
+// Configure Google Sign-In - webclientId from Firebase Console
+GoogleSignin.configure({
+  webClientId: "YOUR_WEB_CLIENT_ID", // REPLACE with real ID from Firebase Console
+  offlineAccess: false,
+  forceCodeForRefreshToken: false,
+});
 
 export function EntradaScreen() {
+  const c          = useThemeColors();
+  const navigation = useNavigation<any>();
+  const { login }  = useAuthStore();
+  const [googleLoading, setGoogleLoading] = useState(false);
+
   useFocusEffect(useCallback(() => {
     navState.lastAuthScreen = "entrada";
   }, []));
-  const navigation = useNavigation<any>();
-  const c = useThemeColors();
+
+  const signInWithGoogle = async () => {
+    setGoogleLoading(true);
+    try {
+      await GoogleSignin.hasPlayServices();
+      const userInfo = await GoogleSignin.signIn();
+      const { idToken } = await GoogleSignin.getTokens();
+
+      if (!idToken) throw new Error("No se obtuvo token de Google");
+
+      const credential = GoogleAuthProvider.credential(idToken);
+      const result = await signInWithCredential(auth, credential);
+
+      // Check if user document exists
+      const snap = await getDoc(doc(db, "users", result.user.uid));
+      if (!snap.exists()) {
+        // Create new client profile
+        const nombres = (result.user.displayName ?? "Usuario").split(" ");
+        await setDoc(doc(db, "users", result.user.uid), {
+          uid:       result.user.uid,
+          email:     result.user.email ?? "",
+          role:      "cliente",
+          nombre:    nombres[0] ?? "Usuario",
+          apellido:  nombres.slice(1).join(" ") || "Google",
+          photoURL:  result.user.photoURL ?? null,
+          createdAt: serverTimestamp(),
+          saldo:     0,
+        });
+      }
+      // authStore will pick up the new auth state via onAuthStateChanged
+    } catch (e: any) {
+      if (e.code === statusCodes.SIGN_IN_CANCELLED) {
+        // User cancelled - do nothing
+      } else if (e.code === statusCodes.IN_PROGRESS) {
+        // Already signing in
+      } else {
+        Alert.alert("Error", "No se pudo iniciar sesión con Google. Intenta de nuevo.");
+      }
+    } finally {
+      setGoogleLoading(false);
+    }
+  };
 
   return (
-    <ScreenWrapper>
-      <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: c.bg }]}>
+      {/* Logo */}
+      <View style={styles.logoSection}>
         <Image
-          source={require("../../assets/images/harrys_logo_clean.png")}
-          style={styles.logoImg}
+          source={require("../../../assets/icon.png")}
+          style={styles.logo}
           resizeMode="contain"
         />
-        <View style={styles.titleBlock}>
-          <Text style={[styles.brand, { color: c.text }]}>HARRYS</Text>
-          <Text style={[styles.sub, { color: c.amber }]}>BARBER SHOP</Text>
-        </View>
+        <Text style={[styles.brand,    { color: c.text }]}>HARRY'S</Text>
+        <Text style={[styles.brandSub, { color: c.amber }]}>BARBER SHOP</Text>
+      </View>
 
-        {/* Botón principal: Ingresar */}
+      {/* Buttons */}
+      <View style={styles.btns}>
+        {/* Google Sign-In */}
         <TouchableOpacity
-          onPress={() => navigation.navigate("Login", { role: "cliente" })}
-          style={[styles.mainBtn, { backgroundColor: c.amber }]}
-          activeOpacity={0.8}
+          onPress={signInWithGoogle}
+          disabled={googleLoading}
+          style={[styles.googleBtn, { borderColor: c.border, backgroundColor: c.surface }]}
         >
-          <MaterialIcons name="login" size={20} color="#000" />
-          <Text style={styles.mainBtnText}>Ingresar</Text>
+          {googleLoading ? (
+            <ActivityIndicator color={c.text} size="small" />
+          ) : (
+            <>
+              <MaterialIcons name="g-mobiledata" size={24} color="#4285F4" />
+              <Text style={[styles.googleText, { color: c.text }]}>
+                Continuar con Google
+              </Text>
+            </>
+          )}
         </TouchableOpacity>
 
-        {/* Registrarse */}
+        {/* Email login */}
+        <TouchableOpacity
+          onPress={() => navigation.navigate("Login")}
+          style={[styles.loginBtn, { backgroundColor: c.amber }]}
+        >
+          <MaterialIcons name="email" size={18} color="#000" />
+          <Text style={styles.loginText}>Ingresar con correo</Text>
+        </TouchableOpacity>
+
+        {/* Register */}
         <TouchableOpacity
           onPress={() => navigation.navigate("Registro")}
-          style={[styles.secondBtn, { borderColor: c.border, backgroundColor: c.surface }]}
-          activeOpacity={0.8}
+          style={[styles.registerBtn, { borderColor: c.border }]}
         >
-          <MaterialIcons name="person-add" size={20} color={c.text} />
-          <Text style={[styles.secondBtnText, { color: c.text }]}>Registrarse</Text>
-        </TouchableOpacity>
-
-        {/* Acceso invitado */}
-        <TouchableOpacity
-          onPress={() => navigation.navigate("Invitado")}
-          style={styles.guestBtn}
-          activeOpacity={0.7}
-        >
-          <MaterialIcons name="visibility" size={16} color={c.sub} />
-          <Text style={[styles.guestBtnText, { color: c.sub }]}>
-            Entrar como invitado
+          <Text style={[styles.registerText, { color: c.sub }]}>
+            ¿No tienes cuenta? <Text style={{ color: c.amber }}>Regístrate</Text>
           </Text>
         </TouchableOpacity>
       </View>
-      <AixonFooter />
-    </ScreenWrapper>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1, alignItems: "center", justifyContent: "center",
-    paddingHorizontal: 28, gap: 14,
-  },
-  logoImg:    { width: 120, height: 120, borderRadius: 60, marginBottom: 4 },
-  titleBlock: { alignItems: "center", gap: 2, marginBottom: 12 },
-  brand:      { fontSize: 32, fontFamily: "Syne_800ExtraBold", letterSpacing: 6 },
-  sub:        { fontSize: 11, fontFamily: "SpaceGrotesk_500Medium", letterSpacing: 4 },
-  mainBtn: {
-    width: "100%", height: 54, borderRadius: 14,
-    flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10,
-  },
-  mainBtnText:   { fontSize: 16, fontFamily: "SpaceGrotesk_600SemiBold", color: "#000" },
-  secondBtn: {
-    width: "100%", height: 54, borderRadius: 14, borderWidth: 1,
-    flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 10,
-  },
-  secondBtnText: { fontSize: 16, fontFamily: "SpaceGrotesk_600SemiBold" },
-  guestBtn: {
-    flexDirection: "row", alignItems: "center", gap: 6,
-    paddingVertical: 10, paddingHorizontal: 16,
-  },
-  guestBtnText:  { fontSize: 13, fontFamily: "SpaceGrotesk_400Regular" },
+  container:    { flex: 1, justifyContent: "space-between", paddingVertical: 60, paddingHorizontal: 32 },
+  logoSection:  { alignItems: "center", gap: 8, marginTop: 40 },
+  logo:         { width: 120, height: 120, borderRadius: 60 },
+  brand:        { fontSize: 32, fontFamily: "Syne_800ExtraBold", letterSpacing: 8 },
+  brandSub:     { fontSize: 12, letterSpacing: 4 },
+  btns:         { gap: 14 },
+  googleBtn:    { flexDirection: "row", alignItems: "center", justifyContent: "center",
+                  gap: 10, height: 52, borderRadius: 12, borderWidth: 1 },
+  googleText:   { fontSize: 15, fontFamily: "SpaceGrotesk_600SemiBold" },
+  loginBtn:     { flexDirection: "row", alignItems: "center", justifyContent: "center",
+                  gap: 8, height: 52, borderRadius: 12 },
+  loginText:    { fontSize: 15, fontFamily: "SpaceGrotesk_600SemiBold", color: "#000" },
+  registerBtn:  { alignItems: "center", paddingVertical: 12 },
+  registerText: { fontSize: 14, fontFamily: "SpaceGrotesk_400Regular" },
 });

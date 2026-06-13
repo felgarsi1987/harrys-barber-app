@@ -31,6 +31,12 @@
         {
           "style": "auto"
         }
+      ],
+      [
+        "@react-native-google-signin/google-signin",
+        {
+          "iosUrlScheme": "com.googleusercontent.apps.PLACEHOLDER"
+        }
       ]
     ],
     "extra": {

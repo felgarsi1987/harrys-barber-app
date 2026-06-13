@@ -73,10 +73,10 @@ export function AdminBalancesScreen() {
     finally { setLoading(false); }
   };
 
-  // Reload when screen comes into focus so data is always fresh
-  useFocusEffect(
-    useCallback(() => { loadData(); }, [])
-  );
+  // Load on mount
+  useEffect(() => { loadData(); }, []);
+  // Reload when screen comes into focus
+  useFocusEffect(useCallback(() => { loadData(); }, []));
   const onRefresh = async () => { setRefreshing(true); await loadData(); setRefreshing(false); };
 
   const ahora = new Date();

@@ -12,7 +12,7 @@ import { ThemedCard }     from "../../components/ui/ThemedCard";
 import { TagChip }        from "../../components/ui/TagChip";
 import {
   collection, getDocs, addDoc, updateDoc,
-  deleteDoc, doc, Timestamp, orderBy, query, getDocs as gd,
+  deleteDoc, doc, Timestamp, getDocs as gd,
 } from "firebase/firestore";
 import { db, storage }    from "../../services/firebase";
 import { useThemeColors } from "../../hooks/useThemeColors";
@@ -53,10 +53,15 @@ export function AdminEventosScreen() {
 
   const loadEventos = async () => {
     try {
-      const snap = await getDocs(
-        query(collection(db, "eventos"), orderBy("createdAt", "desc"))
-      );
-      setEventos(snap.docs.map(d => ({ id: d.id, ...d.data() }) as Evento));
+      const snap = await getDocs(collection(db, "eventos"));
+      const data = snap.docs
+        .map(d => ({ id: d.id, ...d.data() }) as Evento)
+        .sort((a: any, b: any) => {
+          const ta = a.createdAt?.toMillis ? a.createdAt.toMillis() : 0;
+          const tb = b.createdAt?.toMillis ? b.createdAt.toMillis() : 0;
+          return tb - ta;
+        });
+      setEventos(data);
     } catch {}
     finally { setLoading(false); }
   };

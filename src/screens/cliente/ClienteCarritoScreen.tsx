@@ -31,7 +31,8 @@ export function ClienteCarritoScreen() {
   const [productos, setProductos] = useState<Producto[]>([]);
   const [carrito,   setCarrito]   = useState<ItemCarrito[]>([]);
   const [loading,   setLoading]   = useState(true);
-  const [enviando,  setEnviando]  = useState(false);
+  const [enviando,    setEnviando]    = useState(false);
+  const [filtroCateg, setFiltroCateg] = useState("todos");
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -137,7 +138,27 @@ export function ClienteCarritoScreen() {
       <ScrollView contentContainerStyle={styles.scroll}>
         <Text style={[styles.sectionLabel, { color: c.sub }]}>PRODUCTOS</Text>
 
-        {loading ? (
+        {/* Filtro categoría */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false}
+        style={{ paddingHorizontal: 16, paddingVertical: 8 }}
+        contentContainerStyle={{ gap: 8 }}>
+        {["todos","Bebidas","Comestibles","Otros"].map(cat => (
+          <TouchableOpacity key={cat} onPress={() => setFiltroCateg(cat)}
+            style={[{
+              paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20,
+              borderWidth: 1,
+              borderColor: filtroCateg === cat ? c.amber : c.border,
+              backgroundColor: filtroCateg === cat ? c.amber+"22" : "transparent",
+            }]}>
+            <Text style={{ fontSize: 12, fontFamily: "SpaceGrotesk_600SemiBold",
+              color: filtroCateg === cat ? c.amber : c.sub }}>
+              {cat === "todos" ? "Todos" : cat}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+
+      {loading ? (
           <ActivityIndicator color={c.amber} />
         ) : productos.length === 0 ? (
           <View style={styles.empty}>
