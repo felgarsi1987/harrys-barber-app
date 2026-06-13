@@ -37,7 +37,7 @@ export function RootNavigator() {
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {!user && !guest ? (
-          <Stack.Screen name="Auth" component={AuthNavigator} options={{ animationEnabled: false }} />
+          <Stack.Screen name="Auth" component={AuthNavigator} />
         ) : user?.role === "admin" ? (
           <Stack.Screen name="Admin" component={AdminNavigator} />
         ) : user?.role === "empleado" ? (

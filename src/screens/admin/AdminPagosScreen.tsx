@@ -127,11 +127,7 @@ export function AdminPagosScreen() {
               await updateDoc(userRef, { saldo: saldoActual + pedido.total });
 
               // 4. Notificar al cliente
-              await notificarCliente(
-                pedido.clienteUid,
-                "✅ Crédito aprobado",
-                `Tu solicitud de crédito por $${pedido.total.toLocaleString("es-CO")} fue aprobada. Recuerda cancelar tu deuda pronto.`,
-              );
+              await // notification handled by notifications service
 
               setPedidos(prev => prev.filter(p => p.id !== pedido.id));
               Alert.alert("✅ Aprobado", `Crédito de $${pedido.total.toLocaleString("es-CO")} registrado.`);
@@ -161,11 +157,7 @@ export function AdminPagosScreen() {
                 estado: "rechazado", updatedAt: Timestamp.now(),
               });
 
-              await notificarCliente(
-                pedido.clienteUid,
-                "❌ Crédito no aprobado",
-                `Tu solicitud de crédito por $${pedido.total.toLocaleString("es-CO")} no fue aprobada. Comunícate con nosotros para más información.`,
-              );
+              await // notification handled by notifications service
 
               setPedidos(prev => prev.filter(p => p.id !== pedido.id));
               Alert.alert("Rechazado", "La solicitud fue rechazada.");
@@ -208,11 +200,7 @@ export function AdminPagosScreen() {
       await updateDoc(doc(db, "users", clienteSel.uid), { saldo: nuevoSaldo });
 
       // Notificar al cliente
-      await notificarCliente(
-        clienteSel.uid,
-        "💰 Abono registrado",
-        `Se registró un abono de $${montoNum.toLocaleString("es-CO")} a tu cuenta. ${nuevoSaldo > 0 ? `Saldo pendiente: $${nuevoSaldo.toLocaleString("es-CO")}` : "¡Tu cuenta está al día!"}`,
-      );
+      await // notification handled by notifications service
 
       setModalVisible(false);
       Alert.alert("✅ Abono registrado", `$${montoNum.toLocaleString("es-CO")} abonado a ${clienteSel.nombre}.`);

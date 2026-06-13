@@ -37,6 +37,7 @@ export function ClienteHomeScreen() {
   const { user } = useAuthStore();
   const [proximaCita, setProximaCita] = useState<Reserva | null>(null);
   const [evento,      setEvento]      = useState<Evento | null>(null);
+  const [servicios,   setServicios]   = useState<Servicio[]>([]);
 
   const isBirthday = () => {
     if (!user?.birthdate) return false;

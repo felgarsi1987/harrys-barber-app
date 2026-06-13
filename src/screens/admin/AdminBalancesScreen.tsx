@@ -6,7 +6,7 @@ import {
 import { MaterialIcons } from "@expo/vector-icons";
 import { BarChart } from "react-native-chart-kit";
 import {
-  collection, getDocs, Timestamp,
+  collection, getDocs, query, where, Timestamp,
 } from "firebase/firestore";
 import { db }             from "../../services/firebase";
 import { useThemeColors } from "../../hooks/useThemeColors";
@@ -23,6 +23,7 @@ interface ServicioRealizado {
   precio:           number;
   servicio:         string;
   fecha:            Timestamp;
+  estado?:          string;
   modalidadPago?:   string;
   peluqueroUid?:    string;
   peluqueroNombre?: string;

@@ -30,7 +30,7 @@ export function AdminDashboardScreen() {
       );
       setTotalClientes(clientesSnap.size);
       // Schedule tomorrow's daily summary
-      if (user?.uid) programarResumenDiario(user.uid, citasHoy.length);
+      if (user?.uid) programarResumenDiario(user.uid, 0);
 
       const hoy = new Date(); hoy.setHours(0,0,0,0);
       const manana = new Date(hoy); manana.setDate(manana.getDate()+1);

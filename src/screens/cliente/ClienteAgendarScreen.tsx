@@ -5,8 +5,8 @@ import {
 import { MaterialIcons } from "@expo/vector-icons";
 import { Calendar, LocaleConfig } from "react-native-calendars";
 import {
-  collection, getDocs, addDoc, query,
-  where, Timestamp,
+  collection, getDocs, addDoc, getDoc, query,
+  where, Timestamp, doc,
 } from "firebase/firestore";
 import { db } from "../../services/firebase";
 import { programarRecordatorio } from "../../services/notifications";

@@ -47,7 +47,7 @@ export function EmpleadoAgendaScreen() {
   const [loading,        setLoading]        = useState(true);
   const [refreshing,     setRefreshing]     = useState(false);
   const [diaOffset,      setDiaOffset]      = useState(0);
-  const [tab,            setTab]            = useState<"agenda" | "historial" | "porAprobar">("agenda");
+  const [tab,            setTab]            = useState<"agenda" | "historial" | "Pendientes">("agenda");
   const [pendingAll,     setPendingAll]     = useState<Reserva[]>([]);
   const [loadingPending, setLoadingPending] = useState(false);
   const [historial,      setHistorial]      = useState<Reserva[]>([]);
@@ -220,13 +220,13 @@ export function EmpleadoAgendaScreen() {
 
       {/* Tabs */}
       <View style={[styles.tabsRow, { borderBottomColor: c.border }]}>
-        {(["agenda", "historial", ...(user?.canApproveReservas ? ["porAprobar"] : [])] as const).map(t => (
+        {(["agenda", "historial", ...(user?.canApproveReservas ? ["Pendientes"] : [])] as const).map(t => (
           <TouchableOpacity
             key={t}
             onPress={() => {
               setTab(t);
               if (t === "historial" && historial.length === 0) loadHistorial();
-              if (t === "porAprobar") loadPendingAll();
+              if (t === "Pendientes") loadPendingAll();
             }}
             style={[styles.tabBtn, tab === t && { borderBottomWidth: 2, borderBottomColor: c.amber }]}
           >
