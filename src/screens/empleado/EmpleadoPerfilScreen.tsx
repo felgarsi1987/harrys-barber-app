@@ -21,7 +21,7 @@ export function EmpleadoPerfilScreen() {
   };
 
   return (
-    <ScreenWrapper>
+    <ScreenWrapper scrollable>
       <View style={[styles.header, { borderBottomColor: c.border }]}>
         <Text style={[styles.title, { color: c.text }]}>Mi perfil</Text>
       </View>

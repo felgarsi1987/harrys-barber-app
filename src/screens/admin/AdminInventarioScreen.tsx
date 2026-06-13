@@ -125,7 +125,7 @@ export function AdminInventarioScreen() {
   };
 
   return (
-    <ScreenWrapper>
+    <ScreenWrapper scrollable>
       <BackHeader title="Inventario" />
       <View style={[styles.subHeader, { borderBottomColor: c.border }]}>
         <TouchableOpacity

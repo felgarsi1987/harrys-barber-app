@@ -27,7 +27,7 @@ export function InvitadoScreen() {
   };
 
   return (
-    <ScreenWrapper>
+    <ScreenWrapper scrollable>
       <View style={styles.container}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}

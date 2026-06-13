@@ -54,7 +54,7 @@ export function LoginScreen() {
   };
 
   return (
-    <ScreenWrapper>
+    <ScreenWrapper scrollable>
         <View style={styles.container}>
           <TouchableOpacity
             onPress={() => navigation.goBack()}

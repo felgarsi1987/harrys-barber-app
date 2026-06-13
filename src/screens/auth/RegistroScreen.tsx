@@ -50,7 +50,7 @@ export function RegistroScreen() {
   ] as const;
 
   return (
-    <ScreenWrapper>
+    <ScreenWrapper scrollable>
       <ScrollView contentContainerStyle={[styles.scroll, { gap: Spacing.md }]} keyboardShouldPersistTaps="handled">
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Text style={[Typography.body, { color: c.blue }]}>← Volver</Text>

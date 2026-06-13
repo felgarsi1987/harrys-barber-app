@@ -118,7 +118,7 @@ export function AdminServiciosScreen() {
   };
 
   return (
-    <ScreenWrapper>
+    <ScreenWrapper scrollable>
       <BackHeader title="Servicios" />
 
       {/* Subheader con botón agregar */}

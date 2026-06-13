@@ -121,7 +121,7 @@ export function AdminEmpleadosScreen() {
   };
 
   return (
-    <ScreenWrapper keyboard={false}>
+    <ScreenWrapper scrollable keyboard={false}>
       <BackHeader title="Empleados" />
 
       <ScrollView contentContainerStyle={styles.scroll}>

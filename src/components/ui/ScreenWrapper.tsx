@@ -1,55 +1,62 @@
 import React from "react";
 import {
   View, KeyboardAvoidingView, Platform,
-  StyleSheet, ViewStyle, StatusBar,
+  ScrollView, StyleSheet, ViewStyle, StatusBar,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useThemeColors }    from "../../hooks/useThemeColors";
 
 interface Props {
-  children:  React.ReactNode;
-  style?:    ViewStyle;
-  keyboard?: boolean;
+  children:   React.ReactNode;
+  style?:     ViewStyle;
+  keyboard?:  boolean;
+  scrollable?: boolean; // wrap content in ScrollView for forms
 }
 
-export function ScreenWrapper({ children, style, keyboard = true }: Props) {
+export function ScreenWrapper({ children, style, keyboard = true, scrollable = false }: Props) {
   const c      = useThemeColors();
   const insets = useSafeAreaInsets();
 
-  // On Android, StatusBar.currentHeight is the most reliable fallback
-  // when insets.top is 0 (happens on some devices before SafeAreaProvider
-  // has measured correctly)
-  const statusBarH  = Platform.OS === "android" ? (StatusBar.currentHeight ?? 24) : 0;
-  const paddingTop  = insets.top    > 0 ? insets.top    : statusBarH;
-  const paddingBot  = insets.bottom > 0 ? insets.bottom : 0;
+  const statusBarH = Platform.OS === "android" ? (StatusBar.currentHeight ?? 24) : 0;
+  const paddingTop = insets.top    > 0 ? insets.top    : statusBarH;
+  const paddingBot = insets.bottom > 0 ? insets.bottom : 0;
 
-  const inner = (
-    <View
-      style={[
-        styles.root,
-        {
-          backgroundColor: c.bg,
-          paddingTop,
-          paddingBottom: paddingBot,
-          paddingLeft:   insets.left,
-          paddingRight:  insets.right,
-        },
-        style,
-      ]}
+  const containerStyle = [
+    styles.root,
+    {
+      backgroundColor: c.bg,
+      paddingTop,
+      paddingLeft:  insets.left,
+      paddingRight: insets.right,
+    },
+    style,
+  ];
+
+  const content = scrollable ? (
+    <ScrollView
+      style={[styles.root, { backgroundColor: c.bg }]}
+      contentContainerStyle={{ paddingBottom: paddingBot + 20 }}
+      keyboardShouldPersistTaps="handled"
+      showsVerticalScrollIndicator={false}
     >
+      <View style={containerStyle}>{children}</View>
+    </ScrollView>
+  ) : (
+    <View style={[containerStyle, { paddingBottom: paddingBot }]}>
       {children}
     </View>
   );
 
-  if (!keyboard) return inner;
+  if (!keyboard) return content;
 
   return (
     <KeyboardAvoidingView
       style={[styles.kav, { backgroundColor: c.bg }]}
-      behavior={Platform.OS === "ios" ? "padding" : "height"}
-      keyboardVerticalOffset={0}
+      behavior={Platform.OS === "ios" ? "padding" : "padding"}
+      keyboardVerticalOffset={Platform.OS === "android" ? 0 : 0}
+      enabled
     >
-      {inner}
+      {content}
     </KeyboardAvoidingView>
   );
 }

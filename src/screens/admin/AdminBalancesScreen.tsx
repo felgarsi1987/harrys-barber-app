@@ -50,7 +50,7 @@ export function AdminBalancesScreen() {
   const [creditoTotal,  setCreditoTotal]  = useState(0);
   const [loading,       setLoading]       = useState(true);
   const [refreshing,    setRefreshing]    = useState(false);
-  const [periodo,       setPeriodo]       = useState<Periodo>("30 días");
+  const [periodo,       setPeriodo]       = useState<Periodo>("Este año");
   const [vista,         setVista]         = useState<Vista>("todo");
 
   const loadData = async () => {
@@ -60,7 +60,13 @@ export function AdminBalancesScreen() {
         getDocs(collection(db, "pedidos")),
         getDocs(query(collection(db,"users"), where("role","==","cliente"), where("saldo",">",0))),
       ]);
-      setServicios(servSnap.docs.map(d=>d.data() as ServicioRealizado).sort((a,b)=>a.fecha.toMillis()-b.fecha.toMillis()));
+      const servData = servSnap.docs
+        .map(d => d.data() as ServicioRealizado)
+        .filter(s => !s.estado || ["completado","aprobado","realizado"].includes(s.estado))
+        .sort((a,b) => {
+          try { return a.fecha.toMillis() - b.fecha.toMillis(); } catch { return 0; }
+        });
+      setServicios(servData);
       setPedidos(pedSnap.docs.map(d=>d.data() as PedidoAprobado).sort((a,b)=>(a.createdAt??a.fecha).toMillis()-(b.createdAt??b.fecha).toMillis()));
       setCreditoTotal(credSnap.docs.reduce((acc,d)=>acc+(d.data().saldo??0),0));
     } catch {}
@@ -74,11 +80,14 @@ export function AdminBalancesScreen() {
   const onRefresh = async () => { setRefreshing(true); await loadData(); setRefreshing(false); };
 
   const ahora = new Date();
-  const enPeriodo = (ts: Timestamp) => {
-    const f = ts.toDate();
-    if (periodo === "7 días")   { const d=new Date(ahora); d.setDate(ahora.getDate()-7); return f>=d; }
-    if (periodo === "30 días")  { const d=new Date(ahora); d.setDate(ahora.getDate()-30); return f>=d; }
-    return f.getFullYear()===ahora.getFullYear();
+  const enPeriodo = (ts: any) => {
+    try {
+      const f = ts?.toDate ? ts.toDate() : new Date(ts);
+      if (isNaN(f.getTime())) return true; // include if date is invalid
+      if (periodo === "7 días")  { const d=new Date(ahora); d.setDate(ahora.getDate()-7);  return f>=d; }
+      if (periodo === "30 días") { const d=new Date(ahora); d.setDate(ahora.getDate()-30); return f>=d; }
+      return f.getFullYear()===ahora.getFullYear();
+    } catch { return true; } // include if error parsing date
   };
 
   const servFilt = servicios.filter(s=>enPeriodo(s.fecha));
