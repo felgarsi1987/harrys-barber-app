@@ -67,16 +67,16 @@ export function ClienteAgendarScreen() {
       // Servicios desde Firestore
       getServicios().then(data => setServicios(data)),
 
-      // Peluqueros con disponibleAgenda = true
+      // Cargar todos los empleados y admin, filtrar disponibles en JS
       getDocs(query(
         collection(db, "users"),
-        where("disponibleAgenda", "==", true),
+        where("role", "in", ["admin", "empleado"]),
       )).then(snap => {
         const data = snap.docs
           .map(d => d.data() as Peluquero)
-          .filter(p => ["admin", "empleado", "barbero"].includes(p.role));
+          .filter(p => p.disponibleAgenda === true || p.disponibleAgenda === undefined);
         setPeluqueros(data);
-      }),
+      }).catch(() => {}),
 
       // Config de horario para saber rango de horas
       getDocs(query(collection(db, "config"))).then(snap => {

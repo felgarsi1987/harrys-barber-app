@@ -106,7 +106,7 @@ export function EmpleadoAgendaScreen() {
         peluqueroUid: user?.uid ?? null,
         peluqueroNombre: user ? `${user.nombre} ${user.apellido}` : null,
         servicio: reserva.servicio, precio: reserva.precio ?? 0,
-        fecha: ahora, estado: "completado", modalidadPago: modalidad,
+        fecha: ahora, estado: "aprobado", modalidadPago: modalidad,
       });
       if (modalidad === "credito" && reserva.clienteUid) {
         const userRef  = doc(db, "users", reserva.clienteUid);
@@ -137,7 +137,6 @@ export function EmpleadoAgendaScreen() {
       const snap = await getDocs(query(
         collection(db, "reservas"),
         where("fecha", ">=", Timestamp.fromDate(inicio)),
-        where("fecha", "<=", Timestamp.fromDate(fin)),
         orderBy("fecha", "asc")
       ));
       setReservas(snap.docs.map(d => ({ id: d.id, ...d.data() }) as Reserva));
@@ -185,7 +184,6 @@ export function EmpleadoAgendaScreen() {
       const snap = await getDocs(query(
         collection(db, "reservas"),
         where("peluqueroUid", "==", user.uid),
-        where("estado", "in", ["confirmada", "completada", "fallida"]),
         orderBy("fecha", "desc")
       ));
       setHistorial(snap.docs.map(d => ({ id: d.id, ...d.data() }) as Reserva));

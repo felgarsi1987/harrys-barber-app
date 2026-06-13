@@ -56,29 +56,37 @@ export function AdminBalancesScreen() {
   const [peluqueroFil,  setPeluqueroFil]  = useState<string>("todos");
 
   const loadData = async () => {
+    setLoading(true);
+    // Query each collection independently so one failure doesn't block others
     try {
-      const [servSnap, pedSnap, credSnap] = await Promise.all([
-        getDocs(collection(db, "servicios_realizados")),
-        getDocs(collection(db, "pedidos")),
-        getDocs(query(collection(db,"users"), where("role","==","cliente"), where("saldo",">",0))),
-      ]);
+      const servSnap = await getDocs(collection(db, "servicios_realizados"));
       const servData = servSnap.docs
         .map(d => d.data() as ServicioRealizado)
         .sort((a,b) => {
           try { return a.fecha.toMillis() - b.fecha.toMillis(); } catch { return 0; }
         });
       setServicios(servData);
-      setPedidos(pedSnap.docs.map(d=>d.data() as PedidoAprobado).sort((a,b)=>(a.createdAt??a.fecha).toMillis()-(b.createdAt??b.fecha).toMillis()));
-      // Load credits separately - has compound where that may need index
-      try {
-        const credSnap = await getDocs(
-          query(collection(db,"users"), where("role","==","cliente"))
-        );
-        const total = credSnap.docs.reduce((acc,d)=>acc+(d.data().saldo??0),0);
-        setCreditoTotal(total);
-      } catch {}
-    } catch(e) { }
-    finally { setLoading(false); }
+    } catch {}
+
+    try {
+      const pedSnap = await getDocs(collection(db, "pedidos"));
+      setPedidos(pedSnap.docs
+        .map(d => d.data() as PedidoAprobado)
+        .sort((a,b) => {
+          try { return (a.createdAt??a.fecha).toMillis()-(b.createdAt??b.fecha).toMillis(); } catch { return 0; }
+        })
+      );
+    } catch {}
+
+    try {
+      const credSnap = await getDocs(
+        query(collection(db,"users"), where("role","==","cliente"))
+      );
+      const total = credSnap.docs.reduce((acc,d)=>acc+(d.data().saldo??0),0);
+      setCreditoTotal(total);
+    } catch {}
+
+    setLoading(false);
   };
 
   // Load on mount

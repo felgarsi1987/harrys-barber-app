@@ -156,7 +156,7 @@ export function AdminReservasScreen() {
       await addDoc(collection(db,"servicios_realizados"), {
         reservaId: reserva.id, clienteNombre: reserva.clienteNombre, clienteUid: reserva.clienteUid ?? null,
         peluqueroUid: reserva.peluqueroUid ?? null, peluqueroNombre: reserva.peluqueroNombre ?? null,
-        servicio: reserva.servicio, precio: reserva.precio ?? 0, fecha: ahora, estado: "completado", modalidadPago: modalidad,
+        servicio: reserva.servicio, precio: reserva.precio ?? 0, fecha: ahora, estado: "aprobado", modalidadPago: modalidad,
       });
       if (modalidad === "credito" && reserva.clienteUid) {
         const uRef  = doc(db,"users",reserva.clienteUid);
