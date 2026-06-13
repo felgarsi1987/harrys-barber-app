@@ -42,11 +42,14 @@ export function AdminPerfilScreen() {
       <ScrollView contentContainerStyle={styles.scroll}>
         {/* Avatar */}
         <View style={styles.avatarSection}>
-          <View style={[styles.avatar, { backgroundColor: c.blue + "22" }]}>
-            <Text style={[styles.avatarText, { color: c.blue }]}>
-              {user?.nombre?.[0]}{user?.apellido?.[0]}
-            </Text>
-          </View>
+          <ProfilePhoto
+            uid={user?.uid ?? ""}
+            photoURL={user?.photoURL}
+            nombre={user ? `${user.nombre} ${user.apellido}` : "?"}
+            size={90}
+            editable={true}
+            onUpdated={(url) => {}}
+          />
           <Text style={[styles.name, { color: c.text }]}>
             {user?.nombre} {user?.apellido}
           </Text>

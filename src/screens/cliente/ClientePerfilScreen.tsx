@@ -38,39 +38,15 @@ export function ClientePerfilScreen() {
 
       <ScrollView contentContainerStyle={styles.scroll}>
         <View style={styles.avatarSection}>
-          <View style={[styles.avatar, { backgroundColor: c.amber + "22" }]}>
-            <Text style={[styles.avatarText, { color: c.amber }]}>
-              {user?.nombre?.[0]}{user?.apellido?.[0]}
-            </Text>
-          </View>
-          <Text style={[styles.name,  { color: c.text }]}>
-            {user?.nombre} {user?.apellido}
-          </Text>
-          <Text style={[styles.email, { color: c.sub }]}>{user?.email}</Text>
-          {isBirthday() && <TagChip label="🎂 Cumpleaños hoy" variant="warning" />}
+          <ProfilePhoto
+            uid={user?.uid ?? ""}
+            photoURL={user?.photoURL}
+            nombre={user ? `${user.nombre} ${user.apellido}` : "?"}
+            size={90}
+            editable={true}
+            onUpdated={(url) => {}}
+          />
         </View>
-
-        <ThemedCard style={styles.infoCard}>
-          {[
-            { icon: "phone",  label: "Teléfono",   value: user?.telefono  ?? "—" },
-            { icon: "cake",   label: "Cumpleaños", value: user?.birthdate ?? "—" },
-            { icon: "email",  label: "Correo",     value: user?.email     ?? "—" },
-          ].map((item, i) => (
-            <View
-              key={i}
-              style={[
-                styles.infoRow,
-                i < 2 && { borderBottomWidth: 1, borderBottomColor: c.border },
-              ]}
-            >
-              <MaterialIcons name={item.icon as any} size={18} color={c.sub} />
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.infoLabel, { color: c.sub }]}>{item.label}</Text>
-                <Text style={[styles.infoValue, { color: c.text }]}>{item.value}</Text>
-              </View>
-            </View>
-          ))}
-        </ThemedCard>
 
         <ThemedCard style={styles.menuCard}>
           <TouchableOpacity

@@ -30,41 +30,15 @@ export function EmpleadoPerfilScreen() {
 
         {/* Avatar */}
         <View style={styles.avatarSection}>
-          <View style={[styles.avatar, { backgroundColor: c.blue + "22" }]}>
-            <Text style={[styles.avatarText, { color: c.blue }]}>
-              {user?.nombre?.[0]}{user?.apellido?.[0]}
-            </Text>
-          </View>
-          <Text style={[styles.name,  { color: c.text }]}>
-            {user?.nombre} {user?.apellido}
-          </Text>
-          <Text style={[styles.email, { color: c.sub }]}>{user?.email}</Text>
-          <View style={[styles.roleBadge, { backgroundColor: c.blue + "22" }]}>
-            <Text style={[styles.roleText, { color: c.blue }]}>Empleado</Text>
-          </View>
-          {user?.canApproveOrders && (
-            <View style={[styles.roleBadge, { backgroundColor: c.amber + "22", marginTop: 4 }]}>
-              <Text style={[styles.roleText, { color: c.amber }]}>
-                Rol temporal activo
-              </Text>
-            </View>
-          )}
+          <ProfilePhoto
+            uid={user?.uid ?? ""}
+            photoURL={user?.photoURL}
+            nombre={user ? `${user.nombre} ${user.apellido}` : "?"}
+            size={90}
+            editable={true}
+            onUpdated={(url) => {}}
+          />
         </View>
-
-        {/* Info */}
-        <ThemedCard style={styles.infoCard}>
-          {[
-            { icon: "email", label: "Correo", value: user?.email ?? "—" },
-          ].map((item, i) => (
-            <View key={i} style={styles.infoRow}>
-              <MaterialIcons name={item.icon as any} size={18} color={c.sub} />
-              <View style={{ flex: 1 }}>
-                <Text style={[styles.infoLabel, { color: c.sub }]}>{item.label}</Text>
-                <Text style={[styles.infoValue, { color: c.text }]}>{item.value}</Text>
-              </View>
-            </View>
-          ))}
-        </ThemedCard>
 
         {/* Tema */}
         <ThemedCard style={styles.themeCard}>
