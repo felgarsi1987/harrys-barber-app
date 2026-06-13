@@ -74,7 +74,7 @@ export function AdminAsignarReservaScreen() {
       getDocs(query(collection(db, "users"), where("role", "==", "cliente")))
         .then(s => setClientes(s.docs.map(d => d.data() as Cliente))),
       getServicios().then(setServicios),
-    ]).catch(console.log).finally(() => setLoading(false));
+    ]).catch(() => {}).finally(() => setLoading(false));
   }, []);
 
   // Cargar horas ocupadas del empleado en la fecha
@@ -89,7 +89,7 @@ export function AdminAsignarReservaScreen() {
       where("fecha", "<=", Timestamp.fromDate(fin)),
       where("estado", "in", ["pendiente","confirmada"])
     )).then(s => setHorasOcupadas(s.docs.map(d => d.data().hora)))
-      .catch(console.log);
+      .catch(() => {});
   }, [empleadoSel, fecha]);
 
   const hoy     = new Date();

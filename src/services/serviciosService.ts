@@ -6,7 +6,7 @@
  */
 import {
   collection, getDocs, addDoc, updateDoc,
-  deleteDoc, doc, Timestamp, query, orderBy,
+  deleteDoc, doc, Timestamp,
 } from "firebase/firestore";
 import { db } from "./firebase";
 
@@ -27,9 +27,7 @@ const DEFAULTS: Omit<Servicio, "id">[] = [
 
 export async function getServicios(): Promise<Servicio[]> {
   try {
-    const snap = await getDocs(
-      query(collection(db, "servicios"), orderBy("orden", "asc"))
-    );
+    const snap = await getDocs(collection(db, "servicios"));
 
     if (snap.empty) {
       // Primera vez: insertar defaults
@@ -50,9 +48,7 @@ export async function getServicios(): Promise<Servicio[]> {
 }
 
 export async function getAllServicios(): Promise<Servicio[]> {
-  const snap = await getDocs(
-    query(collection(db, "servicios"), orderBy("orden", "asc"))
-  );
+  const snap = await getDocs(collection(db, "servicios"));
   return snap.docs.map(d => ({ id: d.id, ...d.data() } as Servicio));
 }
 

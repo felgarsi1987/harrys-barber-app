@@ -51,7 +51,7 @@ export function EmpleadoReservaScreen() {
         const yo = lista.find(e => e.uid === user?.uid);
         if (yo) setBarberoSel(yo);
       })
-      .catch(console.log);
+      .catch(() => {});
   }, []);
 
   const toggleParaMiMismo = (val: boolean) => {

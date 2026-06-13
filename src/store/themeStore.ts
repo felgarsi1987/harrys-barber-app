@@ -20,12 +20,12 @@ export const useThemeStore = create<ThemeState>()((set, get) => ({
   toggleTheme: () => {
     const next = get().mode === "dark" ? "light" : "dark";
     set({ mode: next });
-    AsyncStorage.setItem(THEME_KEY, next).catch(console.error);
+    AsyncStorage.setItem(THEME_KEY, next).catch(() => {});
   },
 
   setTheme: (mode: ThemeMode) => {
     set({ mode });
-    AsyncStorage.setItem(THEME_KEY, mode).catch(console.error);
+    AsyncStorage.setItem(THEME_KEY, mode).catch(() => {});
   },
 
   loadTheme: async () => {

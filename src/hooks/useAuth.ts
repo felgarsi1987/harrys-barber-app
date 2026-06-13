@@ -12,7 +12,7 @@ export function useAuth() {
 
   useEffect(() => {
     if (store.user?.uid) {
-      registerForPushNotifications(store.user.uid).catch(console.error);
+      registerForPushNotifications(store.user.uid).catch(() => {});
     }
   }, [store.user?.uid]);
 

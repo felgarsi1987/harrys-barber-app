@@ -34,10 +34,7 @@ function ClienteTabs() {
         },
         tabBarActiveTintColor:   c.amber,
         tabBarInactiveTintColor: c.sub,
-        tabBarLabelStyle: {
-          fontSize:   10,
-          fontFamily: "SpaceGrotesk_500Medium",
-        },
+        tabBarLabelStyle: { fontSize: 10 },
         tabBarIcon: ({ color }) => {
           const icons: Record<string, keyof typeof MaterialIcons.glyphMap> = {
             Inicio:  "home",

@@ -62,7 +62,7 @@ export function ClienteHomeScreen() {
         if (!snap.empty) {
           setProximaCita({ id: snap.docs[0].id, ...snap.docs[0].data() } as Reserva);
         }
-      }).catch(console.log);
+      }).catch(() => {});
     }
 
     getDocs(query(
@@ -73,7 +73,7 @@ export function ClienteHomeScreen() {
       if (!snap.empty) {
         setEvento({ id: snap.docs[0].id, ...snap.docs[0].data() } as Evento);
       }
-    }).catch(console.log);
+    }).catch(() => {});
   }, [user?.uid]);
 
   const ESTADO_CHIP: Record<string, any> = {

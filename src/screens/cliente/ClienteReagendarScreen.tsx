@@ -62,7 +62,7 @@ export function ClienteReagendarScreen({ route }: Props) {
       where("estado", "in", ["pendiente","confirmada"])
     )).then(snap => {
       setHorasOcupadas(snap.docs.map(d => d.data().hora));
-    }).catch(console.log);
+    }).catch(() => {});
   }, [fecha]);
 
   const confirmar = async () => {

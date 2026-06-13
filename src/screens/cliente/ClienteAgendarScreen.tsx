@@ -129,7 +129,7 @@ export function ClienteAgendarScreen() {
       const reservadas = snap.docs.map(d => d.data().hora);
       const bloqueadas = peluqueroSel.horasBloqueadas ?? [];
       setHorasOcupadas([...reservadas, ...bloqueadas]);
-    }).catch(console.log);
+    }).catch(() => {});
   }, [fechaSeleccionada, peluqueroSel]);
 
   const confirmarReserva = async () => {
