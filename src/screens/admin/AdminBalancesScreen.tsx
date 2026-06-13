@@ -63,7 +63,6 @@ export function AdminBalancesScreen() {
       ]);
       const servData = servSnap.docs
         .map(d => d.data() as ServicioRealizado)
-        .filter(s => !s.estado || ["completado","aprobado","realizado"].includes(s.estado))
         .sort((a,b) => {
           try { return a.fecha.toMillis() - b.fecha.toMillis(); } catch { return 0; }
         });

@@ -181,7 +181,7 @@ export function AdminEventosScreen() {
       }
       setModalVisible(false);
     } catch(e: any) {
-      Alert.alert("Error", "No se pudo guardar el evento.");
+      Alert.alert("Error", `No se pudo guardar: ${e?.message ?? e?.code ?? "error desconocido"}`);
     } finally {
       setGuardando(false);
       setUploadingImg(false);

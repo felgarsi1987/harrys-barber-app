@@ -160,7 +160,7 @@ export function AdminServiciosScreen() {
                   <View style={styles.cardMeta}>
                     <MaterialIcons name="attach-money" size={14} color={c.amber} />
                     <Text style={[styles.precio, { color: c.amber }]}>
-                      ${s.precio.toLocaleString("es-CO")}
+                      {s.precio.toLocaleString("es-CO")}
                     </Text>
                     <MaterialIcons name="schedule" size={14} color={c.sub} style={{ marginLeft: 8 }} />
                     <Text style={[styles.duracion, { color: c.sub }]}>{s.duracion} min</Text>

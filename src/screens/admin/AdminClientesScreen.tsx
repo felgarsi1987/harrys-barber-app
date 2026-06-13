@@ -5,7 +5,7 @@ import {
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import {
-  collection, getDocs, query, where,
+  collection, getDocs,
   doc, updateDoc,
 } from "firebase/firestore";
 import { db } from "../../services/firebase";
@@ -45,7 +45,7 @@ export function AdminClientesScreen() {
   useEffect(() => {
     Promise.all([
       getDocs(query(collection(db, "users"), where("role", "==", "cliente"))),
-      getDocs(query(collection(db, "servicios_realizados"), where("estado", "==", "completado"))),
+      getDocs(collection(db, "servicios_realizados")),
     ]).then(([usersSnap, servSnap]) => {
       // Count visits per client
       const visitasPorCliente: Record<string, number> = {};
