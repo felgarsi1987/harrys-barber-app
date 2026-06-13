@@ -28,7 +28,7 @@ interface Reserva {
   precio?:         number;
   fecha:           Timestamp;
   hora:            string;
-  estado:          "pendiente" | "confirmada" | "aplazada" | "negada" | "completada" | "fallida";
+  estado:          "pendiente" | "confirmada" | "pendiente" | "cancelada" | "completada" | "fallida";
   noRegistrado?:   boolean;
   peluqueroUid?:   string;
   peluqueroNombre?: string;
@@ -114,7 +114,8 @@ export function AdminReservasScreen() {
     if (busqueda.trim()) {
       const q = busqueda.toLowerCase();
       if (!r.clienteNombre.toLowerCase().includes(q) &&
-          !r.servicio.toLowerCase().includes(q)) return false;
+          !r.servicio.toLowerCase().includes(q) &&
+          !(r.peluqueroNombre ?? "").toLowerCase().includes(q)) return false;
     }
     return true;
   });
@@ -125,13 +126,13 @@ export function AdminReservasScreen() {
       { text: "Cancelar", style: "cancel" },
       {
         text: labels[nuevoEstado],
-        style: nuevoEstado === "negada" ? "destructive" : "default",
+        style: nuevoEstado === "cancelada" ? "destructive" : "default",
         onPress: async () => {
           try {
             await updateDoc(doc(db,"reservas",reserva.id), { estado: nuevoEstado, updatedAt: Timestamp.now() });
             setReservas(prev => prev.map(r => r.id === reserva.id ? { ...r, estado: nuevoEstado } : r));
             notificarCambioEstado(reserva.clienteUid, reserva.clienteNombre, reserva.servicio, nuevoEstado, reserva.hora);
-            if (nuevoEstado === "negada" || nuevoEstado === "aplazada") cancelarRecordatorio(reserva.id);
+            if (nuevoEstado === "cancelada" || nuevoEstado === "pendiente") cancelarRecordatorio(reserva.id);
           } catch { Alert.alert("Error","No se pudo actualizar."); }
         },
       },
@@ -198,11 +199,11 @@ export function AdminReservasScreen() {
           onPress: async () => {
             try {
               await updateDoc(doc(db,"reservas",reserva.id), {
-                estado: "negada", updatedAt: Timestamp.now(),
+                estado: "cancelada", updatedAt: Timestamp.now(),
               });
               cancelarRecordatorio(reserva.id);
               setReservas(prev => prev.map(r =>
-                r.id === reserva.id ? { ...r, estado: "negada" as any } : r
+                r.id === reserva.id ? { ...r, estado: "cancelada" as any } : r
               ));
               // Notificar al cliente
               notificarCancelacion(
@@ -314,7 +315,7 @@ export function AdminReservasScreen() {
           style={[styles.searchInput, { color: c.text }]}
           value={busqueda}
           onChangeText={setBusqueda}
-          placeholder="Buscar por cliente o servicio..."
+          placeholder="Buscar por cliente, servicio o peluquero..."
           placeholderTextColor={c.sub}
         />
         {busqueda.length > 0 && (
@@ -370,11 +371,11 @@ export function AdminReservasScreen() {
                       <MaterialIcons name="check" size={16} color={c.positive} />
                       <Text style={[styles.actionBtnText, { color: c.positive }]}>Confirmar</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity onPress={() => cambiarEstado(r,"aplazada")} style={[styles.actionBtn, { backgroundColor: c.amber+"18" }]}>
+                    <TouchableOpacity onPress={() => cambiarEstado(r,"pendiente")} style={[styles.actionBtn, { backgroundColor: c.amber+"18" }]}>
                       <MaterialIcons name="schedule" size={16} color={c.amber} />
                       <Text style={[styles.actionBtnText, { color: c.amber }]}>Aplazar</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity onPress={() => cambiarEstado(r,"negada")} style={[styles.actionBtn, { backgroundColor: c.negative+"18" }]}>
+                    <TouchableOpacity onPress={() => cambiarEstado(r,"cancelada")} style={[styles.actionBtn, { backgroundColor: c.negative+"18" }]}>
                       <MaterialIcons name="close" size={16} color={c.negative} />
                       <Text style={[styles.actionBtnText, { color: c.negative }]}>Negar</Text>
                     </TouchableOpacity>

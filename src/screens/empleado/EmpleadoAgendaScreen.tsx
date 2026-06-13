@@ -198,7 +198,7 @@ export function EmpleadoAgendaScreen() {
       weekday: "short", day: "numeric", month: "short", year: "numeric",
     });
 
-  const dias = Array.from({ length: 7 }, (_, i) => {
+  const dias = Array.from({ length: 14 }, (_, i) => {  // Show 14 days (7 past + 7 future)
     const d = new Date();
     d.setDate(d.getDate() + i);
     return d;

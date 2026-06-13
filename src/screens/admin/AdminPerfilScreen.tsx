@@ -28,6 +28,8 @@ export function AdminPerfilScreen() {
     { icon: "content-cut",     label: "Servicios y precios",  action: () => navigation.navigate("AdminServicios") },
     { icon: "campaign",        label: "Eventos y publicidad", action: () => navigation.navigate("AdminEventos") },
     { icon: "inventory",       label: "Inventario",           action: () => navigation.navigate("AdminInventario") },
+    { icon: "event",           label: "Mi agenda",             action: () => navigation.navigate("AdminAgenda") },
+    { icon: "add-circle-outline",label: "Nueva cita",            action: () => navigation.navigate("AdminNuevaReserva") },
     { icon: "bar-chart",       label: "Balances mensuales",   action: () => navigation.navigate("AdminBalances") },
   ];
 

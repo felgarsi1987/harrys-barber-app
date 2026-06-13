@@ -124,9 +124,11 @@ export function ClienteAgendarScreen() {
       where("peluqueroUid", "==", peluqueroSel.uid),
       where("fecha", ">=", Timestamp.fromDate(fecha)),
       where("fecha", "<=", Timestamp.fromDate(fechaFin)),
-      where("estado", "in", ["pendiente","confirmada"])
     )).then(snap => {
-      const reservadas = snap.docs.map(d => d.data().hora);
+      // Block all active reservations (pending or confirmed), free cancelled ones
+      const reservadas = snap.docs
+        .filter(d => !["cancelada","fallida"].includes(d.data().estado ?? ""))
+        .map(d => d.data().hora);
       const bloqueadas = peluqueroSel.horasBloqueadas ?? [];
       setHorasOcupadas([...reservadas, ...bloqueadas]);
     }).catch(() => {});

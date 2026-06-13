@@ -6,6 +6,7 @@ import {
 import { collection, addDoc, getDocs, query, where, Timestamp } from "firebase/firestore";
 import { db } from "../../services/firebase";
 import { getServicios, Servicio } from "../../services/serviciosService";
+import { Calendar, LocaleConfig } from "react-native-calendars";
 import { useThemeColors } from "../../hooks/useThemeColors";
 import { useAuthStore }   from "../../store/authStore";
 import { ThemedCard }     from "../../components/ui/ThemedCard";

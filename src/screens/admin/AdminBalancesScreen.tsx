@@ -53,6 +53,7 @@ export function AdminBalancesScreen() {
   const [refreshing,    setRefreshing]    = useState(false);
   const [periodo,       setPeriodo]       = useState<Periodo>("Este año");
   const [vista,         setVista]         = useState<Vista>("todo");
+  const [peluqueroFil,  setPeluqueroFil]  = useState<string>("todos");
 
   const loadData = async () => {
     try {
@@ -68,8 +69,15 @@ export function AdminBalancesScreen() {
         });
       setServicios(servData);
       setPedidos(pedSnap.docs.map(d=>d.data() as PedidoAprobado).sort((a,b)=>(a.createdAt??a.fecha).toMillis()-(b.createdAt??b.fecha).toMillis()));
-      setCreditoTotal(credSnap.docs.reduce((acc,d)=>acc+(d.data().saldo??0),0));
-    } catch {}
+      // Load credits separately - has compound where that may need index
+      try {
+        const credSnap = await getDocs(
+          query(collection(db,"users"), where("role","==","cliente"))
+        );
+        const total = credSnap.docs.reduce((acc,d)=>acc+(d.data().saldo??0),0);
+        setCreditoTotal(total);
+      } catch {}
+    } catch(e) { }
     finally { setLoading(false); }
   };
 
@@ -90,7 +98,10 @@ export function AdminBalancesScreen() {
     } catch { return true; } // include if error parsing date
   };
 
-  const servFilt = servicios.filter(s=>enPeriodo(s.fecha));
+  const servFiltBase = servicios.filter(s=>enPeriodo(s.fecha));
+  const servFilt = vista==="peluqueria" && peluqueroFil!=="todos"
+    ? servFiltBase.filter(s=>s.peluqueroNombre===peluqueroFil)
+    : servFiltBase;
   const pedFilt  = pedidos.filter(p=>enPeriodo(p.createdAt??p.fecha));
 
   // KPIs
@@ -183,6 +194,31 @@ export function AdminBalancesScreen() {
               </TouchableOpacity>
             ))}
           </View>
+
+          {/* Filtro peluquero - solo cuando vista es peluqueria */}
+          {vista === "peluqueria" && empSorted.length > 0 && (
+            <ScrollView horizontal showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{gap:8}}>
+              <TouchableOpacity
+                onPress={() => setPeluqueroFil("todos")}
+                style={{paddingHorizontal:12,paddingVertical:6,borderRadius:20,borderWidth:1,
+                  borderColor:peluqueroFil==="todos"?c.blue:c.border,
+                  backgroundColor:peluqueroFil==="todos"?c.blue+"22":"transparent"}}>
+                <Text style={{fontSize:11,fontFamily:"SpaceGrotesk_600SemiBold",
+                  color:peluqueroFil==="todos"?c.blue:c.sub}}>Todos</Text>
+              </TouchableOpacity>
+              {empSorted.map((e,i)=>(
+                <TouchableOpacity key={i}
+                  onPress={() => setPeluqueroFil(e.nombre)}
+                  style={{paddingHorizontal:12,paddingVertical:6,borderRadius:20,borderWidth:1,
+                    borderColor:peluqueroFil===e.nombre?c.blue:c.border,
+                    backgroundColor:peluqueroFil===e.nombre?c.blue+"22":"transparent"}}>
+                  <Text style={{fontSize:11,fontFamily:"SpaceGrotesk_600SemiBold",
+                    color:peluqueroFil===e.nombre?c.blue:c.sub}}>{e.nombre}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          )}
 
           {/* KPIs */}
           <Text style={[styles.sec,{color:c.sub}]}>RESUMEN</Text>

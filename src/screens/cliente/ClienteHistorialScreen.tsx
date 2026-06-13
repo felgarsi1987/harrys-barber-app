@@ -79,11 +79,11 @@ export function ClienteHistorialScreen() {
           onPress: async () => {
             try {
               await updateDoc(doc(db, "reservas", reserva.id), {
-                estado: "negada", updatedAt: Timestamp.now(),
+                estado: "cancelada", updatedAt: Timestamp.now(),
               });
               cancelarRecordatorio(reserva.id);
               setReservas(prev => prev.map(r =>
-                r.id === reserva.id ? { ...r, estado: "negada" } : r
+                r.id === reserva.id ? { ...r, estado: "cancelada" } : r
               ));
               // Notificar al barbero si hay uno asignado
               if (reserva.peluqueroUid) {
@@ -104,8 +104,8 @@ export function ClienteHistorialScreen() {
       weekday: "short", day: "numeric", month: "short",
     });
 
-  const activas   = reservas.filter(r => ["pendiente","confirmada","aplazada"].includes(r.estado));
-  const historial = reservas.filter(r => ["completada","fallida","negada"].includes(r.estado));
+  const activas   = reservas.filter(r => ["pendiente","confirmada","pendiente"].includes(r.estado));
+  const historial = reservas.filter(r => ["completada","fallida","cancelada"].includes(r.estado));
   const mostrar   = tab === "activas" ? activas : historial;
 
   return (

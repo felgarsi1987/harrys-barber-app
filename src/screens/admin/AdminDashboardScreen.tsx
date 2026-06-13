@@ -20,8 +20,7 @@ export function AdminDashboardScreen() {
   const [refreshing,          setRefreshing]          = useState(false);
   const [citasHoy,            setCitasHoy]            = useState(0);
   const [totalClientes,       setTotalClientes]       = useState(0);
-  const [ingresosMes,         setIngresosMes]         = useState(0);
-  const [creditosPendientes,  setCreditosPendientes]  = useState(0);
+  const [pedidosHoy, setPedidosHoy] = useState(0);
 
   const loadStats = async () => {
     try {
@@ -33,6 +32,8 @@ export function AdminDashboardScreen() {
       if (user?.uid) programarResumenDiario(user.uid, 0);
 
       const hoy = new Date(); hoy.setHours(0,0,0,0);
+      const pedSnap = await getDocs(query(collection(db,"pedidos"),where("createdAt",">=",Timestamp.fromDate(hoy))));
+      setPedidosHoy(pedSnap.size);
       const manana = new Date(hoy); manana.setDate(manana.getDate()+1);
       const citasSnap = await getDocs(
         query(collection(db,"reservas"),

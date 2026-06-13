@@ -11,6 +11,7 @@ import { AdminPagosScreen }      from "../screens/admin/AdminPagosScreen";
 import { AdminClientesScreen }   from "../screens/admin/AdminClientesScreen";
 import { AdminPerfilScreen }     from "../screens/admin/AdminPerfilScreen";
 import { AdminHorarioScreen }       from "../screens/admin/AdminHorarioScreen";
+import { EmpleadoAgendaScreen }     from "../screens/empleado/EmpleadoAgendaScreen";
 import { AdminEmpleadosScreen }     from "../screens/admin/AdminEmpleadosScreen";
 import { AdminInventarioScreen }    from "../screens/admin/AdminInventarioScreen";
 import { AdminEventosScreen }       from "../screens/admin/AdminEventosScreen";
@@ -85,6 +86,7 @@ export function AdminNavigator() {
       <Stack.Screen name="AdminInventario"     component={AdminInventarioScreen} />
       <Stack.Screen name="AdminEventos"        component={AdminEventosScreen} />
       <Stack.Screen name="AdminNuevaReserva"   component={AdminNuevaReservaScreen} />
+      <Stack.Screen name="AdminAgenda"          component={EmpleadoAgendaScreen} />
       <Stack.Screen name="AdminBalances"        component={AdminBalancesScreen} />
       <Stack.Screen name="AdminServicios"       component={AdminServiciosScreen} />
       <Stack.Screen name="AdminAsignarReserva"  component={AdminAsignarReservaScreen} />

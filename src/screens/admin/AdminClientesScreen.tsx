@@ -4,10 +4,7 @@ import {
   TextInput, TouchableOpacity, Alert, Modal,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
-import {
-  collection, getDocs,
-  doc, updateDoc,
-} from "firebase/firestore";
+import { collection, getDocs, deleteDoc, doc, updateDoc } from "firebase/firestore";
 import { db } from "../../services/firebase";
 import { useThemeColors }      from "../../hooks/useThemeColors";
 import { ThemedCard }           from "../../components/ui/ThemedCard";
@@ -84,6 +81,23 @@ export function AdminClientesScreen() {
       setClientes(prev => prev.map(cl => cl.uid === cliente.uid ? updated : cl));
       setModalCli(updated);
     } catch { Alert.alert("Error", "No se pudo actualizar."); }
+  };
+
+  const eliminarCliente = (cli: Cliente) => {
+    Alert.alert(
+      "Eliminar cliente",
+      `¿Eliminar a ${cli.nombre} ${cli.apellido}? Esta acción no se puede deshacer.`,
+      [
+        { text: "Cancelar", style: "cancel" },
+        { text: "Eliminar", style: "destructive", onPress: async () => {
+          try {
+            await deleteDoc(doc(db, "users", cli.uid));
+            setClientes(prev => prev.filter(c => c.uid !== cli.uid));
+            setFiltered(prev => prev.filter(c => c.uid !== cli.uid));
+          } catch { Alert.alert("Error", "No se pudo eliminar el cliente."); }
+        }},
+      ]
+    );
   };
 
   return (

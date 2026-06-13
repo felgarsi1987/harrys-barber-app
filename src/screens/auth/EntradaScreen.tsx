@@ -15,7 +15,7 @@ import { navState }        from "../../utils/navState";
 
 // Configure Google Sign-In - webclientId from Firebase Console
 GoogleSignin.configure({
-  webClientId: "YOUR_WEB_CLIENT_ID", // REPLACE with real ID from Firebase Console
+  webClientId: "532202718754-assock1o21ofgd60ta3g7sa2rdkaomh7.apps.googleusercontent.com",
   offlineAccess: false,
   forceCodeForRefreshToken: false,
 });
