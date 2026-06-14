@@ -127,7 +127,7 @@ export function ClienteAgendarScreen() {
     )).then(snap => {
       // Block all active reservations (pending or confirmed), free cancelled ones
       const reservadas = snap.docs
-        .filter(d => !["cancelada","fallida"].includes(d.data().estado ?? ""))
+        .filter(d => !["cancelada","fallida","completada"].includes(d.data().estado ?? ""))
         .map(d => d.data().hora);
       const bloqueadas = peluqueroSel.horasBloqueadas ?? [];
       setHorasOcupadas([...reservadas, ...bloqueadas]);

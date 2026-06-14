@@ -38,6 +38,10 @@ export function EmpleadoPerfilScreen() {
             editable={true}
             onUpdated={(url) => {}}
           />
+          <Text style={[styles.name, { color: c.text }]}>
+            {user?.nombre} {user?.apellido}
+          </Text>
+          <Text style={[styles.email, { color: c.sub }]}>{user?.email}</Text>
         </View>
 
         {/* Tema */}

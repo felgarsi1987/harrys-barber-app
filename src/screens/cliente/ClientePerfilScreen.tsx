@@ -7,6 +7,7 @@ import { useNavigation } from "@react-navigation/native";
 import { ProfilePhoto }   from "../../components/ui/ProfilePhoto";
 import { useThemeColors } from "../../hooks/useThemeColors";
 import { useAuthStore }   from "../../store/authStore";
+import { useGuestStore }  from "../../store/guestStore";
 import { ThemedCard }     from "../../components/ui/ThemedCard";
 import { TagChip }        from "../../components/ui/TagChip";
 import { ScreenWrapper }  from "../../components/ui/ScreenWrapper";
@@ -15,11 +16,12 @@ export function ClientePerfilScreen() {
   const c              = useThemeColors();
   const navigation     = useNavigation<any>();
   const { user, logout } = useAuthStore();
+  const clearGuest     = useGuestStore(s => s.clearGuest);
 
   const handleLogout = () => {
     Alert.alert("Cerrar sesión", "¿Estás seguro?", [
       { text: "Cancelar", style: "cancel" },
-      { text: "Salir", style: "destructive", onPress: async () => { await clearGuest(); logout(); } },
+      { text: "Salir", style: "destructive", onPress: async () => { clearGuest(); await logout(); } },
     ]);
   };
 
@@ -46,6 +48,10 @@ export function ClientePerfilScreen() {
             editable={true}
             onUpdated={(url) => {}}
           />
+          <Text style={[styles.name, { color: c.text }]}>
+            {user?.nombre} {user?.apellido}
+          </Text>
+          <Text style={[styles.email, { color: c.sub }]}>{user?.email}</Text>
         </View>
 
         <ThemedCard style={styles.menuCard}>

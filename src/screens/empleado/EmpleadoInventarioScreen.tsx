@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import {
-  View, Text, ScrollView, StyleSheet, ActivityIndicator,
+  View, Text, ScrollView, StyleSheet, ActivityIndicator, TouchableOpacity,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { collection, getDocs } from "firebase/firestore";
@@ -20,8 +20,9 @@ interface Producto {
 
 export function EmpleadoInventarioScreen() {
   const c = useThemeColors();
-  const [productos, setProductos] = useState<Producto[]>([]);
-  const [loading,   setLoading]   = useState(true);
+  const [productos,    setProductos]    = useState<Producto[]>([]);
+  const [loading,      setLoading]      = useState(true);
+  const [filtroCateg,  setFiltroCateg]  = useState("todos");
 
   useEffect(() => {
     getDocs(collection(db, "inventario"))
@@ -55,11 +56,31 @@ export function EmpleadoInventarioScreen() {
         <Text style={[styles.subtitle, { color: c.sub }]}>Solo lectura</Text>
       </View>
 
+      {/* Filtro categoría */}
+      <ScrollView horizontal showsHorizontalScrollIndicator={false}
+        style={{ paddingHorizontal: 16, paddingVertical: 8 }}
+        contentContainerStyle={{ gap: 8 }}>
+        {["todos", "Bebidas", "Comestibles", "Otros"].map(cat => (
+          <TouchableOpacity key={cat} onPress={() => setFiltroCateg(cat)}
+            style={{
+              paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20,
+              borderWidth: 1,
+              borderColor: filtroCateg === cat ? c.amber : c.border,
+              backgroundColor: filtroCateg === cat ? c.amber + "22" : "transparent",
+            }}>
+            <Text style={{ fontSize: 12, fontFamily: "SpaceGrotesk_600SemiBold",
+              color: filtroCateg === cat ? c.amber : c.sub }}>
+              {cat === "todos" ? "Todos" : cat}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </ScrollView>
+
       {loading ? (
         <ActivityIndicator color={c.amber} style={{ marginTop: 40 }} />
       ) : (
         <ScrollView contentContainerStyle={styles.scroll}>
-          {productos.length === 0 ? (
+          {productos.filter(p => filtroCateg === "todos" || p.categoria === filtroCateg).length === 0 ? (
             <View style={styles.empty}>
               <MaterialIcons name="inventory-2" size={48} color={c.sub} />
               <Text style={[styles.emptyText, { color: c.sub }]}>
@@ -67,7 +88,7 @@ export function EmpleadoInventarioScreen() {
               </Text>
             </View>
           ) : (
-            productos.map((p, i) => {
+            productos.filter(p => filtroCateg === "todos" || p.categoria === filtroCateg).map((p, i) => {
               const min   = p.stockMin ?? 3;
               const color = getStockColor(p.stock, min);
               const label = getStockLabel(p.stock, min);

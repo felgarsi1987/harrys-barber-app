@@ -119,23 +119,30 @@ export function AdminNuevaReservaScreen() {
 
         <Text style={[styles.sectionLabel, { color: c.sub }]}>HORA — HOY</Text>
         <View style={styles.horasGrid}>
-          {HORAS.map((hora, i) => (
-            <TouchableOpacity
-              key={i}
-              onPress={() => setHoraSel(hora)}
-              style={[
-                styles.horaBtn,
-                {
-                  borderColor:     horaSel === hora ? c.amber : c.border,
-                  backgroundColor: horaSel === hora ? c.amber + "18" : c.surface,
-                },
-              ]}
-            >
-              <Text style={[styles.horaText, { color: horaSel === hora ? c.amber : c.text }]}>
-                {hora}
-              </Text>
-            </TouchableOpacity>
-          ))}
+          {HORAS.map((hora, i) => {
+            const [hh, mm] = hora.split(":").map(Number);
+            const ahora = new Date();
+            const pasada = (hh * 60 + mm) <= (ahora.getHours() * 60 + ahora.getMinutes());
+            return (
+              <TouchableOpacity
+                key={i}
+                disabled={pasada}
+                onPress={() => setHoraSel(hora)}
+                style={[
+                  styles.horaBtn,
+                  {
+                    borderColor:     horaSel === hora ? c.amber : c.border,
+                    backgroundColor: horaSel === hora ? c.amber + "18" : c.surface,
+                    opacity:         pasada ? 0.35 : 1,
+                  },
+                ]}
+              >
+                <Text style={[styles.horaText, { color: horaSel === hora ? c.amber : pasada ? c.sub : c.text }]}>
+                  {hora}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
 
         <TouchableOpacity

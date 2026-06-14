@@ -47,11 +47,9 @@ export function EmpleadoAgendaScreen() {
   const [loading,        setLoading]        = useState(true);
   const [refreshing,     setRefreshing]     = useState(false);
   const [diaOffset,      setDiaOffset]      = useState(0);
-  const [tab,            setTab]            = useState<"agenda" | "historial" | "Pendientes">("agenda");
+  const [tab,            setTab]            = useState<"agenda" | "Pendientes">("agenda");
   const [pendingAll,     setPendingAll]     = useState<Reserva[]>([]);
   const [loadingPending, setLoadingPending] = useState(false);
-  const [historial,      setHistorial]      = useState<Reserva[]>([]);
-  const [loadingHist,    setLoadingHist]    = useState(false);
 
   const marcarFallido = async (reserva: Reserva) => {
     Alert.alert(
@@ -170,6 +168,29 @@ export function EmpleadoAgendaScreen() {
     finally { setLoadingPending(false); }
   };
 
+  const cancelarReserva = async (reserva: Reserva) => {
+    Alert.alert(
+      "¿Cancelar cita?",
+      `¿Cancelar la cita de ${reserva.clienteNombre}?`,
+      [
+        { text: "No", style: "cancel" },
+        {
+          text: "Cancelar cita", style: "destructive",
+          onPress: async () => {
+            try {
+              await updateDoc(doc(db, "reservas", reserva.id), {
+                estado: "cancelada", updatedAt: Timestamp.now(),
+              });
+              setReservas(prev =>
+                prev.map(r => r.id === reserva.id ? { ...r, estado: "cancelada" } : r)
+              );
+            } catch { Alert.alert("Error", "No se pudo cancelar."); }
+          },
+        },
+      ]
+    );
+  };
+
   const aprobarReserva = async (reserva: Reserva) => {
     try {
       await updateDoc(doc(db, "reservas", reserva.id), { estado: "confirmada", updatedAt: Timestamp.now() });
@@ -218,18 +239,17 @@ export function EmpleadoAgendaScreen() {
 
       {/* Tabs */}
       <View style={[styles.tabsRow, { borderBottomColor: c.border }]}>
-        {(["agenda", "historial", ...(user?.canApproveReservas ? ["Pendientes"] : [])] as const).map(t => (
+        {(["agenda", ...(user?.canApproveReservas ? ["Pendientes"] : [])] as const).map(t => (
           <TouchableOpacity
             key={t}
             onPress={() => {
-              setTab(t);
-              if (t === "historial" && historial.length === 0) loadHistorial();
+              setTab(t as any);
               if (t === "Pendientes") loadPendingAll();
             }}
             style={[styles.tabBtn, tab === t && { borderBottomWidth: 2, borderBottomColor: c.amber }]}
           >
             <Text style={[styles.tabText, { color: tab === t ? c.amber : c.sub }]}>
-              {t === "agenda" ? "Agenda" : t === "historial" ? "Mis citas" : `Pendientes${pendingAll.length > 0 ? ` (${pendingAll.length})` : ""}`}
+              {t === "agenda" ? "Agenda" : `Pendientes${pendingAll.length > 0 ? ` (${pendingAll.length})` : ""}`}
             </Text>
           </TouchableOpacity>
         ))}
@@ -342,49 +362,6 @@ export function EmpleadoAgendaScreen() {
 
       </>)}
 
-      {/* ── TAB MIS CITAS ── */}
-      {tab === "historial" && (
-        loadingHist ? (
-          <ActivityIndicator color={c.amber} style={{ marginTop: 40 }} />
-        ) : historial.length === 0 ? (
-          <View style={styles.empty}>
-            <MaterialIcons name="event-note" size={48} color={c.sub} />
-            <Text style={[styles.emptyText, { color: c.sub }]}>
-              No tienes citas registradas aún
-            </Text>
-          </View>
-        ) : (
-          <ScrollView
-            contentContainerStyle={styles.scroll}
-            refreshControl={<RefreshControl refreshing={loadingHist} onRefresh={loadHistorial} tintColor={c.amber} />}
-          >
-            {historial.map((r, i) => (
-              <ThemedCard key={i} style={styles.reservaCard}>
-                <View style={[styles.horaBlock, { borderRightColor: c.border }]}>
-                  <Text style={[styles.hora, { color: c.amber }]}>{r.hora}</Text>
-                  <Text style={[styles.diaHist, { color: c.sub }]}>
-                    {r.fecha.toDate().toLocaleDateString("es-CO", { day: "numeric", month: "short" })}
-                  </Text>
-                </View>
-                <View style={{ flex: 1, gap: 4 }}>
-                  <Text style={[styles.clienteNombre, { color: c.text }]}>
-                    {r.clienteNombre}
-                  </Text>
-                  <Text style={[styles.servicio, { color: c.sub }]}>
-                    {r.servicio}{r.precio ? `  ·  $${r.precio.toLocaleString("es-CO")}` : ""}
-                  </Text>
-                  <View style={styles.tagsRow}>
-                    <TagChip
-                      label={r.estado}
-                      variant={ESTADO_CHIP[r.estado] ?? "default"}
-                    />
-                  </View>
-                </View>
-              </ThemedCard>
-            ))}
-          </ScrollView>
-        )
-      )}
 
     </ScreenWrapper>
   );

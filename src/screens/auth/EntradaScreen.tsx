@@ -7,7 +7,7 @@ import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { GoogleSignin, statusCodes } from "@react-native-google-signin/google-signin";
 import { GoogleAuthProvider, signInWithCredential } from "firebase/auth";
 import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
-import { MaterialIcons } from "@expo/vector-icons";
+import { MaterialIcons, AntDesign } from "@expo/vector-icons";
 import { auth, db }        from "../../services/firebase";
 import { useAuthStore }    from "../../store/authStore";
 import { useThemeColors }  from "../../hooks/useThemeColors";
@@ -97,7 +97,7 @@ export function EntradaScreen() {
             <ActivityIndicator color={c.text} size="small" />
           ) : (
             <>
-              <MaterialIcons name="g-mobiledata" size={24} color="#4285F4" />
+              <AntDesign name="google" size={20} color="#4285F4" />
               <Text style={[styles.googleText, { color: c.text }]}>
                 Continuar con Google
               </Text>

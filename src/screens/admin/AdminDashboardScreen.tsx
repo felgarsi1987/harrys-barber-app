@@ -20,7 +20,9 @@ export function AdminDashboardScreen() {
   const [refreshing,          setRefreshing]          = useState(false);
   const [citasHoy,            setCitasHoy]            = useState(0);
   const [totalClientes,       setTotalClientes]       = useState(0);
-  const [pedidosHoy, setPedidosHoy] = useState(0);
+  const [pedidosHoy,           setPedidosHoy]           = useState(0);
+  const [ingresosMes,          setIngresosMes]          = useState(0);
+  const [creditosPendientes,   setCreditosPendientes]   = useState(0);
 
   const loadStats = async () => {
     try {

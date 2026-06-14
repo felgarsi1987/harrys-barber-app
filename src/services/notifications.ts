@@ -272,6 +272,7 @@ export async function notificarCancelacion(
   const pushToken = await getPushToken(uid);
   if (!pushToken) return;
 
+  const primerNombre = nombre.split(" ")[0];
   await enviarPush(
     pushToken,
     "❌ Cita cancelada",

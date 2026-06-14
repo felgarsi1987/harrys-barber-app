@@ -167,7 +167,7 @@ export function ClienteCarritoScreen() {
           </View>
         ) : (
           <View style={styles.grid}>
-            {productos.map((p, i) => {
+            {productos.filter(p => filtroCateg === "todos" || p.categoria === filtroCateg).map((p, i) => {
               const enCarrito = carrito.find(ci => ci.id === p.id);
               return (
                 <ThemedCard key={i} style={styles.productoCard}>
