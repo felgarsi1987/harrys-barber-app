@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator,
   Dimensions, RefreshControl,
@@ -6,11 +6,10 @@ import {
 import { MaterialIcons } from "@expo/vector-icons";
 import { BarChart } from "react-native-chart-kit";
 import {
-  collection, getDocs, query, where, Timestamp,
+  collection, getDocs, query, where, Timestamp, orderBy, onSnapshot,
 } from "firebase/firestore";
 import { db }             from "../../services/firebase";
 import { useThemeColors } from "../../hooks/useThemeColors";
-import { useFocusEffect } from "@react-navigation/native";
 import { BackHeader }    from "../../components/ui/BackHeader";
 import { ThemedCard }    from "../../components/ui/ThemedCard";
 import { ScreenWrapper } from "../../components/ui/ScreenWrapper";
@@ -58,55 +57,49 @@ export function AdminBalancesScreen() {
   const [vista,         setVista]         = useState<Vista>("todo");
   const [peluqueroFil,  setPeluqueroFil]  = useState<string>("todos");
 
-  const loadData = async () => {
-    setLoading(true);
-    // Query each collection independently so one failure doesn't block others
-    try {
-      const servSnap = await getDocs(collection(db, "servicios_realizados"));
-      const servData = servSnap.docs
-        .map(d => d.data() as ServicioRealizado)
-        .sort((a,b) => {
-          try { return a.fecha.toMillis() - b.fecha.toMillis(); } catch { return 0; }
-        });
-      setServicios(servData);
-    } catch {}
-
-    try {
-      const pedSnap = await getDocs(collection(db, "pedidos"));
-      setPedidos(pedSnap.docs
-        .map(d => d.data() as PedidoAprobado)
-        .sort((a,b) => {
-          try { return (a.createdAt??a.fecha).toMillis()-(b.createdAt??b.fecha).toMillis(); } catch { return 0; }
-        })
-      );
-    } catch {}
-
-    try {
-      const credSnap = await getDocs(
-        query(collection(db,"users"), where("role","==","cliente"))
-      );
-      const total = credSnap.docs.reduce((acc,d)=>acc+(d.data().saldo??0),0);
-      setCreditoTotal(total);
-    } catch {}
-
-    try {
-      const pelSnap = await getDocs(
-        query(collection(db,"users"), where("role","in",["empleado","admin"]))
-      );
-      setPeluqueros(pelSnap.docs.map(d => ({
-        uid: d.id,
-        nombre: `${d.data().nombre} ${d.data().apellido}`,
-      })));
-    } catch {}
-
-    setLoading(false);
+  const getQueryStart = () => {
+    const ahora = new Date();
+    const hoy = new Date(ahora.getFullYear(), ahora.getMonth(), ahora.getDate());
+    if (periodo === "Hoy")     return hoy;
+    if (periodo === "7 días")  { const d = new Date(hoy); d.setDate(d.getDate() - 7);  return d; }
+    if (periodo === "30 días") { const d = new Date(hoy); d.setDate(d.getDate() - 30); return d; }
+    if (periodo === "Mes")     return new Date(anioSelec, mesSelec, 1);
+    return new Date(ahora.getFullYear(), 0, 1);
   };
 
-  // Load on mount
-  useEffect(() => { loadData(); }, []);
-  // Reload when screen comes into focus
-  useFocusEffect(useCallback(() => { loadData(); }, []));
-  const onRefresh = async () => { setRefreshing(true); await loadData(); setRefreshing(false); };
+  // Listeners en tiempo real — se suscriben al montar y se limpian al desmontar
+  useEffect(() => {
+    const desde = Timestamp.fromDate(getQueryStart());
+    setLoading(true);
+
+    const unsubServ = onSnapshot(
+      query(collection(db, "servicios_realizados"), where("fecha", ">=", desde), orderBy("fecha", "asc")),
+      snap => { setServicios(snap.docs.map(d => d.data() as ServicioRealizado)); setLoading(false); },
+      () => setLoading(false)
+    );
+
+    const unsubPed = onSnapshot(
+      query(collection(db, "pedidos"), where("createdAt", ">=", desde), orderBy("createdAt", "asc")),
+      snap => setPedidos(snap.docs.map(d => d.data() as PedidoAprobado)),
+      () => {}
+    );
+
+    const unsubCred = onSnapshot(
+      query(collection(db, "users"), where("role", "==", "cliente")),
+      snap => setCreditoTotal(snap.docs.reduce((acc, d) => acc + (d.data().saldo ?? 0), 0)),
+      () => {}
+    );
+
+    const unsubPel = onSnapshot(
+      query(collection(db, "users"), where("role", "in", ["empleado", "admin"])),
+      snap => setPeluqueros(snap.docs.map(d => ({ uid: d.id, nombre: `${d.data().nombre} ${d.data().apellido}` }))),
+      () => {}
+    );
+
+    return () => { unsubServ(); unsubPed(); unsubCred(); unsubPel(); };
+  }, [periodo, mesSelec, anioSelec]);
+
+  const onRefresh = async () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 500); };
 
   const ahora = new Date();
   const enPeriodo = (ts: any) => {
