@@ -27,7 +27,11 @@ export function TagChip({ label, variant = "default" }: TagChipProps) {
     <View
       style={[
         styles.chip,
-        { backgroundColor: c.isDark ? palette.bg : palette.bg + "22" },
+        {
+          backgroundColor: c.isDark ? palette.bg : palette.bg + "18",
+          borderWidth: c.isDark ? 0 : 0.5,
+          borderColor: palette.bg + "50",
+        },
       ]}
     >
       <Text

@@ -1,8 +1,9 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator, Alert,
   RefreshControl,
 } from "react-native";
+import Animated, { FadeInDown } from "react-native-reanimated";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import {
@@ -46,7 +47,8 @@ export function EmpleadoAgendaScreen() {
   const [reservas,  setReservas]  = useState<Reserva[]>([]);
   const [loading,        setLoading]        = useState(true);
   const [refreshing,     setRefreshing]     = useState(false);
-  const [diaOffset,      setDiaOffset]      = useState(0);
+  const [diaOffset,      setDiaOffset]      = useState(7);
+  const diasScrollRef = useRef<ScrollView>(null);
   const [tab,            setTab]            = useState<"agenda" | "Pendientes">("agenda");
   const [pendingAll,     setPendingAll]     = useState<Reserva[]>([]);
   const [loadingPending, setLoadingPending] = useState(false);
@@ -74,9 +76,10 @@ export function EmpleadoAgendaScreen() {
     );
   };
 
+  const PAST_DAYS = 7;
   const fechaSeleccionada = (() => {
     const d = new Date();
-    d.setDate(d.getDate() + diaOffset);
+    d.setDate(d.getDate() + (diaOffset - PAST_DAYS));
     return d;
   })();
 
@@ -135,12 +138,32 @@ export function EmpleadoAgendaScreen() {
       const snap = await getDocs(query(
         collection(db, "reservas"),
         where("fecha", ">=", Timestamp.fromDate(inicio)),
+        where("fecha", "<=", Timestamp.fromDate(fin)),
         orderBy("fecha", "asc")
       ));
-      setReservas(snap.docs.map(d => ({ id: d.id, ...d.data() }) as Reserva));
+      const todas = snap.docs.map(d => ({ id: d.id, ...d.data() }) as Reserva);
+      setReservas(todas.filter(r => r.peluqueroUid === user?.uid));
     } catch(e) { /* */ }
     finally { setLoading(false); }
   };
+
+  // Auto-cancelar reservas pendientes cuya hora ya pasó
+  useEffect(() => {
+    const cancelarVencidas = async () => {
+      const ahora = new Date();
+      try {
+        const snap = await getDocs(query(
+          collection(db, "reservas"),
+          where("estado", "==", "pendiente"),
+          where("fecha", "<", Timestamp.fromDate(ahora)),
+        ));
+        await Promise.all(snap.docs.map(d =>
+          updateDoc(doc(db, "reservas", d.id), { estado: "cancelada", updatedAt: Timestamp.now() })
+        ));
+      } catch {}
+    };
+    cancelarVencidas();
+  }, []);
 
   useEffect(() => {
     setLoading(true);
@@ -198,28 +221,9 @@ export function EmpleadoAgendaScreen() {
     } catch {}
   };
 
-  const loadHistorial = async () => {
-    if (!user?.uid) return;
-    setLoadingHist(true);
-    try {
-      const snap = await getDocs(query(
-        collection(db, "reservas"),
-        where("peluqueroUid", "==", user.uid),
-        orderBy("fecha", "desc")
-      ));
-      setHistorial(snap.docs.map(d => ({ id: d.id, ...d.data() }) as Reserva));
-    } catch(e) { /* */ }
-    finally { setLoadingHist(false); }
-  };
-
-  const formatFechaHist = (ts: Timestamp) =>
-    ts.toDate().toLocaleDateString("es-CO", {
-      weekday: "short", day: "numeric", month: "short", year: "numeric",
-    });
-
-  const dias = Array.from({ length: 14 }, (_, i) => {  // Show 14 days (7 past + 7 future)
+  const dias = Array.from({ length: 15 }, (_, i) => {  // 7 past + today + 7 future
     const d = new Date();
-    d.setDate(d.getDate() + i);
+    d.setDate(d.getDate() - 7 + i);
     return d;
   });
 
@@ -248,7 +252,10 @@ export function EmpleadoAgendaScreen() {
             }}
             style={[styles.tabBtn, tab === t && { borderBottomWidth: 2, borderBottomColor: c.amber }]}
           >
-            <Text style={[styles.tabText, { color: tab === t ? c.amber : c.sub }]}>
+            <Text style={[styles.tabText, {
+              color: tab === t ? c.amber : c.sub,
+              fontFamily: tab === t ? "SpaceGrotesk_600SemiBold" : "SpaceGrotesk_400Regular",
+            }]}>
               {t === "agenda" ? "Agenda" : `Pendientes${pendingAll.length > 0 ? ` (${pendingAll.length})` : ""}`}
             </Text>
           </TouchableOpacity>
@@ -260,9 +267,14 @@ export function EmpleadoAgendaScreen() {
 
       {/* Selector de días */}
       <ScrollView
+        ref={diasScrollRef}
         horizontal
         showsHorizontalScrollIndicator={false}
         contentContainerStyle={[styles.diasRow, { borderBottomColor: c.border }]}
+        onLayout={() => {
+          // Scroll para centrar "hoy" (índice 7 de 15 días, ~80px por día)
+          diasScrollRef.current?.scrollTo({ x: 7 * 80 - 80, animated: false });
+        }}
       >
         {dias.map((d, i) => {
           const activo = diaOffset === i;
@@ -308,7 +320,18 @@ export function EmpleadoAgendaScreen() {
             </View>
           ) : (
             reservas.map((r, i) => (
-              <ThemedCard key={i} style={styles.reservaCard}>
+              <Animated.View key={r.id} entering={FadeInDown.delay(i * 60).duration(350)}>
+              <ThemedCard
+                style={styles.reservaCard}
+                accent
+                accentColor={
+                  r.estado === "confirmada" ? c.positive :
+                  r.estado === "pendiente"  ? c.amber :
+                  r.estado === "completada" ? c.blue :
+                  r.estado === "fallida" || r.estado === "cancelada" ? c.negative :
+                  c.border
+                }
+              >
                 <View style={[styles.horaBlock, { borderRightColor: c.border }]}>
                   <Text style={[styles.hora, { color: c.amber }]}>{r.hora}</Text>
                 </View>
@@ -355,6 +378,7 @@ export function EmpleadoAgendaScreen() {
                   )}
                 </View>
               </ThemedCard>
+              </Animated.View>
             ))
           )}
         </ScrollView>
@@ -362,6 +386,61 @@ export function EmpleadoAgendaScreen() {
 
       </>)}
 
+      {/* ── TAB PENDIENTES ── */}
+      {tab === "Pendientes" && (
+        loadingPending ? (
+          <ActivityIndicator color={c.amber} style={{ marginTop: 40 }} />
+        ) : (
+          <ScrollView contentContainerStyle={styles.scroll}>
+            {pendingAll.length === 0 ? (
+              <View style={styles.empty}>
+                <MaterialIcons name="check-circle-outline" size={48} color={c.sub} />
+                <Text style={[styles.emptyText, { color: c.sub }]}>Sin reservas pendientes</Text>
+              </View>
+            ) : (
+              pendingAll.map((r, i) => (
+                <Animated.View key={r.id} entering={FadeInDown.delay(i * 60).duration(350)}>
+                <ThemedCard style={styles.reservaCard}>
+                  <View style={[styles.horaBlock, { borderRightColor: c.border }]}>
+                    <Text style={[styles.hora, { color: c.amber }]}>{r.hora}</Text>
+                  </View>
+                  <View style={{ flex: 1, gap: 4 }}>
+                    <Text style={[styles.clienteNombre, { color: c.text }]}>{r.clienteNombre}</Text>
+                    <Text style={[styles.servicio, { color: c.sub }]}>{r.servicio}</Text>
+                    <Text style={[styles.servicio, { color: c.sub }]}>
+                      {r.fecha?.toDate?.().toLocaleDateString("es-CO", {
+                        weekday: "short", day: "numeric", month: "short",
+                      })}
+                    </Text>
+                    <View style={styles.confirmadaRow}>
+                      <TouchableOpacity
+                        onPress={() => aprobarReserva(r)}
+                        style={[styles.confirmadaBtn, { backgroundColor: c.positive + "18", borderColor: c.positive + "44" }]}
+                      >
+                        <MaterialIcons name="check" size={14} color={c.positive} />
+                        <Text style={[styles.confirmadaBtnText, { color: c.positive }]}>Confirmar</Text>
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        onPress={async () => {
+                          try {
+                            await updateDoc(doc(db, "reservas", r.id), { estado: "cancelada", updatedAt: Timestamp.now() });
+                            setPendingAll(prev => prev.filter(x => x.id !== r.id));
+                          } catch { Alert.alert("Error", "No se pudo negar."); }
+                        }}
+                        style={[styles.confirmadaBtn, { backgroundColor: c.negative + "18", borderColor: c.negative + "44" }]}
+                      >
+                        <MaterialIcons name="close" size={14} color={c.negative} />
+                        <Text style={[styles.confirmadaBtnText, { color: c.negative }]}>Negar</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                </ThemedCard>
+                </Animated.View>
+              ))
+            )}
+          </ScrollView>
+        )
+      )}
 
     </ScreenWrapper>
   );
@@ -399,7 +478,7 @@ const styles = StyleSheet.create({
   scroll:     { padding: 20, gap: 10 },
   empty:      { alignItems: "center", marginTop: 60, gap: 12 },
   emptyText:  { fontSize: 14, fontFamily: "SpaceGrotesk_400Regular" },
-  reservaCard: { flexDirection: "row", gap: 16, padding: 14 },
+  reservaCard: { flexDirection: "row", gap: 16 },
   horaBlock: {
     justifyContent: "center", alignItems: "center",
     paddingRight: 16, borderRightWidth: 1, minWidth: 54,
@@ -413,5 +492,5 @@ const styles = StyleSheet.create({
     flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center",
     gap: 5, paddingVertical: 8, borderRadius: 8, borderWidth: 1,
   },
-  confirmadaBtnText: { fontSize: 12, fontFamily: "SpaceGrotesk_600SemiBold" },
+  confirmadaBtnText: { fontSize: 12, fontFamily: "SpaceGrotesk_500Medium" },
 });

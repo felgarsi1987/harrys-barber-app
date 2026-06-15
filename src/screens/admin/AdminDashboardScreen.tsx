@@ -1,7 +1,10 @@
 import React, { useEffect, useState } from "react";
 import {
-  View, Text, ScrollView, StyleSheet, TouchableOpacity, RefreshControl, Image,
+  View, Text, ScrollView, StyleSheet, Pressable, RefreshControl, Image,
 } from "react-native";
+import Animated, {
+  FadeInDown, useSharedValue, useAnimatedStyle, withSpring,
+} from "react-native-reanimated";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { collection, getDocs, query, where, Timestamp } from "firebase/firestore";
@@ -20,9 +23,8 @@ export function AdminDashboardScreen() {
   const [refreshing,          setRefreshing]          = useState(false);
   const [citasHoy,            setCitasHoy]            = useState(0);
   const [totalClientes,       setTotalClientes]       = useState(0);
-  const [pedidosHoy,           setPedidosHoy]           = useState(0);
-  const [ingresosMes,          setIngresosMes]          = useState(0);
-  const [creditosPendientes,   setCreditosPendientes]   = useState(0);
+  const [pedidosHoy,          setPedidosHoy]          = useState(0);
+  const [serviciosHoy,        setServiciosHoy]        = useState(0);
 
   const loadStats = async () => {
     try {
@@ -30,42 +32,26 @@ export function AdminDashboardScreen() {
         query(collection(db, "users"), where("role", "==", "cliente"))
       );
       setTotalClientes(clientesSnap.size);
-      // Schedule tomorrow's daily summary
-      if (user?.uid) programarResumenDiario(user.uid, 0);
 
       const hoy = new Date(); hoy.setHours(0,0,0,0);
+      const manana = new Date(hoy); manana.setDate(manana.getDate()+1);
       const pedSnap = await getDocs(query(collection(db,"pedidos"),where("createdAt",">=",Timestamp.fromDate(hoy))));
       setPedidosHoy(pedSnap.size);
-      const manana = new Date(hoy); manana.setDate(manana.getDate()+1);
       const citasSnap = await getDocs(
         query(collection(db,"reservas"),
           where("fecha",">=",Timestamp.fromDate(hoy)),
           where("fecha","<", Timestamp.fromDate(manana)))
       );
       setCitasHoy(citasSnap.size);
+      if (user?.uid) programarResumenDiario(user.uid, citasSnap.size);
 
-      const inicioMes = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
       const serviciosSnap = await getDocs(
         query(collection(db,"servicios_realizados"),
-          where("fecha",">=",Timestamp.fromDate(inicioMes)),
+          where("fecha",">=",Timestamp.fromDate(hoy)),
+          where("fecha","<", Timestamp.fromDate(manana)),
           where("estado","==","completado"))
       );
-      let total = 0;
-      serviciosSnap.forEach(d => { total += d.data().precio ?? 0; });
-      // Add tienda sales
-      const pedidosSnap = await getDocs(query(
-        collection(db,"pedidos"), where("estado","==","aprobado"),
-        where("createdAt",">=",Timestamp.fromDate(inicioMes))
-      ));
-      pedidosSnap.forEach(d => { total += d.data().total ?? 0; });
-      setIngresosMes(total);
-
-      const creditosSnap = await getDocs(
-        query(collection(db, "users"), where("role", "==", "cliente"), where("saldo", ">", 0))
-      );
-      let creditos = 0;
-      creditosSnap.forEach(d => { creditos += d.data().saldo ?? 0; });
-      setCreditosPendientes(creditos);
+      setServiciosHoy(serviciosSnap.size);
     } catch(e) { /* silent */ }
   };
 
@@ -81,7 +67,7 @@ export function AdminDashboardScreen() {
     <ScreenWrapper>
 
       {/* ── HEADER ── */}
-      <View style={[styles.header, { borderBottomColor: c.border }]}>
+      <View style={[styles.header, { borderBottomColor: c.border, backgroundColor: c.amber + "08" }]}>
         <Image
           source={require("../../assets/images/harrys_logo_clean.png")}
           style={styles.headerLogo}
@@ -106,57 +92,40 @@ export function AdminDashboardScreen() {
       >
 
         {/* ── FECHA ── */}
-        <Text style={[styles.dateLabel, { color: c.sub }]}>
-          {new Date().toLocaleDateString("es-CO", { weekday:"long", day:"numeric", month:"long" }).toUpperCase()}
-        </Text>
+        <View style={[styles.datePill, { backgroundColor: c.amber + "12", borderColor: c.amber + "30" }]}>
+          <View style={[styles.dateDot, { backgroundColor: c.amber }]} />
+          <Text style={[styles.dateLabel, { color: c.amber }]}>
+            {new Date().toLocaleDateString("es-CO", { weekday:"long", day:"numeric", month:"long" }).toUpperCase()}
+          </Text>
+        </View>
 
         {/* ── KPIs ── */}
         <View style={styles.kpiGrid}>
-          <KPICard
-            label="Citas hoy"
-            value={citasHoy.toString()}
-            icon="event"
-            c={c}
-          />
-          <KPICard
-            label="Clientes"
-            value={totalClientes.toString()}
-            icon="people-outline"
-            c={c}
-          />
-          <KPICard
-            label="Ingresos mes"
-            value={`$${ingresosMes.toLocaleString("es-CO")}`}
-            icon="trending-up"
-            c={c}
-            positive
-          />
-          <KPICard
-            label="Créditos"
-            value={`$${creditosPendientes.toLocaleString("es-CO")}`}
-            icon="account-balance-wallet"
-            c={c}
-            negative={creditosPendientes > 0}
-          />
+          {[
+            { label: "Citas hoy",     value: citasHoy,       icon: "event",          color: c.amber },
+            { label: "Clientes",      value: totalClientes,  icon: "people-outline", color: c.blue  },
+            { label: "Servicios hoy", value: serviciosHoy,   icon: "content-cut",    color: c.positive },
+            { label: "Pedidos hoy",   value: pedidosHoy,     icon: "receipt-long",   color: "#A78BFA" },
+          ].map((kpi, i) => (
+            <Animated.View key={kpi.label} entering={FadeInDown.delay(i * 70).springify().damping(18).stiffness(200)} style={styles.kpiCardWrap}>
+              <KPICard label={kpi.label} value={kpi.value.toString()} icon={kpi.icon} c={c} iconColor={kpi.color} />
+            </Animated.View>
+          ))}
         </View>
 
         {/* ── DIVISOR ── */}
         <View style={[styles.divider, { backgroundColor: c.border }]} />
 
         {/* ── ACCESOS RÁPIDOS ── */}
-        <Text style={[styles.sectionTitle, { color: c.sub }]}>GESTIÓN</Text>
+        <View style={styles.sectionRow}>
+          <Text style={[styles.sectionTitle, { color: c.sub }]}>GESTIÓN</Text>
+          <View style={[styles.sectionLine, { backgroundColor: c.border }]} />
+        </View>
         <View style={styles.actionGrid}>
           {ACTIONS.map((a, i) => (
-            <TouchableOpacity
-              key={i}
-              style={[styles.actionCard, { borderColor: c.border }]}
-              activeOpacity={0.6}
-              onPress={() => navigation.navigate(a.route)}
-            >
-              <MaterialIcons name={a.icon as any} size={20} color={c.text} />
-              <Text style={[styles.actionLabel, { color: c.text }]}>{a.label}</Text>
-              <Text style={[styles.actionDesc,  { color: c.sub  }]}>{a.desc}</Text>
-            </TouchableOpacity>
+            <Animated.View key={i} entering={FadeInDown.delay(280 + i * 50).duration(350)} style={{ width: "47.5%" }}>
+              <ActionCard action={a} c={c} onPress={() => navigation.navigate(a.route)} />
+            </Animated.View>
           ))}
         </View>
 
@@ -166,17 +135,43 @@ export function AdminDashboardScreen() {
 }
 
 /* ── KPI Card ── */
-function KPICard({ label, value, icon, c, positive = false, negative = false }: any) {
+function KPICard({ label, value, icon, c, iconColor }: any) {
   return (
-    <View style={[styles.kpiCard, { borderColor: c.border }]}>
-      <View style={styles.kpiTop}>
-        <MaterialIcons name={icon} size={16} color={c.sub} />
-        <Text style={[styles.kpiLabel, { color: c.sub }]}>{label}</Text>
+    <View style={[styles.kpiCard, { borderColor: c.border, backgroundColor: c.surface }]}>
+      <View style={[styles.kpiAccent, { backgroundColor: iconColor + "18", borderBottomColor: iconColor + "30", borderBottomWidth: 1 }]}>
+        <View style={[styles.kpiIconWrap, { backgroundColor: iconColor + "22" }]}>
+          <MaterialIcons name={icon} size={16} color={iconColor} />
+        </View>
+        <Text style={[styles.kpiLabel, { color: c.sub }]} numberOfLines={1}>{label}</Text>
       </View>
-      <NumberText size={24} positive={positive} negative={negative}>
-        {value}
-      </NumberText>
+      <View style={styles.kpiValueWrap}>
+        <NumberText size={30}>
+          {value}
+        </NumberText>
+      </View>
     </View>
+  );
+}
+
+/* ── Action Card with press scale ── */
+function ActionCard({ action, c, onPress }: { action: typeof ACTIONS[0]; c: any; onPress: () => void }) {
+  const scale = useSharedValue(1);
+  const anim  = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+  return (
+    <Animated.View style={anim}>
+      <Pressable
+        style={[styles.actionCard, { borderColor: c.amber + "30", backgroundColor: c.amber + "06" }]}
+        onPress={onPress}
+        onPressIn={() => { scale.value = withSpring(0.95, { damping: 16, stiffness: 280 }); }}
+        onPressOut={() => { scale.value = withSpring(1,    { damping: 16, stiffness: 280 }); }}
+      >
+        <View style={[styles.actionIconWrap, { backgroundColor: c.amber + "18" }]}>
+          <MaterialIcons name={action.icon as any} size={18} color={c.amber} />
+        </View>
+        <Text style={[styles.actionLabel, { color: c.text }]}>{action.label}</Text>
+        <Text style={[styles.actionDesc,  { color: c.sub  }]}>{action.desc}</Text>
+      </Pressable>
+    </Animated.View>
   );
 }
 
@@ -204,43 +199,53 @@ const styles = StyleSheet.create({
   headerLogo:     { width: 40, height: 40, borderRadius: 20 },
   headerCenter:   { flex: 1, gap: 1 },
   headerBrand:    { fontSize: 14, fontFamily: "Syne_800ExtraBold", letterSpacing: 3 },
-  headerSub:      { fontSize: 8,  fontFamily: "SpaceGrotesk_500Medium", letterSpacing: 2 },
+  headerSub:      { fontSize: 10, fontFamily: "SpaceGrotesk_600SemiBold", letterSpacing: 1.5 },
   headerRight:    { alignItems: "flex-end" },
   headerGreeting: { fontSize: 10, fontFamily: "SpaceGrotesk_400Regular" },
   headerName:     { fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold" },
 
   scroll: { padding: 20, gap: 20 },
 
-  dateLabel: {
-    fontSize: 10, fontFamily: "SpaceGrotesk_600SemiBold", letterSpacing: 2,
-  },
+  datePill:  { flexDirection: "row", alignItems: "center", gap: 8, alignSelf: "flex-start", paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, borderWidth: 1 },
+  dateDot:   { width: 5, height: 5, borderRadius: 3 },
+  dateLabel: { fontSize: 10, fontFamily: "SpaceGrotesk_600SemiBold", letterSpacing: 1.5 },
 
-  kpiGrid: {
-    flexDirection: "row", flexWrap: "wrap", gap: 10,
-  },
+  kpiGrid:    { flexDirection: "row", flexWrap: "wrap", gap: 10 },
+  kpiCardWrap:{ width: "47.5%" },
   kpiCard: {
-    width: "47.5%", borderWidth: 1, borderRadius: 12,
-    padding: 14, gap: 10,
+    borderWidth: 1, borderRadius: 14, overflow: "hidden",
   },
-  kpiTop: {
-    flexDirection: "row", alignItems: "center", gap: 6,
+  kpiAccent: {
+    flexDirection: "row", alignItems: "center", gap: 8,
+    paddingHorizontal: 12, paddingVertical: 10,
+  },
+  kpiIconWrap: {
+    width: 30, height: 30, borderRadius: 9,
+    justifyContent: "center", alignItems: "center",
   },
   kpiLabel: {
-    fontSize: 11, fontFamily: "SpaceGrotesk_400Regular",
+    fontSize: 11, fontFamily: "SpaceGrotesk_500Medium", flex: 1,
+  },
+  kpiValueWrap: {
+    paddingHorizontal: 14, paddingVertical: 12,
   },
 
   divider: { height: 1 },
 
-  sectionTitle: {
-    fontSize: 10, fontFamily: "SpaceGrotesk_600SemiBold", letterSpacing: 2,
-  },
+  sectionRow:   { flexDirection: "row", alignItems: "center", gap: 10 },
+  sectionTitle: { fontSize: 10, fontFamily: "SpaceGrotesk_500Medium", letterSpacing: 1.5 },
+  sectionLine:  { flex: 1, height: 1 },
 
   actionGrid: {
     flexDirection: "row", flexWrap: "wrap", gap: 10,
   },
   actionCard: {
-    width: "47.5%", borderWidth: 1, borderRadius: 12,
-    padding: 14, gap: 6,
+    flex: 1, borderWidth: 1, borderRadius: 12,
+    padding: 14, gap: 8,
+  },
+  actionIconWrap: {
+    width: 36, height: 36, borderRadius: 10,
+    justifyContent: "center", alignItems: "center",
   },
   actionLabel: { fontSize: 14, fontFamily: "SpaceGrotesk_600SemiBold" },
   actionDesc:  { fontSize: 11, fontFamily: "SpaceGrotesk_400Regular" },

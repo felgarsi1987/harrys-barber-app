@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator,
-  TextInput, Alert, Modal, RefreshControl,
+  TextInput, Alert, Modal, RefreshControl, KeyboardAvoidingView, Platform,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import {
@@ -47,7 +47,7 @@ interface PedidoCredito {
   createdAt:     Timestamp;
 }
 
-type Tab = "deudas" | "historial";
+type Tab = "deudas" | "solicitudes" | "historial";
 
 export function AdminPagosScreen() {
   const c = useThemeColors();
@@ -127,7 +127,7 @@ export function AdminPagosScreen() {
               await updateDoc(userRef, { saldo: saldoActual + pedido.total });
 
               // 4. Notificar al cliente
-              await // notification handled by notifications service
+              notificarEstadoPedido(pedido.clienteUid, "aprobado", pedido.total).catch(() => {});
 
               setPedidos(prev => prev.filter(p => p.id !== pedido.id));
               Alert.alert("✅ Aprobado", `Crédito de $${pedido.total.toLocaleString("es-CO")} registrado.`);
@@ -156,9 +156,7 @@ export function AdminPagosScreen() {
               await updateDoc(doc(db, "pedidos", pedido.id), {
                 estado: "rechazado", updatedAt: Timestamp.now(),
               });
-
-              await // notification handled by notifications service
-
+              notificarEstadoPedido(pedido.clienteUid, "rechazado", pedido.total).catch(() => {});
               setPedidos(prev => prev.filter(p => p.id !== pedido.id));
               Alert.alert("Rechazado", "La solicitud fue rechazada.");
             } catch {
@@ -188,6 +186,8 @@ export function AdminPagosScreen() {
 
     setGuardando(true);
     try {
+      const nuevoSaldo = Math.max((clienteSel.saldo ?? 0) - montoNum, 0);
+
       await addDoc(collection(db, "movimientos"), {
         clienteUid:  clienteSel.uid,
         tipo:        "abono",
@@ -196,11 +196,9 @@ export function AdminPagosScreen() {
         fecha:       Timestamp.now(),
       });
 
-      const nuevoSaldo = Math.max((clienteSel.saldo ?? 0) - montoNum, 0);
       await updateDoc(doc(db, "users", clienteSel.uid), { saldo: nuevoSaldo });
 
-      // Notificar al cliente
-      await // notification handled by notifications service
+      notificarAbono(clienteSel.uid, `${clienteSel.nombre} ${clienteSel.apellido}`, montoNum, nuevoSaldo).catch(() => {});
 
       setModalVisible(false);
       Alert.alert("✅ Abono registrado", `$${montoNum.toLocaleString("es-CO")} abonado a ${clienteSel.nombre}.`);
@@ -215,8 +213,9 @@ export function AdminPagosScreen() {
     ts.toDate().toLocaleDateString("es-CO", { day: "numeric", month: "short", year: "numeric" });
 
   const TABS: { key: Tab; label: string; badge?: number }[] = [
-    { key: "deudas",      label: "Deudas" },
-    { key: "historial",   label: "Historial" },
+    { key: "deudas",       label: "Deudas" },
+    { key: "solicitudes",  label: "Solicitudes", badge: pedidos.length },
+    { key: "historial",    label: "Historial" },
   ];
 
   return (
@@ -303,6 +302,61 @@ export function AdminPagosScreen() {
             )
           )}
 
+          {/* ── TAB SOLICITUDES ── */}
+          {tab === "solicitudes" && (
+            pedidos.length === 0 ? (
+              <View style={styles.empty}>
+                <MaterialIcons name="inbox" size={48} color={c.sub} />
+                <Text style={[styles.emptyText, { color: c.sub }]}>Sin solicitudes pendientes</Text>
+              </View>
+            ) : (
+              pedidos.map((p, i) => (
+                <ThemedCard key={i} style={styles.solicitudCard}>
+                  <View style={styles.solicitudHeader}>
+                    <View style={[styles.avatar, { backgroundColor: c.amber + "18" }]}>
+                      <Text style={[styles.avatarText, { color: c.amber }]}>
+                        {p.clienteNombre?.[0] ?? "?"}
+                      </Text>
+                    </View>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.solicitudNombre, { color: c.text }]}>{p.clienteNombre}</Text>
+                      <Text style={[styles.solicitudFecha, { color: c.sub }]}>{formatFecha(p.createdAt)}</Text>
+                    </View>
+                    <Text style={[styles.solicitudNombre, { color: c.amber }]}>
+                      ${p.total.toLocaleString("es-CO")}
+                    </Text>
+                  </View>
+
+                  <View style={[styles.itemsBox, { borderColor: c.border, backgroundColor: c.bg }]}>
+                    {p.items.map((it, j) => (
+                      <View key={j} style={styles.itemRow}>
+                        <Text style={[styles.itemNombre, { color: c.text }]}>{it.nombre} x{it.cantidad}</Text>
+                        <Text style={[styles.itemPrecio, { color: c.sub }]}>${(it.precio * it.cantidad).toLocaleString("es-CO")}</Text>
+                      </View>
+                    ))}
+                  </View>
+
+                  <View style={styles.solicitudBtns}>
+                    <TouchableOpacity
+                      onPress={() => rechazarCredito(p)}
+                      style={[styles.solicitudBtn, { borderColor: c.negative + "50", backgroundColor: c.negative + "0A" }]}
+                    >
+                      <MaterialIcons name="close" size={16} color={c.negative} />
+                      <Text style={[styles.solicitudBtnText, { color: c.negative }]}>Rechazar</Text>
+                    </TouchableOpacity>
+                    <TouchableOpacity
+                      onPress={() => aprobarCredito(p)}
+                      style={[styles.solicitudBtn, { borderColor: c.positive + "50", backgroundColor: c.positive + "0A" }]}
+                    >
+                      <MaterialIcons name="check" size={16} color={c.positive} />
+                      <Text style={[styles.solicitudBtnText, { color: c.positive }]}>Aprobar</Text>
+                    </TouchableOpacity>
+                  </View>
+                </ThemedCard>
+              ))
+            )
+          )}
+
           {/* ── TAB HISTORIAL ── */}
           {tab === "historial" && (
             movimientos.length === 0 ? (
@@ -311,10 +365,16 @@ export function AdminPagosScreen() {
                 <Text style={[styles.emptyText, { color: c.sub }]}>Sin movimientos</Text>
               </View>
             ) : (
-              movimientos.map((m, i) => (
+              movimientos.map((m, i) => {
+                const cli = clientes.find(c => c.uid === m.clienteUid);
+                const nombreCliente = cli ? `${cli.nombre} ${cli.apellido}` : null;
+                return (
                 <ThemedCard key={i} style={styles.movCard}>
                   <View style={{ flex: 1, gap: 4 }}>
-                    <Text style={[styles.movDesc,  { color: c.text }]}>{m.descripcion}</Text>
+                    {nombreCliente && (
+                      <Text style={[styles.movCliente, { color: c.text }]}>{nombreCliente}</Text>
+                    )}
+                    <Text style={[styles.movDesc,  { color: c.sub }]}>{m.descripcion}</Text>
                     <Text style={[styles.movFecha, { color: c.sub  }]}>{formatFecha(m.fecha)}</Text>
                   </View>
                   <View style={{ alignItems: "flex-end", gap: 4 }}>
@@ -324,7 +384,8 @@ export function AdminPagosScreen() {
                     <TagChip label={m.tipo} variant={m.tipo === "cargo" ? "danger" : "success"} />
                   </View>
                 </ThemedCard>
-              ))
+                );
+              })
             )
           )}
 
@@ -333,6 +394,10 @@ export function AdminPagosScreen() {
 
       {/* Modal abono */}
       <Modal visible={modalVisible} transparent animationType="slide">
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+        >
         <View style={styles.modalOverlay}>
           <View style={[styles.modalCard, { backgroundColor: c.surface }]}>
             <Text style={[styles.modalTitle, { color: c.text }]}>Registrar abono</Text>
@@ -385,6 +450,7 @@ export function AdminPagosScreen() {
             </View>
           </View>
         </View>
+        </KeyboardAvoidingView>
       </Modal>
     </ScreenWrapper>
   );
@@ -443,8 +509,9 @@ const styles = StyleSheet.create({
 
   // Historial
   movCard:  { flexDirection: "row", alignItems: "center", gap: 12 },
-  movDesc:  { fontSize: 14, fontFamily: "SpaceGrotesk_500Medium" },
-  movFecha: { fontSize: 11, fontFamily: "SpaceGrotesk_400Regular" },
+  movCliente: { fontSize: 14, fontFamily: "SpaceGrotesk_600SemiBold" },
+  movDesc:    { fontSize: 12, fontFamily: "SpaceGrotesk_400Regular" },
+  movFecha:   { fontSize: 11, fontFamily: "SpaceGrotesk_400Regular" },
 
   // Modal
   modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "flex-end" },

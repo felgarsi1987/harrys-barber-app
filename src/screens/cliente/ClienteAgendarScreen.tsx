@@ -8,12 +8,13 @@ import {
   collection, getDocs, addDoc, getDoc, query,
   where, Timestamp, doc,
 } from "firebase/firestore";
-import { db } from "../../services/firebase";
+import { db, auth } from "../../services/firebase";
 import { programarRecordatorio } from "../../services/notifications";
 import { getServicios, Servicio } from "../../services/serviciosService";
-import { useThemeColors } from "../../hooks/useThemeColors";
-import { useGuestStore }  from "../../store/guestStore";
-import { useAuthStore }   from "../../store/authStore";
+import { useThemeColors }    from "../../hooks/useThemeColors";
+import { useHorarioConfig }  from "../../hooks/useHorarioConfig";
+import { useGuestStore }     from "../../store/guestStore";
+import { useAuthStore }      from "../../store/authStore";
 import { ThemedCard }     from "../../components/ui/ThemedCard";
 import { ScreenWrapper }  from "../../components/ui/ScreenWrapper";
 
@@ -45,13 +46,13 @@ export function ClienteAgendarScreen() {
   const [servicios,          setServicios]          = useState<Servicio[]>([]);
   const [peluqueros,        setPeluqueros]        = useState<Peluquero[]>([]);
   const [peluqueroSel,      setPeluqueroSel]      = useState<Peluquero | null>(null);
-  const [fechaSeleccionada, setFechaSeleccionada] = useState("");
+  const [fechaSeleccionada, setFechaSeleccionada] = useState(() => new Date().toISOString().split("T")[0]);
   const [horaSeleccionada,  setHoraSeleccionada]  = useState("");
   const [servicioSel,       setServicioSel]        = useState(0);
   const [horasOcupadas,     setHorasOcupadas]      = useState<string[]>([]);
-  const [horasConfig,       setHorasConfig]        = useState<string[]>([]);
   const [guardando,         setGuardando]          = useState(false);
   const [loadingPeluqueros, setLoadingPeluqueros]  = useState(true);
+  const { horas: horasConfig } = useHorarioConfig();
 
   const hoy     = new Date();
   const maxDate = new Date(hoy);
@@ -61,8 +62,6 @@ export function ClienteAgendarScreen() {
 
   // Cargar peluqueros disponibles y config de horario
   useEffect(() => {
-    // Small delay to ensure anonymous auth is confirmed before Firestore queries
-    const timer = setTimeout(() => {
     Promise.all([
       // Servicios desde Firestore
       getServicios().then(data => setServicios(data)),
@@ -78,40 +77,8 @@ export function ClienteAgendarScreen() {
         setPeluqueros(data);
       }).catch(() => {}),
 
-      // Config de horario para saber rango de horas
-      getDocs(query(collection(db, "config"))).then(snap => {
-        const horarioDoc = snap.docs.find(d => d.id === "horario");
-        if (horarioDoc) {
-          const data = horarioDoc.data();
-          const horaInicio = data.horaInicio ?? "08:00";
-          const horaFin    = data.horaFin    ?? "18:00";
-          const duracion   = data.duracionTurno ?? 30;
-
-          // Generar horas según rango y duración
-          const horas: string[] = [];
-          const [hi, mi] = horaInicio.split(":").map(Number);
-          const [hf, mf] = horaFin.split(":").map(Number);
-          let mins = hi * 60 + mi;
-          const finMins = hf * 60 + mf;
-          while (mins < finMins) {
-            const h = Math.floor(mins / 60).toString().padStart(2, "0");
-            const m = (mins % 60).toString().padStart(2, "0");
-            horas.push(`${h}:${m}`);
-            mins += duracion;
-          }
-          setHorasConfig(horas);
-        } else {
-          // Default si no hay config
-          setHorasConfig([
-            "08:00","08:30","09:00","09:30","10:00","10:30","11:00","11:30",
-            "14:00","14:30","15:00","15:30","16:00","16:30","17:00","17:30",
-          ]);
-        }
-      }),
     ]).catch(() => {})
     .finally(() => setLoadingPeluqueros(false));
-    }, 1000); // wait for anonymous auth to fully initialize
-    return () => clearTimeout(timer);
   }, []);
 
   // Cargar horas ocupadas + bloqueadas del peluquero en la fecha
@@ -119,16 +86,23 @@ export function ClienteAgendarScreen() {
     if (!fechaSeleccionada || !peluqueroSel) return;
     const fecha    = new Date(fechaSeleccionada + "T00:00:00");
     const fechaFin = new Date(fechaSeleccionada + "T23:59:59");
+    // Query solo por peluqueroUid para evitar índice compuesto; filtrar fecha en JS
     getDocs(query(
       collection(db, "reservas"),
       where("peluqueroUid", "==", peluqueroSel.uid),
-      where("fecha", ">=", Timestamp.fromDate(fecha)),
-      where("fecha", "<=", Timestamp.fromDate(fechaFin)),
     )).then(snap => {
-      // Block all active reservations (pending or confirmed), free cancelled ones
       const reservadas = snap.docs
-        .filter(d => !["cancelada","fallida","completada"].includes(d.data().estado ?? ""))
-        .map(d => d.data().hora);
+        .filter(docSnap => {
+          const data = docSnap.data();
+          if (["cancelada","fallida","completada"].includes(data.estado ?? "")) return false;
+          const fechaRes: Date | null = data.fecha?.toDate?.() ?? null;
+          if (!fechaRes) return false;
+          const yy = fechaRes.getFullYear();
+          const mm = String(fechaRes.getMonth() + 1).padStart(2, "0");
+          const dd = String(fechaRes.getDate()).padStart(2, "0");
+          return `${yy}-${mm}-${dd}` === fechaSeleccionada;
+        })
+        .map(docSnap => docSnap.data().hora as string);
       const bloqueadas = peluqueroSel.horasBloqueadas ?? [];
       setHorasOcupadas([...reservadas, ...bloqueadas]);
     }).catch(() => {});
@@ -161,10 +135,17 @@ export function ClienteAgendarScreen() {
         if (cfg.exists() && cfg.data().autoConfirmar) estadoInicial = "confirmada";
       } catch {}
 
+      const clienteUid    = user?.uid ?? auth.currentUser?.uid ?? "invitado";
+      const clienteNombre = user
+        ? `${user.nombre} ${user.apellido}`
+        : guest ? `${guest.nombre} ${guest.apellido}` : "Invitado";
+      const clienteEmail  = user?.email ?? null;
+
       const docRef = await addDoc(collection(db, "reservas"), {
-        clienteUid:      user?.uid,
-        clienteNombre:   `${user?.nombre} ${user?.apellido}`,
-        clienteEmail:    user?.email,
+        clienteUid,
+        clienteNombre,
+        clienteEmail,
+        esInvitado:      !user,
         peluqueroUid:    peluqueroSel.uid,
         peluqueroNombre: `${peluqueroSel.nombre} ${peluqueroSel.apellido}`,
         servicio:        servicio.label,
@@ -187,7 +168,7 @@ export function ClienteAgendarScreen() {
         "✅ Reserva enviada",
         `Tu cita con ${peluqueroSel.nombre} fue enviada. El admin la confirmará pronto.`
       );
-      setFechaSeleccionada("");
+      setFechaSeleccionada(new Date().toISOString().split("T")[0]);
       setHoraSeleccionada("");
       setPeluqueroSel(null);
     } catch {
@@ -325,6 +306,7 @@ export function ClienteAgendarScreen() {
           markedDates={{
             [fechaSeleccionada]: { selected: true, selectedColor: c.amber },
           }}
+          key={c.mode}
           theme={{
             backgroundColor:            c.surface,
             calendarBackground:         c.surface,
@@ -340,6 +322,7 @@ export function ClienteAgendarScreen() {
             textMonthFontFamily:        "Syne_700Bold",
             textDayHeaderFontFamily:    "SpaceGrotesk_600SemiBold",
           }}
+          style={{ backgroundColor: c.surface, borderRadius: 12 }}
           style={[styles.calendar, { backgroundColor: c.surface, borderColor: c.border }]}
         />
 
@@ -370,14 +353,14 @@ export function ClienteAgendarScreen() {
                     style={[
                       styles.horaBtn,
                       {
-                        borderColor:     seleccionada ? c.amber : noDisponible ? c.border : c.border,
-                        backgroundColor: seleccionada ? c.amber + "18" : c.surface,
-                        opacity:         noDisponible ? 0.35 : 1,
+                        borderColor:     seleccionada ? c.amber : ocupada ? c.negative + "66" : pasada ? c.border : c.amber + "40",
+                        backgroundColor: seleccionada ? c.amber + "18" : ocupada ? c.negative + "11" : pasada ? c.surface : c.amber + "06",
+                        opacity:         pasada && !ocupada ? 0.35 : 1,
                       },
                     ]}
                   >
                     <Text style={[styles.horaText, {
-                      color: seleccionada ? c.amber : noDisponible ? c.sub : c.text,
+                      color: seleccionada ? c.amber : ocupada ? c.negative : pasada ? c.sub : c.text,
                     }]}>
                       {hora}
                     </Text>

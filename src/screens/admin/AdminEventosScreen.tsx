@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator,
-  TextInput, Alert, Modal, Switch, Image,
+  TextInput, Alert, Modal, Switch, Image, KeyboardAvoidingView, Platform,
 } from "react-native";
 import { MaterialIcons }  from "@expo/vector-icons";
 import * as ImagePicker   from "expo-image-picker";
@@ -12,7 +12,7 @@ import { ThemedCard }     from "../../components/ui/ThemedCard";
 import { TagChip }        from "../../components/ui/TagChip";
 import {
   collection, getDocs, addDoc, updateDoc,
-  deleteDoc, doc, Timestamp, getDocs as gd,
+  deleteDoc, doc, Timestamp, getDocs as gd, query, where,
 } from "firebase/firestore";
 import { db, storage }    from "../../services/firebase";
 import { useThemeColors } from "../../hooks/useThemeColors";
@@ -344,6 +344,10 @@ export function AdminEventosScreen() {
 
       {/* Modal crear/editar */}
       <Modal visible={modalVisible} transparent animationType="slide">
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+        >
         <View style={styles.modalOverlay}>
           <View style={[styles.modalCard, { backgroundColor: c.surface }]}>
             <Text style={[styles.modalTitle, { color: c.text }]}>
@@ -427,8 +431,9 @@ export function AdminEventosScreen() {
                       setShowCalendar(false);
                     }}
                     markedDates={form.fecha ? { [form.fecha]: { selected: true, selectedColor: c.amber } } : {}}
+                    key={c.mode}
                     theme={{
-                      backgroundColor: c.bg, calendarBackground: c.surface,
+                      backgroundColor: c.surface, calendarBackground: c.surface,
                       textSectionTitleColor: c.sub,
                       selectedDayBackgroundColor: c.amber, selectedDayTextColor: "#000",
                       todayTextColor: c.amber, dayTextColor: c.text,
@@ -437,7 +442,7 @@ export function AdminEventosScreen() {
                       textMonthFontFamily: "Syne_700Bold",
                       textDayHeaderFontFamily: "SpaceGrotesk_400Regular",
                     }}
-                    style={{ borderRadius: 12, overflow: "hidden" }}
+                    style={{ backgroundColor: c.surface, borderRadius: 12, overflow: "hidden" }}
                   />
                 )}
               </View>
@@ -483,6 +488,7 @@ export function AdminEventosScreen() {
             </View>
           </View>
         </View>
+        </KeyboardAvoidingView>
       </Modal>
     </ScreenWrapper>
   );

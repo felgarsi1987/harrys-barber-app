@@ -11,10 +11,9 @@ import {
 import { db }             from "../../services/firebase";
 import { useThemeColors } from "../../hooks/useThemeColors";
 import { useFocusEffect } from "@react-navigation/native";
-import { BackHeader }     from "../../components/ui/BackHeader";
-import { ThemedCard }     from "../../components/ui/ThemedCard";
-import { NumberText }     from "../../components/ui/NumberText";
-import { ScreenWrapper }  from "../../components/ui/ScreenWrapper";
+import { BackHeader }    from "../../components/ui/BackHeader";
+import { ThemedCard }    from "../../components/ui/ThemedCard";
+import { ScreenWrapper } from "../../components/ui/ScreenWrapper";
 
 const { width: SCREEN_W } = Dimensions.get("window");
 const CHART_W = SCREEN_W - 48;
@@ -32,13 +31,14 @@ interface PedidoAprobado {
   total:     number;
   fecha:     Timestamp;
   createdAt: Timestamp;
+  estado:    string;
   items:     { nombre: string; cantidad: number; precio: number; categoria?: string }[];
 }
 interface ClienteDeuda {
   saldo: number;
 }
 
-const PERIODOS = ["7 días","30 días","Este año"] as const;
+const PERIODOS = ["Hoy","7 días","30 días","Mes","Este año"] as const;
 type Periodo = typeof PERIODOS[number];
 type Vista   = "todo" | "peluqueria" | "tienda";
 
@@ -49,9 +49,12 @@ export function AdminBalancesScreen() {
   const [servicios,     setServicios]     = useState<ServicioRealizado[]>([]);
   const [pedidos,       setPedidos]       = useState<PedidoAprobado[]>([]);
   const [creditoTotal,  setCreditoTotal]  = useState(0);
+  const [peluqueros,    setPeluqueros]    = useState<{uid:string;nombre:string}[]>([]);
   const [loading,       setLoading]       = useState(true);
   const [refreshing,    setRefreshing]    = useState(false);
-  const [periodo,       setPeriodo]       = useState<Periodo>("Este año");
+  const [periodo,       setPeriodo]       = useState<Periodo>("Hoy");
+  const [mesSelec,      setMesSelec]      = useState<number>(new Date().getMonth());
+  const [anioSelec,     setAnioSelec]     = useState<number>(new Date().getFullYear());
   const [vista,         setVista]         = useState<Vista>("todo");
   const [peluqueroFil,  setPeluqueroFil]  = useState<string>("todos");
 
@@ -86,6 +89,16 @@ export function AdminBalancesScreen() {
       setCreditoTotal(total);
     } catch {}
 
+    try {
+      const pelSnap = await getDocs(
+        query(collection(db,"users"), where("role","in",["empleado","admin"]))
+      );
+      setPeluqueros(pelSnap.docs.map(d => ({
+        uid: d.id,
+        nombre: `${d.data().nombre} ${d.data().apellido}`,
+      })));
+    } catch {}
+
     setLoading(false);
   };
 
@@ -99,36 +112,65 @@ export function AdminBalancesScreen() {
   const enPeriodo = (ts: any) => {
     try {
       const f = ts?.toDate ? ts.toDate() : new Date(ts);
-      if (isNaN(f.getTime())) return true; // include if date is invalid
+      if (isNaN(f.getTime())) return false; // excluir registros con fecha inválida
+      if (periodo === "Hoy")     { return f.getFullYear()===ahora.getFullYear() && f.getMonth()===ahora.getMonth() && f.getDate()===ahora.getDate(); }
       if (periodo === "7 días")  { const d=new Date(ahora); d.setDate(ahora.getDate()-7);  return f>=d; }
       if (periodo === "30 días") { const d=new Date(ahora); d.setDate(ahora.getDate()-30); return f>=d; }
+      if (periodo === "Mes")     { return f.getFullYear()===anioSelec && f.getMonth()===mesSelec; }
       return f.getFullYear()===ahora.getFullYear();
-    } catch { return true; } // include if error parsing date
+    } catch { return false; } // excluir si hay error parseando la fecha
   };
 
-  const servFiltBase = servicios.filter(s=>enPeriodo(s.fecha));
+  const servFiltBase = servicios
+    .filter(s=>enPeriodo(s.fecha))
+    .filter(s=>!s.estado || s.estado==="completado");
   const servFilt = vista==="peluqueria" && peluqueroFil!=="todos"
-    ? servFiltBase.filter(s=>s.peluqueroNombre===peluqueroFil)
+    ? servFiltBase.filter(s=>s.peluqueroUid===peluqueroFil)
     : servFiltBase;
-  const pedFilt  = pedidos.filter(p=>enPeriodo(p.createdAt??p.fecha));
+  const pedFilt  = pedidos.filter(p=>
+    enPeriodo(p.createdAt??p.fecha) &&
+    ["aprobado","entregado"].includes(p.estado)
+  );
 
   // KPIs
   const ingServicios = servFilt.reduce((a,s)=>a+(s.precio??0),0);
   const ingTienda    = pedFilt.reduce((a,p)=>a+(p.total??0),0);
-  const ingTotal     = ingServicios + ingTienda;
   const ticketProm   = servFilt.length>0 ? Math.round(ingServicios/servFilt.length) : 0;
 
   // Contado vs crédito en servicios
   const ingContado = servFilt.filter(s=>s.modalidadPago==="contado").reduce((a,s)=>a+(s.precio??0),0);
   const ingCredito = servFilt.filter(s=>s.modalidadPago==="credito").reduce((a,s)=>a+(s.precio??0),0);
 
+  // Total en caja = solo servicios cobrados (contado) + tienda
+  const ingTotal = ingContado + ingTienda;
+
   // Gráfica
   const buildBarData = () => {
     const source = vista==="tienda" ? [] : servFilt;
+    if (periodo==="Hoy") {
+      const horas=[0,0,0,0,0,0];
+      const labs=["8-10","10-12","12-14","14-16","16-18","18+"];
+      source.forEach(s=>{
+        const h=s.fecha.toDate().getHours();
+        const idx=h<10?0:h<12?1:h<14?2:h<16?3:h<18?4:5;
+        horas[idx]+=(s.precio??0);
+      });
+      return { labels:labs, datasets:[{data:horas}] };
+    }
     if (periodo==="Este año") {
       const m=Array(12).fill(0);
       source.forEach(s=>{m[s.fecha.toDate().getMonth()]+=(s.precio??0);});
       return { labels:MESES, datasets:[{data:m}] };
+    }
+    if (periodo==="Mes") {
+      const sem=[0,0,0,0];
+      source.forEach(s=>{
+        const f=s.fecha.toDate();
+        if(f.getFullYear()===anioSelec&&f.getMonth()===mesSelec){
+          sem[Math.min(3,Math.floor((f.getDate()-1)/7))]+=(s.precio??0);
+        }
+      });
+      return { labels:["Sem 1","Sem 2","Sem 3","Sem 4"], datasets:[{data:sem}] };
     }
     if (periodo==="30 días") {
       const sem=[0,0,0,0];
@@ -156,10 +198,10 @@ export function AdminBalancesScreen() {
   const topProdSorted = Object.entries(topProd).sort(([,a],[,b])=>b-a).slice(0,4);
 
   // Por empleado
-  const porEmp: Record<string,{nombre:string;total:number;citas:number}>={};
+  const porEmp: Record<string,{uid:string;nombre:string;total:number;citas:number}>={};
   servFilt.forEach(s=>{
     const uid=s.peluqueroUid??"sin_asignar";
-    if(!porEmp[uid]) porEmp[uid]={nombre:s.peluqueroNombre??"Sin asignar",total:0,citas:0};
+    if(!porEmp[uid]) porEmp[uid]={uid,nombre:s.peluqueroNombre??"Sin asignar",total:0,citas:0};
     porEmp[uid].total+=(s.precio??0);
     porEmp[uid].citas+=1;
   });
@@ -193,6 +235,43 @@ export function AdminBalancesScreen() {
             ))}
           </View>
 
+          {/* Selector mes/año (solo cuando periodo = "Mes") */}
+          {periodo === "Mes" && (
+            <View style={{ gap: 8 }}>
+              {/* Año */}
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+                <TouchableOpacity
+                  onPress={() => setAnioSelec(a => a - 1)}
+                  style={[styles.anioBtn, { borderColor: c.border }]}
+                >
+                  <MaterialIcons name="chevron-left" size={20} color={c.text} />
+                </TouchableOpacity>
+                <Text style={[styles.anioTxt, { color: c.text }]}>{anioSelec}</Text>
+                <TouchableOpacity
+                  onPress={() => setAnioSelec(a => Math.min(a + 1, ahora.getFullYear()))}
+                  style={[styles.anioBtn, { borderColor: c.border }]}
+                >
+                  <MaterialIcons name="chevron-right" size={20} color={c.text} />
+                </TouchableOpacity>
+              </View>
+              {/* Meses */}
+              <View style={styles.mesesGrid}>
+                {MESES.map((m, i) => (
+                  <TouchableOpacity
+                    key={i}
+                    onPress={() => setMesSelec(i)}
+                    style={[styles.mesBtn, {
+                      borderColor: mesSelec === i ? c.amber : c.border,
+                      backgroundColor: mesSelec === i ? c.amber + "22" : "transparent",
+                    }]}
+                  >
+                    <Text style={[styles.mesBtnTxt, { color: mesSelec === i ? c.amber : c.sub }]}>{m}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
+          )}
+
           {/* Vista tienda/peluquería */}
           <View style={[styles.segRow,{backgroundColor:c.surface,borderColor:c.border}]}>
             {([["todo","Todo"],["peluqueria","Peluquería"],["tienda","Tienda"]] as const).map(([k,l])=>(
@@ -203,8 +282,8 @@ export function AdminBalancesScreen() {
             ))}
           </View>
 
-          {/* Filtro peluquero - solo cuando vista es peluqueria */}
-          {vista === "peluqueria" && empSorted.length > 0 && (
+          {/* Filtro peluquero - cuando vista es peluqueria */}
+          {vista === "peluqueria" && (
             <ScrollView horizontal showsHorizontalScrollIndicator={false}
               contentContainerStyle={{gap:8}}>
               <TouchableOpacity
@@ -215,14 +294,14 @@ export function AdminBalancesScreen() {
                 <Text style={{fontSize:11,fontFamily:"SpaceGrotesk_600SemiBold",
                   color:peluqueroFil==="todos"?c.blue:c.sub}}>Todos</Text>
               </TouchableOpacity>
-              {empSorted.map((e,i)=>(
+              {peluqueros.map((e,i)=>(
                 <TouchableOpacity key={i}
-                  onPress={() => setPeluqueroFil(e.nombre)}
+                  onPress={() => setPeluqueroFil(e.uid)}
                   style={{paddingHorizontal:12,paddingVertical:6,borderRadius:20,borderWidth:1,
-                    borderColor:peluqueroFil===e.nombre?c.blue:c.border,
-                    backgroundColor:peluqueroFil===e.nombre?c.blue+"22":"transparent"}}>
+                    borderColor:peluqueroFil===e.uid?c.blue:c.border,
+                    backgroundColor:peluqueroFil===e.uid?c.blue+"22":"transparent"}}>
                   <Text style={{fontSize:11,fontFamily:"SpaceGrotesk_600SemiBold",
-                    color:peluqueroFil===e.nombre?c.blue:c.sub}}>{e.nombre}</Text>
+                    color:peluqueroFil===e.uid?c.blue:c.sub}}>{e.nombre}</Text>
                 </TouchableOpacity>
               ))}
             </ScrollView>
@@ -233,21 +312,21 @@ export function AdminBalancesScreen() {
           <View style={styles.kpiRow}>
             <ThemedCard style={styles.kpi}>
               <MaterialIcons name="trending-up" size={16} color={c.sub}/>
-              <Text style={[styles.kpiL,{color:c.sub}]}>Total</Text>
-              <NumberText size={18} positive>${(showPeluqueria&&showTienda?ingTotal:showPeluqueria?ingServicios:ingTienda).toLocaleString("es-CO")}</NumberText>
+              <Text style={[styles.kpiL,{color:c.sub}]}>Caja</Text>
+              <Text style={[styles.numSobrio,{color:c.positive}]}>${(showPeluqueria&&showTienda?ingTotal:showPeluqueria?ingContado:ingTienda).toLocaleString("es-CO")}</Text>
             </ThemedCard>
             {showPeluqueria&&(
               <ThemedCard style={styles.kpi}>
                 <MaterialIcons name="content-cut" size={16} color={c.sub}/>
                 <Text style={[styles.kpiL,{color:c.sub}]}>Servicios</Text>
-                <NumberText size={18} positive>${ingServicios.toLocaleString("es-CO")}</NumberText>
+                <Text style={[styles.numSobrio,{color:c.positive}]}>${ingServicios.toLocaleString("es-CO")}</Text>
               </ThemedCard>
             )}
             {showTienda&&(
               <ThemedCard style={styles.kpi}>
                 <MaterialIcons name="store" size={16} color={c.sub}/>
                 <Text style={[styles.kpiL,{color:c.sub}]}>Tienda</Text>
-                <NumberText size={18} positive>${ingTienda.toLocaleString("es-CO")}</NumberText>
+                <Text style={[styles.numSobrio,{color:c.positive}]}>${ingTienda.toLocaleString("es-CO")}</Text>
               </ThemedCard>
             )}
           </View>
@@ -257,17 +336,17 @@ export function AdminBalancesScreen() {
               <ThemedCard style={styles.kpi}>
                 <MaterialIcons name="event" size={16} color={c.sub}/>
                 <Text style={[styles.kpiL,{color:c.sub}]}>Citas</Text>
-                <NumberText size={18}>{servFilt.length.toString()}</NumberText>
+                <Text style={[styles.numSobrio,{color:c.text}]}>{servFilt.length}</Text>
               </ThemedCard>
               <ThemedCard style={styles.kpi}>
                 <MaterialIcons name="receipt" size={16} color={c.sub}/>
                 <Text style={[styles.kpiL,{color:c.sub}]}>Ticket prom.</Text>
-                <NumberText size={18}>${ticketProm.toLocaleString("es-CO")}</NumberText>
+                <Text style={[styles.numSobrio,{color:c.text}]}>${ticketProm.toLocaleString("es-CO")}</Text>
               </ThemedCard>
               <ThemedCard style={styles.kpi}>
                 <MaterialIcons name="payments" size={16} color={c.sub}/>
                 <Text style={[styles.kpiL,{color:c.sub}]}>Crédito</Text>
-                <NumberText size={18} negative>${ingCredito.toLocaleString("es-CO")}</NumberText>
+                <Text style={[styles.numSobrio,{color:c.negative}]}>${ingCredito.toLocaleString("es-CO")}</Text>
               </ThemedCard>
             </View>
           )}
@@ -278,7 +357,7 @@ export function AdminBalancesScreen() {
               <MaterialIcons name="credit-card" size={18} color={c.negative}/>
               <View style={{flex:1}}>
                 <Text style={[styles.kpiL,{color:c.sub}]}>CRÉDITOS PENDIENTES CLIENTES</Text>
-                <NumberText size={20} negative>${creditoTotal.toLocaleString("es-CO")}</NumberText>
+                <Text style={[styles.numSobrio,{color:c.negative}]}>${creditoTotal.toLocaleString("es-CO")}</Text>
               </View>
             </ThemedCard>
           )}
@@ -305,7 +384,7 @@ export function AdminBalancesScreen() {
                   <ThemedCard key={i} style={styles.topCard}>
                     <View style={styles.topRow}>
                       <Text style={[styles.topN,{color:c.text}]}>{n}</Text>
-                      <Text style={[styles.topT,{color:c.amber}]}>${t.toLocaleString("es-CO")}</Text>
+                      <Text style={[styles.topNum,{color:c.amber}]}>${t.toLocaleString("es-CO")}</Text>
                     </View>
                     <View style={[styles.barBg,{backgroundColor:c.border}]}>
                       <View style={[styles.barFill,{width:`${pct}%`,backgroundColor:c.amber}]}/>
@@ -323,17 +402,17 @@ export function AdminBalancesScreen() {
                 <ThemedCard style={styles.kpi}>
                   <MaterialIcons name="shopping-bag" size={16} color={c.sub}/>
                   <Text style={[styles.kpiL,{color:c.sub}]}>Total</Text>
-                  <NumberText size={18} positive>${ingTienda.toLocaleString("es-CO")}</NumberText>
+                  <Text style={[styles.numSobrio,{color:c.positive}]}>${ingTienda.toLocaleString("es-CO")}</Text>
                 </ThemedCard>
                 <ThemedCard style={styles.kpi}>
                   <MaterialIcons name="inventory" size={16} color={c.sub}/>
                   <Text style={[styles.kpiL,{color:c.sub}]}>Pedidos</Text>
-                  <NumberText size={18}>{pedFilt.length.toString()}</NumberText>
+                  <Text style={[styles.numSobrio,{color:c.text}]}>{pedFilt.length}</Text>
                 </ThemedCard>
                 <ThemedCard style={styles.kpi}>
                   <MaterialIcons name="receipt" size={16} color={c.sub}/>
                   <Text style={[styles.kpiL,{color:c.sub}]}>Prom.</Text>
-                  <NumberText size={18}>${Math.round(ingTienda/pedFilt.length).toLocaleString("es-CO")}</NumberText>
+                  <Text style={[styles.numSobrio,{color:c.positive}]}>${Math.round(ingTienda/pedFilt.length).toLocaleString("es-CO")}</Text>
                 </ThemedCard>
               </View>
               {topProdSorted.length>0&&(<>
@@ -344,7 +423,7 @@ export function AdminBalancesScreen() {
                     <ThemedCard key={i} style={styles.topCard}>
                       <View style={styles.topRow}>
                         <Text style={[styles.topN,{color:c.text}]}>{n}</Text>
-                        <Text style={[styles.topT,{color:c.positive}]}>${t.toLocaleString("es-CO")}</Text>
+                        <Text style={[styles.topNum,{color:c.positive}]}>${t.toLocaleString("es-CO")}</Text>
                       </View>
                       <View style={[styles.barBg,{backgroundColor:c.border}]}>
                         <View style={[styles.barFill,{width:`${pct}%`,backgroundColor:c.positive}]}/>
@@ -371,7 +450,7 @@ export function AdminBalancesScreen() {
                     <View style={{flex:1,gap:6}}>
                       <View style={styles.topRow}>
                         <Text style={[styles.topN,{color:c.text}]}>{e.nombre}</Text>
-                        <Text style={[styles.topT,{color:c.blue}]}>${e.total.toLocaleString("es-CO")}</Text>
+                        <Text style={[styles.topNum,{color:c.blue}]}>${e.total.toLocaleString("es-CO")}</Text>
                       </View>
                       <View style={[styles.barBg,{backgroundColor:c.border}]}>
                         <View style={[styles.barFill,{width:`${pct}%`,backgroundColor:c.blue}]}/>
@@ -395,10 +474,15 @@ export function AdminBalancesScreen() {
 
 const styles = StyleSheet.create({
   scroll:    { padding:20, gap:16 },
+  anioBtn:   { padding:6, borderRadius:8, borderWidth:1, alignItems:"center", justifyContent:"center" },
+  anioTxt:   { fontSize:16, fontFamily:"Syne_700Bold", minWidth:60, textAlign:"center" },
+  mesesGrid: { flexDirection:"row", flexWrap:"wrap", gap:6 },
+  mesBtn:    { width:"22%", paddingVertical:7, alignItems:"center", borderRadius:8, borderWidth:1 },
+  mesBtnTxt: { fontSize:11, fontFamily:"SpaceGrotesk_600SemiBold" },
   segRow:    { flexDirection:"row", borderRadius:12, borderWidth:1, overflow:"hidden" },
   segBtn:    { flex:1, paddingVertical:10, alignItems:"center", borderRadius:10 },
   segTxt:    { fontSize:12, fontFamily:"SpaceGrotesk_600SemiBold" },
-  sec:       { fontSize:10, fontFamily:"SpaceGrotesk_600SemiBold", letterSpacing:2, marginTop:4 },
+  sec:       { fontSize:10, fontFamily:"SpaceGrotesk_500Medium", letterSpacing:1.5, marginTop:4 },
   kpiRow:    { flexDirection:"row", gap:10 },
   kpi:       { flex:1, gap:6, alignItems:"center" },
   kpiL:      { fontSize:10, fontFamily:"SpaceGrotesk_400Regular", textAlign:"center" },
@@ -406,7 +490,8 @@ const styles = StyleSheet.create({
   topCard:   { gap:8 },
   topRow:    { flexDirection:"row", justifyContent:"space-between", alignItems:"center" },
   topN:      { fontSize:13, fontFamily:"SpaceGrotesk_600SemiBold", flex:1, marginRight:8 },
-  topT:      { fontSize:13, fontFamily:"SpaceGrotesk_600SemiBold" },
+  numSobrio: { fontSize:17, fontFamily:"SpaceGrotesk_500Medium" },
+  topNum:    { fontSize:13, fontFamily:"SpaceGrotesk_500Medium" },
   barBg:     { height:6, borderRadius:3, width:"100%" },
   barFill:   { height:6, borderRadius:3 },
   topP:      { fontSize:11, fontFamily:"SpaceGrotesk_400Regular" },

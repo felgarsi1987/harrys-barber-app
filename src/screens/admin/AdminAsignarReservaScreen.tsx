@@ -11,6 +11,7 @@ import {
 } from "firebase/firestore";
 import { db } from "../../services/firebase";
 import { useThemeColors }    from "../../hooks/useThemeColors";
+import { useHorarioConfig } from "../../hooks/useHorarioConfig";
 import { BackHeader }         from "../../components/ui/BackHeader";
 import { ThemedCard }         from "../../components/ui/ThemedCard";
 import { ScreenWrapper }  from "../../components/ui/ScreenWrapper";
@@ -62,10 +63,7 @@ export function AdminAsignarReservaScreen() {
   const [fecha,         setFecha]         = useState("");
   const [hora,          setHora]          = useState("");
 
-  const horasConfig = [
-    "08:00","08:30","09:00","09:30","10:00","10:30","11:00","11:30",
-    "14:00","14:30","15:00","15:30","16:00","16:30","17:00","17:30",
-  ];
+  const { horas: horasConfig } = useHorarioConfig();
 
   useEffect(() => {
     Promise.all([
@@ -77,19 +75,25 @@ export function AdminAsignarReservaScreen() {
     ]).catch(() => {}).finally(() => setLoading(false));
   }, []);
 
-  // Cargar horas ocupadas del empleado en la fecha
+  // Cargar horas ocupadas del empleado en la fecha (query simple para evitar índice compuesto)
   useEffect(() => {
     if (!empleadoSel || !fecha) return;
-    const inicio = new Date(fecha + "T00:00:00");
-    const fin    = new Date(fecha + "T23:59:59");
     getDocs(query(
       collection(db, "reservas"),
       where("peluqueroUid", "==", empleadoSel.uid),
-      where("fecha", ">=", Timestamp.fromDate(inicio)),
-      where("fecha", "<=", Timestamp.fromDate(fin)),
-      where("estado", "in", ["pendiente","confirmada"])
-    )).then(s => setHorasOcupadas(s.docs.map(d => d.data().hora)))
-      .catch(() => {});
+    )).then(snap => {
+      const ocupadas = snap.docs
+        .map(d => d.data())
+        .filter(d => {
+          if (!["pendiente","confirmada"].includes(d.estado ?? "")) return false;
+          const f: Date | null = d.fecha?.toDate?.() ?? null;
+          if (!f) return false;
+          const yy = f.getFullYear(), mm = String(f.getMonth()+1).padStart(2,"0"), dd = String(f.getDate()).padStart(2,"0");
+          return `${yy}-${mm}-${dd}` === fecha;
+        })
+        .map(d => d.hora as string);
+      setHorasOcupadas(ocupadas);
+    }).catch(() => {});
   }, [empleadoSel, fecha]);
 
   const hoy     = new Date();
@@ -306,8 +310,9 @@ export function AdminAsignarReservaScreen() {
               maxDate={maxDate}
               onDayPress={d => { setFecha(d.dateString); setHora(""); setPaso(5); }}
               markedDates={fecha ? { [fecha]: { selected: true, selectedColor: c.amber } } : {}}
+              key={c.mode}
               theme={{
-                backgroundColor: c.bg, calendarBackground: c.surface,
+                backgroundColor: c.surface, calendarBackground: c.surface,
                 textSectionTitleColor: c.sub,
                 selectedDayBackgroundColor: c.amber,
                 selectedDayTextColor: "#000",
@@ -319,7 +324,7 @@ export function AdminAsignarReservaScreen() {
                 textDayHeaderFontFamily: "SpaceGrotesk_400Regular",
                 textDayFontSize: 14, textMonthFontSize: 16,
               }}
-              style={{ borderRadius: 12 }}
+              style={{ backgroundColor: c.surface, borderRadius: 12 }}
             />
           </>
         )}

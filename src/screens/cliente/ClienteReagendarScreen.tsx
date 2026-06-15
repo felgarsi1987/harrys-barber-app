@@ -8,7 +8,8 @@ import {
   doc, updateDoc, Timestamp,
 } from "firebase/firestore";
 import { db } from "../../services/firebase";
-import { useThemeColors } from "../../hooks/useThemeColors";
+import { useThemeColors }   from "../../hooks/useThemeColors";
+import { useHorarioConfig } from "../../hooks/useHorarioConfig";
 import { BackHeader }     from "../../components/ui/BackHeader";
 import { ThemedCard }     from "../../components/ui/ThemedCard";
 import { ScreenWrapper }  from "../../components/ui/ScreenWrapper";
@@ -22,29 +23,27 @@ LocaleConfig.locales["es"] = {
 };
 LocaleConfig.defaultLocale = "es";
 
-interface Props {
-  route: {
-    params: {
-      reservaId: string;
-      servicio:  string;
-      peluqueroUid: string;
-      peluqueroNombre: string;
-    };
-  };
-}
+import { useRoute, RouteProp } from "@react-navigation/native";
 
-export function ClienteReagendarScreen({ route }: Props) {
+type ReagendarParams = {
+  ClienteReagendar: {
+    reservaId: string;
+    servicio:  string;
+    peluqueroUid: string;
+    peluqueroNombre: string;
+  };
+};
+
+export function ClienteReagendarScreen() {
+  const route = useRoute<RouteProp<ReagendarParams, "ClienteReagendar">>();
   const { reservaId, servicio, peluqueroUid, peluqueroNombre } = route.params;
   const c = useThemeColors();
 
   const [fecha,         setFecha]         = useState("");
   const [hora,          setHora]          = useState("");
   const [horasOcupadas, setHorasOcupadas] = useState<string[]>([]);
-  const [horasConfig,   setHorasConfig]   = useState<string[]>([
-    "08:00","08:30","09:00","09:30","10:00","10:30","11:00","11:30",
-    "14:00","14:30","15:00","15:30","16:00","16:30","17:00","17:30",
-  ]);
   const [guardando, setGuardando] = useState(false);
+  const { horas: horasConfig } = useHorarioConfig();
 
   const hoy     = new Date();
   const minDate = hoy.toISOString().split("T")[0];
@@ -52,16 +51,24 @@ export function ClienteReagendarScreen({ route }: Props) {
 
   useEffect(() => {
     if (!fecha || !peluqueroUid) return;
-    const inicio = new Date(fecha + "T00:00:00");
-    const fin    = new Date(fecha + "T23:59:59");
+    // Query solo por peluqueroUid; filtrar fecha en JS para evitar índice compuesto
     getDocs(query(
       collection(db, "reservas"),
       where("peluqueroUid", "==", peluqueroUid),
-      where("fecha", ">=", Timestamp.fromDate(inicio)),
-      where("fecha", "<=", Timestamp.fromDate(fin)),
-      where("estado", "in", ["pendiente","confirmada"])
     )).then(snap => {
-      setHorasOcupadas(snap.docs.map(d => d.data().hora));
+      const ocupadas = snap.docs
+        .filter(d => {
+          const data = d.data();
+          if (!["pendiente","confirmada"].includes(data.estado ?? "")) return false;
+          const fechaRes: Date | null = data.fecha?.toDate?.() ?? null;
+          if (!fechaRes) return false;
+          const y = fechaRes.getFullYear();
+          const m = String(fechaRes.getMonth() + 1).padStart(2, "0");
+          const dd = String(fechaRes.getDate()).padStart(2, "0");
+          return `${y}-${m}-${dd}` === fecha;
+        })
+        .map(d => d.data().hora as string);
+      setHorasOcupadas(ocupadas);
     }).catch(() => {});
   }, [fecha]);
 
@@ -118,8 +125,9 @@ export function ClienteReagendarScreen({ route }: Props) {
           maxDate={maxDate}
           onDayPress={d => { setFecha(d.dateString); setHora(""); }}
           markedDates={fecha ? { [fecha]: { selected: true, selectedColor: c.amber } } : {}}
+          key={c.mode}
           theme={{
-            backgroundColor:           c.bg,
+            backgroundColor:           c.surface,
             calendarBackground:        c.surface,
             textSectionTitleColor:     c.sub,
             selectedDayBackgroundColor: c.amber,
@@ -135,7 +143,7 @@ export function ClienteReagendarScreen({ route }: Props) {
             textDayFontSize:           14,
             textMonthFontSize:         16,
           }}
-          style={{ borderRadius: 12 }}
+          style={{ backgroundColor: c.surface, borderRadius: 12 }}
         />
 
         {fecha && (
@@ -153,13 +161,13 @@ export function ClienteReagendarScreen({ route }: Props) {
                     style={[
                       styles.horaBtn,
                       {
-                        borderColor:     sel ? c.amber : ocupada ? c.border : c.border,
-                        backgroundColor: sel ? c.amber + "18" : ocupada ? c.border + "40" : c.surface,
-                        opacity:         ocupada ? 0.4 : 1,
+                        borderColor:     sel ? c.amber : ocupada ? c.negative + "66" : c.border,
+                        backgroundColor: sel ? c.amber + "18" : ocupada ? c.negative + "11" : c.surface,
+                        opacity:         1,
                       },
                     ]}
                   >
-                    <Text style={[styles.horaText, { color: sel ? c.amber : ocupada ? c.sub : c.text }]}>
+                    <Text style={[styles.horaText, { color: sel ? c.amber : ocupada ? c.negative : c.text }]}>
                       {h}
                     </Text>
                   </TouchableOpacity>
@@ -191,7 +199,7 @@ const styles = StyleSheet.create({
   infoCard: { gap: 4 },
   servicio:     { fontSize: 18, fontFamily: "Syne_700Bold" },
   peluquero:    { fontSize: 13, fontFamily: "SpaceGrotesk_400Regular" },
-  sectionLabel: { fontSize: 10, fontFamily: "SpaceGrotesk_600SemiBold", letterSpacing: 2 },
+  sectionLabel: { fontSize: 10, fontFamily: "SpaceGrotesk_500Medium", letterSpacing: 1.5 },
   horasGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   horaBtn: {
     width: "22%", borderWidth: 1, borderRadius: 8,

@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import {
   View, Text, ScrollView, StyleSheet,
   TouchableOpacity, TextInput, Alert, ActivityIndicator,
-  Modal, Switch, RefreshControl,
+  Modal, Switch, RefreshControl, KeyboardAvoidingView, Platform,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useThemeColors } from "../../hooks/useThemeColors";
@@ -188,6 +188,10 @@ export function AdminServiciosScreen() {
 
       {/* Modal crear/editar */}
       <Modal visible={modalVisible} transparent animationType="slide">
+        <KeyboardAvoidingView
+          style={{ flex: 1 }}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+        >
         <View style={styles.overlay}>
           <View style={[styles.modalCard, { backgroundColor: c.surface }]}>
             <View style={styles.modalHeader}>
@@ -250,6 +254,7 @@ export function AdminServiciosScreen() {
             </View>
           </View>
         </View>
+        </KeyboardAvoidingView>
       </Modal>
     </ScreenWrapper>
   );

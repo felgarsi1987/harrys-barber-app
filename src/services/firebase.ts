@@ -1,5 +1,7 @@
 import { initializeApp, getApps, FirebaseApp } from "firebase/app";
-import { initializeAuth, getAuth, getReactNativePersistence, Auth } from "firebase/auth";
+import { initializeAuth, getAuth, Auth } from "firebase/auth";
+// @ts-ignore — Metro resuelve @firebase/auth al bundle react-native que sí exporta esto
+import { getReactNativePersistence } from "@firebase/auth";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getFirestore, Firestore } from "firebase/firestore";
 import { getStorage, FirebaseStorage } from "firebase/storage";

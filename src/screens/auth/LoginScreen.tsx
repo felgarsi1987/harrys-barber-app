@@ -1,9 +1,10 @@
-import React, { useState, useCallback } from "react";
+import React, { useState, useCallback, useEffect } from "react";
 import {
   View, Text, TextInput, TouchableOpacity,
   StyleSheet, Image,
   ActivityIndicator, Alert,
 } from "react-native";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { navState } from "../../utils/navState";
 import { sendPasswordResetEmail } from "firebase/auth";
@@ -30,10 +31,18 @@ export function LoginScreen() {
   const [showPass, setShowPass] = useState(false);
   const [enviando, setEnviando] = useState(false);
 
+  useEffect(() => {
+    AsyncStorage.getItem("last_email").then(saved => {
+      if (saved) setEmail(saved);
+    });
+  }, []);
+
   const handleLogin = async () => {
     if (!email || !password) return;
     clearError();
-    await login(email.trim().toLowerCase(), password);
+    const trimmed = email.trim().toLowerCase();
+    await AsyncStorage.setItem("last_email", trimmed);
+    await login(trimmed, password);
   };
 
   const handleRecuperarContrasena = async () => {
@@ -57,7 +66,10 @@ export function LoginScreen() {
     <ScreenWrapper scrollable>
         <View style={styles.container}>
           <TouchableOpacity
-            onPress={() => navigation.goBack()}
+            onPress={() => {
+              if (navigation.canGoBack()) navigation.goBack();
+              else navigation.navigate("Entrada");
+            }}
             style={{ alignSelf: "flex-start" }}
           >
             <Text style={[Typography.body, { color: c.blue }]}>← Volver</Text>

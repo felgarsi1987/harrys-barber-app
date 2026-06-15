@@ -6,6 +6,8 @@ import {
 import { useNavigation } from "@react-navigation/native";
 import { MaterialIcons }  from "@expo/vector-icons";
 import { useThemeColors } from "../../hooks/useThemeColors";
+import { signInAnonymously } from "firebase/auth";
+import { auth }           from "../../services/firebase";
 import { useGuestStore }  from "../../store/guestStore";
 import { ScreenWrapper }  from "../../components/ui/ScreenWrapper";
 
@@ -16,21 +18,37 @@ export function InvitadoScreen() {
 
   const [nombre,   setNombre]   = useState("");
   const [apellido, setApellido] = useState("");
+  const [fecha,    setFecha]    = useState("");
   const [loading,  setLoading]  = useState(false);
 
-  const entrar = () => {
+  const entrar = async () => {
     if (!nombre.trim() || !apellido.trim()) {
       Alert.alert("Faltan datos", "Ingresa tu nombre y apellido para continuar.");
       return;
     }
-    setGuest({ nombre: nombre.trim(), apellido: apellido.trim() });
+    setLoading(true);
+    try {
+      await signInAnonymously(auth);
+    } catch (e: any) {
+      setLoading(false);
+      Alert.alert(
+        "Error de conexión",
+        "No se pudo iniciar sesión como invitado. Verifica tu conexión e intenta de nuevo."
+      );
+      return;
+    }
+    setGuest({ nombre: nombre.trim(), apellido: apellido.trim(), fecha: fecha.trim() || undefined });
+    setLoading(false);
   };
 
   return (
     <ScreenWrapper scrollable>
       <View style={styles.container}>
         <TouchableOpacity
-          onPress={() => navigation.goBack()}
+          onPress={() => {
+            if (navigation.canGoBack()) navigation.goBack();
+            else navigation.navigate("Entrada");
+          }}
           style={styles.back}
         >
           <MaterialIcons name="arrow-back" size={22} color={c.sub} />
@@ -71,6 +89,17 @@ export function InvitadoScreen() {
               placeholder="Tu apellido"
               placeholderTextColor={c.sub}
               autoCapitalize="words"
+            />
+          </View>
+          <View style={{ gap: 6 }}>
+            <Text style={[styles.label, { color: c.sub }]}>FECHA DE NACIMIENTO</Text>
+            <TextInput
+              style={[styles.input, { color: c.text, backgroundColor: c.surface, borderColor: c.border }]}
+              value={fecha}
+              onChangeText={setFecha}
+              placeholder="DD/MM/AAAA (opcional)"
+              placeholderTextColor={c.sub}
+              keyboardType="numeric"
             />
           </View>
         </View>

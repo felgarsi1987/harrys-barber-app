@@ -13,6 +13,7 @@ import { ClientePerfilScreen }     from "../screens/cliente/ClientePerfilScreen"
 import { ClienteHistorialScreen }  from "../screens/cliente/ClienteHistorialScreen";
 import { ClienteReagendarScreen }  from "../screens/cliente/ClienteReagendarScreen";
 import { ClientePedidosScreen }    from "../screens/cliente/ClientePedidosScreen";
+import { EntretenimientoScreen }   from "../screens/shared/EntretenimientoScreen";
 
 const Tab   = createBottomTabNavigator();
 const Stack = createStackNavigator();
@@ -37,11 +38,12 @@ function ClienteTabs() {
         tabBarLabelStyle: { fontSize: 10 },
         tabBarIcon: ({ color }) => {
           const icons: Record<string, keyof typeof MaterialIcons.glyphMap> = {
-            Inicio:  "home",
-            Agendar: "event-available",
-            Tienda: "store",
-            Saldo:   "account-balance-wallet",
-            Perfil:  "person-outline",
+            Inicio:          "home",
+            Agendar:         "event-available",
+            Entretenimiento: "sports-soccer",
+            Tienda:          "store",
+            Saldo:           "account-balance-wallet",
+            Perfil:          "person-outline",
           };
           return (
             <MaterialIcons
@@ -53,11 +55,12 @@ function ClienteTabs() {
         },
       })}
     >
-      <Tab.Screen name="Inicio"  component={ClienteHomeScreen} />
-      <Tab.Screen name="Agendar" component={ClienteAgendarScreen} />
-      <Tab.Screen name="Tienda" component={ClienteCarritoScreen} />
-      <Tab.Screen name="Saldo"   component={ClienteSaldoScreen} />
-      <Tab.Screen name="Perfil"  component={ClientePerfilScreen} />
+      <Tab.Screen name="Inicio"          component={ClienteHomeScreen} />
+      <Tab.Screen name="Agendar"         component={ClienteAgendarScreen} />
+      <Tab.Screen name="Entretenimiento" component={EntretenimientoScreen} />
+      <Tab.Screen name="Tienda"          component={ClienteCarritoScreen} />
+      <Tab.Screen name="Saldo"           component={ClienteSaldoScreen} />
+      <Tab.Screen name="Perfil"          component={ClientePerfilScreen} />
     </Tab.Navigator>
   );
 }

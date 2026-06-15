@@ -1,0 +1,91 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
+    function isAuth()      { return request.auth != null; }
+    function isAnon()      { return isAuth() && request.auth.token.firebase.sign_in_provider == "anonymous"; }
+    function isRegistered(){ return isAuth() && !isAnon(); }
+    function role()        { return get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role; }
+    function isAdmin()     { return isRegistered() && role() == "admin"; }
+    function isEmpleado()  { return isRegistered() && (role() == "empleado" || role() == "admin"); }
+    function isCliente()   { return isRegistered() && role() == "cliente"; }
+
+    // ── Colecciones públicas (cualquier auth, incluyendo anónimos) ───────────
+
+    // Empleados y admin visibles para agendar
+    match /users/{uid} {
+      // Cualquier auth puede leer empleados/admin (para la pantalla de agendar)
+      allow read: if isAuth() && (
+        resource.data.role in ["empleado", "admin"]
+        || request.auth.uid == uid
+        || isAdmin()
+      );
+      allow create: if isRegistered();
+      allow update: if isAdmin() || request.auth.uid == uid;
+      allow delete: if isAdmin();
+    }
+
+    // Inventario — lectura pública (tienda para invitados)
+    match /inventario/{id} {
+      allow read:   if isAuth();
+      allow write:  if isAdmin();
+    }
+
+    // Servicios/catálogo — lectura pública
+    match /servicios/{id} {
+      allow read:   if isAuth();
+      allow write:  if isAdmin();
+    }
+
+    // Configuración (horarios, etc.) — lectura pública
+    match /config/{id} {
+      allow read:   if isAuth();
+      allow write:  if isAdmin();
+    }
+
+    // Horario/config — lectura pública
+    match /horario/{id} {
+      allow read:  if isAuth();
+      allow write: if isAdmin();
+    }
+
+    // ── Reservas ─────────────────────────────────────────────────────────────
+    match /reservas/{id} {
+      allow read:   if isAuth();
+      allow create: if isAuth();
+      allow update: if isEmpleado() || isAdmin() || request.auth.uid == resource.data.clienteUid;
+      allow delete: if isAdmin();
+    }
+
+    // ── Pedidos ───────────────────────────────────────────────────────────────
+    match /pedidos/{id} {
+      allow read:   if isAdmin() || (isAuth() && request.auth.uid == resource.data.clienteUid);
+      allow create: if isAuth();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ── Movimientos (saldo/crédito) ───────────────────────────────────────────
+    match /movimientos/{id} {
+      allow read:   if isAdmin() || (isRegistered() && request.auth.uid == resource.data.clienteUid);
+      allow create: if isAdmin();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ── Servicios realizados (balances) ───────────────────────────────────────
+    match /servicios_realizados/{id} {
+      allow read:   if isEmpleado() || isAdmin();
+      allow create: if isEmpleado() || isAdmin();
+      allow update: if isAdmin();
+      allow delete: if isAdmin();
+    }
+
+    // ── Eventos ───────────────────────────────────────────────────────────────
+    match /eventos/{id} {
+      allow read:   if isAuth();
+      allow write:  if isAdmin();
+    }
+  }
+}

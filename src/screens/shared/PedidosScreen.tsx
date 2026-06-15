@@ -185,7 +185,7 @@ export function PedidosScreen({ mode, showBackHeader = true }: Props) {
                   ))}
                 </View>
                 {p.aCredito && <TagChip label="A crédito" variant="warning" />}
-                {mode === "admin" && ["pendiente","pendiente_credito"].includes(p.estado) && (
+                {(mode === "admin" || (mode === "empleado" && user?.canApproveOrders)) && ["pendiente","pendiente_credito"].includes(p.estado) && (
                   <View style={styles.acciones}>
                     <TouchableOpacity onPress={() => cambiarEstado(p,"rechazado")} style={[styles.accionBtn, { backgroundColor: c.negative+"18", borderColor: c.negative+"44" }]}>
                       <MaterialIcons name="close" size={15} color={c.negative} />
@@ -197,7 +197,7 @@ export function PedidosScreen({ mode, showBackHeader = true }: Props) {
                     </TouchableOpacity>
                   </View>
                 )}
-                {mode === "admin" && p.estado === "aprobado" && (
+                {(mode === "admin" || (mode === "empleado" && user?.canApproveOrders)) && p.estado === "aprobado" && (
                   <TouchableOpacity onPress={() => cambiarEstado(p,"entregado")} style={[styles.accionBtn, { borderColor: c.amber+"44", backgroundColor: c.amber+"18" }]}>
                     <MaterialIcons name="local-shipping" size={15} color={c.amber} />
                     <Text style={[styles.accionText, { color: c.amber }]}>Marcar entregado</Text>

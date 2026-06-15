@@ -20,6 +20,7 @@ import { AdminBalancesScreen }      from "../screens/admin/AdminBalancesScreen";
 import { AdminServiciosScreen }     from "../screens/admin/AdminServiciosScreen";
 import { AdminAsignarReservaScreen }from "../screens/admin/AdminAsignarReservaScreen";
 import { PedidosScreen }             from "../screens/shared/PedidosScreen";
+import { EntretenimientoScreen }     from "../screens/shared/EntretenimientoScreen";
 
 function AdminPedidosGestScreen() {
   return <PedidosScreen mode="admin" showBackHeader={false} />;
@@ -49,12 +50,13 @@ function AdminTabs() {
         tabBarLabelStyle: { fontSize: 10 },
         tabBarIcon: ({ color }) => {
           const icons: Record<string, keyof typeof MaterialIcons.glyphMap> = {
-            Dashboard: "dashboard",
-            Reservas:  "event-available",
-            Pedidos:   "receipt-long",
-            Pagos:     "payments",
-            Clientes:  "person-search",
-            Perfil:    "manage-accounts",
+            Dashboard:       "dashboard",
+            Reservas:        "event-available",
+            Agenda:          "calendar-today",
+            Pedidos:         "receipt-long",
+            Clientes:        "person-search",
+            Entretenimiento: "sports-soccer",
+            Perfil:          "manage-accounts",
           };
           return (
             <MaterialIcons
@@ -66,12 +68,13 @@ function AdminTabs() {
         },
       })}
     >
-      <Tab.Screen name="Dashboard" component={AdminDashboardScreen} />
-      <Tab.Screen name="Reservas"  component={AdminReservasScreen} />
-      <Tab.Screen name="Pedidos"   component={AdminPedidosGestScreen} />
-      <Tab.Screen name="Pagos"     component={AdminPagosScreen} />
-      <Tab.Screen name="Clientes"  component={AdminClientesScreen} />
-      <Tab.Screen name="Perfil"    component={AdminPerfilScreen} />
+      <Tab.Screen name="Dashboard"       component={AdminDashboardScreen} />
+      <Tab.Screen name="Reservas"        component={AdminReservasScreen} />
+      <Tab.Screen name="Agenda"          component={EmpleadoAgendaScreen} />
+      <Tab.Screen name="Pedidos"         component={AdminPedidosGestScreen} />
+      <Tab.Screen name="Clientes"        component={AdminClientesScreen} />
+      <Tab.Screen name="Entretenimiento" component={EntretenimientoScreen} />
+      <Tab.Screen name="Perfil"          component={AdminPerfilScreen} />
     </Tab.Navigator>
   );
 }
@@ -90,6 +93,7 @@ export function AdminNavigator() {
       <Stack.Screen name="AdminBalances"        component={AdminBalancesScreen} />
       <Stack.Screen name="AdminServicios"       component={AdminServiciosScreen} />
       <Stack.Screen name="AdminAsignarReserva"  component={AdminAsignarReservaScreen} />
+      <Stack.Screen name="Pagos"               component={AdminPagosScreen} />
     </Stack.Navigator>
   );
 }

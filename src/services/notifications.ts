@@ -47,19 +47,24 @@ export async function registerForPushNotifications(userId: string): Promise<stri
 
       // Canal pedidos
       await Notifications.setNotificationChannelAsync("pedidos", {
-        name:        "Pedidos",
-        description: "Estados de pedidos y aprobaciones",
-        importance:  Notifications.AndroidImportance.DEFAULT,
-        lightColor:  "#22C55E",
-        sound:       "default",
+        name:             "Pedidos",
+        description:      "Estados de pedidos y aprobaciones",
+        importance:       Notifications.AndroidImportance.HIGH,
+        vibrationPattern: [0, 200, 100, 200],
+        lightColor:       "#22C55E",
+        sound:            "default",
+        lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
       });
 
       // Canal pagos
       await Notifications.setNotificationChannelAsync("pagos", {
-        name:        "Pagos y créditos",
-        description: "Recordatorios de saldo y abonos",
-        importance:  Notifications.AndroidImportance.DEFAULT,
-        lightColor:  "#F43F5E",
+        name:             "Pagos y créditos",
+        description:      "Recordatorios de saldo y abonos",
+        importance:       Notifications.AndroidImportance.HIGH,
+        vibrationPattern: [0, 200, 100, 200],
+        lightColor:       "#F43F5E",
+        sound:            "default",
+        lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
       });
     }
 
@@ -224,6 +229,25 @@ export async function notificarAbono(
     saldoRestante > 0 ? "💳 Abono registrado" : "✅ ¡Saldo al día!",
     body,
     { tipo: "abono" },
+    "pagos",
+  );
+}
+
+// ── Recordatorio de saldo pendiente ─────────────────────────────────────────
+export async function notificarSaldoPendiente(
+  clienteUid:    string,
+  clienteNombre: string,
+  saldo:         number,
+) {
+  const pushToken = await getPushToken(clienteUid);
+  if (!pushToken) return;
+
+  const nombre = clienteNombre.split(" ")[0];
+  await enviarPush(
+    pushToken,
+    "💳 Tienes un saldo pendiente",
+    `Hola ${nombre}, recuerda que tienes un saldo pendiente de $${saldo.toLocaleString("es-CO")}. Pasa por la barbería para ponerte al día.`,
+    { tipo: "saldo" },
     "pagos",
   );
 }

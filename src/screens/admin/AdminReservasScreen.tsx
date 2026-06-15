@@ -86,6 +86,18 @@ export function AdminReservasScreen() {
   };
 
   useEffect(() => {
+    // Auto-cancelar reservas pendientes vencidas
+    const ahora = new Date();
+    getDocs(query(
+      collection(db, "reservas"),
+      where("estado", "==", "pendiente"),
+      where("fecha", "<", Timestamp.fromDate(ahora)),
+    )).then(snap =>
+      Promise.all(snap.docs.map(d =>
+        updateDoc(doc(db, "reservas", d.id), { estado: "cancelada", updatedAt: Timestamp.now() })
+      ))
+    ).catch(() => {});
+
     loadEmpleados();
     loadReservas();
   }, []);
@@ -371,11 +383,7 @@ export function AdminReservasScreen() {
                       <MaterialIcons name="check" size={16} color={c.positive} />
                       <Text style={[styles.actionBtnText, { color: c.positive }]}>Confirmar</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity onPress={() => cambiarEstado(r,"pendiente")} style={[styles.actionBtn, { backgroundColor: c.amber+"18" }]}>
-                      <MaterialIcons name="schedule" size={16} color={c.amber} />
-                      <Text style={[styles.actionBtnText, { color: c.amber }]}>Aplazar</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={() => cambiarEstado(r,"cancelada")} style={[styles.actionBtn, { backgroundColor: c.negative+"18" }]}>
+<TouchableOpacity onPress={() => cambiarEstado(r,"cancelada")} style={[styles.actionBtn, { backgroundColor: c.negative+"18" }]}>
                       <MaterialIcons name="close" size={16} color={c.negative} />
                       <Text style={[styles.actionBtnText, { color: c.negative }]}>Negar</Text>
                     </TouchableOpacity>

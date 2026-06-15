@@ -5,17 +5,17 @@ export const Colors = {
   red:          "#D90404",
   redLight:     "#B50303",
   bgDark:       "#0D0D0D",
-  surfaceDark:  "#191C21",
-  textDark:     "#F4F2EE",
-  subDark:      "#8A8580",
-  bgLight:      "#F7F8FA",
+  surfaceDark:  "#161920",   // ligeramente más azul para diferenciarse del bg
+  textDark:     "#F0EDE8",   // un poco más cálido, menos frío que puro blanco
+  subDark:      "#9A948F",   // más claro que antes para mejor legibilidad en textos pequeños
+  bgLight:      "#F4F5F7",
   surfaceLight: "#FFFFFF",
   textLight:    "#0D0D0D",
   subLight:     "#5E5C58",
   positive:      "#22C55E",
   positiveLight: "#15803D",
   negative:      "#F43F5E",
-  negativeLight: "#B50303",
+  negativeLight: "#B91C1C",
 };
 
 export type ThemeMode = "dark" | "light";
@@ -46,7 +46,7 @@ export function getThemeColors(mode: ThemeMode): ThemeColors {
     positive: isDark ? Colors.positive     : Colors.positiveLight,
     negative: isDark ? Colors.negative     : Colors.negativeLight,
     blue:     Colors.blue,
-    border:   isDark ? "#2A2D35"           : "#E2E4E8",
+    border:   isDark ? "#2E3240"           : "#E2E4E8",
     isDark,
   };
 }

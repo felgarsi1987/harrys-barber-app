@@ -35,14 +35,11 @@ export function ClienteCarritoScreen() {
   const [filtroCateg, setFiltroCateg] = useState("todos");
 
   useEffect(() => {
-    const timer = setTimeout(() => {
     getDocs(collection(db, "inventario"))
       .then(snap => {
         setProductos(snap.docs.map(d => ({ id: d.id, ...d.data() }) as Producto));
       })
       .finally(() => setLoading(false));
-    }, 1000); // wait for anonymous auth
-    return () => clearTimeout(timer);
   }, []);
 
   const agregar = (producto: Producto) => {
@@ -269,7 +266,7 @@ const styles = StyleSheet.create({
   },
   badgeText:    { fontSize: 11, fontFamily: "SpaceGrotesk_600SemiBold", color: "#000" },
   scroll:       { padding: 20, gap: 16 },
-  sectionLabel: { fontSize: 10, fontFamily: "SpaceGrotesk_600SemiBold", letterSpacing: 2 },
+  sectionLabel: { fontSize: 10, fontFamily: "SpaceGrotesk_500Medium", letterSpacing: 1.5 },
   empty:        { alignItems: "center", gap: 12, paddingVertical: 40 },
   emptyText:    { fontSize: 14, fontFamily: "SpaceGrotesk_400Regular" },
   grid:         { flexDirection: "row", flexWrap: "wrap", gap: 10 },

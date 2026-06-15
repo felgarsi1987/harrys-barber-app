@@ -9,9 +9,7 @@ import {
 import { db } from "../../services/firebase";
 import { useThemeColors } from "../../hooks/useThemeColors";
 import { useAuthStore }   from "../../store/authStore";
-import { NumberText }     from "../../components/ui/NumberText";
 import { ThemedCard }     from "../../components/ui/ThemedCard";
-import { TagChip }        from "../../components/ui/TagChip";
 import { ScreenWrapper }  from "../../components/ui/ScreenWrapper";
 
 interface Movimiento {
@@ -68,9 +66,9 @@ export function ClienteSaldoScreen() {
         {/* Saldo actual */}
         <ThemedCard style={styles.saldoCard} elevated>
           <Text style={[styles.saldoLabel, { color: c.sub }]}>SALDO PENDIENTE</Text>
-          <NumberText size={36} negative={saldo > 0} positive={saldo <= 0}>
+          <Text style={[styles.saldoMonto, { color: saldo > 0 ? c.negative : c.positive }]}>
             ${Math.abs(saldo).toLocaleString("es-CO")}
-          </NumberText>
+          </Text>
           <Text style={[styles.saldoDesc, { color: c.sub }]}>
             {saldo > 0 ? "Tienes una deuda pendiente" : "Estás al día ✓"}
           </Text>
@@ -111,13 +109,9 @@ export function ClienteSaldoScreen() {
                   <Text style={[styles.movFecha, { color: c.sub }]}>{formatFecha(m.fecha)}</Text>
                 </View>
                 <View style={{ alignItems: "flex-end", gap: 2 }}>
-                  <NumberText
-                    size={15}
-                    negative={m.tipo === "cargo"}
-                    positive={m.tipo === "abono" || m.tipo === "pago"}
-                  >
+                  <Text style={[styles.movMonto, { color: m.tipo === "cargo" ? c.negative : c.positive }]}>
                     {m.tipo === "cargo" ? "-" : "+"}${m.monto.toLocaleString("es-CO")}
-                  </NumberText>
+                  </Text>
                   <Text style={[styles.movTipo, { color: m.tipo === "cargo" ? c.negative : c.positive }]}>
                     {m.tipo === "cargo" ? "Cargo" : "Abono"}
                   </Text>
@@ -136,9 +130,10 @@ const styles = StyleSheet.create({
   title:  { fontSize: 22, fontFamily: "Syne_700Bold" },
   scroll: { padding: 20, gap: 16 },
   saldoCard:  { gap: 8, alignItems: "center", paddingVertical: 28 },
+  saldoMonto: { fontSize: 36, fontFamily: "SpaceGrotesk_600SemiBold" },
   saldoLabel: { fontSize: 10, fontFamily: "SpaceGrotesk_600SemiBold", letterSpacing: 2 },
   saldoDesc:  { fontSize: 13, fontFamily: "SpaceGrotesk_400Regular" },
-  sectionLabel: { fontSize: 10, fontFamily: "SpaceGrotesk_600SemiBold", letterSpacing: 2 },
+  sectionLabel: { fontSize: 10, fontFamily: "SpaceGrotesk_500Medium", letterSpacing: 1.5 },
   empty:      { alignItems: "center", gap: 12, paddingVertical: 40 },
   emptyText:  { fontSize: 14, fontFamily: "SpaceGrotesk_400Regular" },
   historialCard: { gap: 0, padding: 0, overflow: "hidden" },
@@ -147,6 +142,7 @@ const styles = StyleSheet.create({
     padding: 14, gap: 12,
   },
   movIcon:  { width: 36, height: 36, borderRadius: 18, justifyContent: "center", alignItems: "center" },
+  movMonto: { fontSize: 15, fontFamily: "SpaceGrotesk_600SemiBold" },
   movDesc:  { fontSize: 14, fontFamily: "SpaceGrotesk_500Medium" },
   movTipo:  { fontSize: 10, fontFamily: "SpaceGrotesk_600SemiBold" },
   movFecha: { fontSize: 11, fontFamily: "SpaceGrotesk_400Regular" },

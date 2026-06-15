@@ -106,7 +106,8 @@ export function ClienteHomeScreen() {
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
 
         {/* Saludo */}
-        <View style={styles.greetingBlock}>
+        <View style={[styles.greetingBlock, { backgroundColor: c.amber + "0E", borderColor: c.amber + "22", borderWidth: 1 }]}>
+          <View style={[styles.greetingDot, { backgroundColor: c.amber }]} />
           <Text style={[styles.greeting, { color: c.sub }]}>
             {isBirthday() ? "🎂 ¡Feliz cumpleaños!" : "Bienvenido,"}
           </Text>
@@ -178,7 +179,7 @@ export function ClienteHomeScreen() {
             ? servicios.map((s, i) => (
                 <TouchableOpacity
                   key={i}
-                  style={[styles.servicioCard, { borderColor: c.border }]}
+                  style={[styles.servicioCard, { borderColor: c.border, borderLeftColor: c.amber, borderLeftWidth: 3 }]}
                   activeOpacity={0.7}
                 >
                   <MaterialIcons name="content-cut" size={20} color={c.text} />
@@ -189,7 +190,7 @@ export function ClienteHomeScreen() {
                 </TouchableOpacity>
               ))
             : [{label:"Corte",precio:"$15.000"},{label:"Barba",precio:"$10.000"},{label:"Corte + Barba",precio:"$22.000"}].map((s,i)=>(
-                <TouchableOpacity key={i} style={[styles.servicioCard,{borderColor:c.border}]} activeOpacity={0.7}>
+                <TouchableOpacity key={i} style={[styles.servicioCard,{borderColor:c.border,borderLeftColor:c.amber,borderLeftWidth:3}]} activeOpacity={0.7}>
                   <MaterialIcons name="content-cut" size={20} color={c.text}/>
                   <Text style={[styles.servicioLabel,{color:c.text}]}>{s.label}</Text>
                   <Text style={[styles.servicioPrecio,{color:c.amber}]}>{s.precio}</Text>
@@ -219,7 +220,8 @@ const styles = StyleSheet.create({
     borderWidth: 1, justifyContent: "center", alignItems: "center",
   },
   scroll:        { padding: 20, gap: 20 },
-  greetingBlock: { gap: 4 },
+  greetingBlock: { gap: 4, borderRadius: 14, padding: 16 },
+  greetingDot:   { width: 6, height: 6, borderRadius: 3, marginBottom: 4 },
   greeting:      { fontSize: 13, fontFamily: "SpaceGrotesk_400Regular" },
   greetingName:  { fontSize: 24, fontFamily: "Syne_800ExtraBold" },
   birthdayMsg:   { fontSize: 13, fontFamily: "SpaceGrotesk_500Medium" },
@@ -230,6 +232,7 @@ const styles = StyleSheet.create({
   eventoBannerImg: { width: "100%", height: 140, borderRadius: 10, marginBottom: 4 },
   eventoDesc:    { fontSize: 13, fontFamily: "SpaceGrotesk_400Regular" },
   sectionTitle:  { fontSize: 10, fontFamily: "SpaceGrotesk_600SemiBold", letterSpacing: 2 },
+  nameRow:       { flexDirection: "row", alignItems: "center", gap: 8, flexWrap: "wrap" },
   citaCard:      { gap: 8 },
   citaTop:       { flexDirection: "row", alignItems: "center", gap: 12 },
   citaServicio:  { fontSize: 15, fontFamily: "SpaceGrotesk_600SemiBold" },

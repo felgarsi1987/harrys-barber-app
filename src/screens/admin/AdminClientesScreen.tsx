@@ -4,8 +4,9 @@ import {
   TextInput, TouchableOpacity, Alert, Modal,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
-import { collection, getDocs, deleteDoc, doc, updateDoc } from "firebase/firestore";
+import { collection, getDocs, deleteDoc, doc, updateDoc, query, where } from "firebase/firestore";
 import { db } from "../../services/firebase";
+import { notificarSaldoPendiente } from "../../services/notifications";
 import { useThemeColors }      from "../../hooks/useThemeColors";
 import { ThemedCard }           from "../../components/ui/ThemedCard";
 import { NumberText }           from "../../components/ui/NumberText";
@@ -50,10 +51,9 @@ export function AdminClientesScreen() {
         const uid = d.data().clienteUid;
         if (uid) visitasPorCliente[uid] = (visitasPorCliente[uid] ?? 0) + 1;
       });
-      const data = usersSnap.docs.map(d => ({
-        ...d.data() as Cliente,
-        visitas: visitasPorCliente[d.data().uid] ?? 0,
-      }));
+      const data = usersSnap.docs
+        .map(d => ({ ...d.data() as Cliente, visitas: visitasPorCliente[d.data().uid] ?? 0 }))
+        .filter(cl => !!cl.email);
       setClientes(data);
       setFiltered(data);
     }).finally(() => setLoading(false));
@@ -81,6 +81,24 @@ export function AdminClientesScreen() {
       setClientes(prev => prev.map(cl => cl.uid === cliente.uid ? updated : cl));
       setModalCli(updated);
     } catch { Alert.alert("Error", "No se pudo actualizar."); }
+  };
+
+  const notificarPago = (cli: Cliente) => {
+    Alert.alert(
+      "Notificar cobro",
+      `¿Enviar recordatorio de pago a ${cli.nombre}?\nSaldo: $${(cli.saldo ?? 0).toLocaleString("es-CO")}`,
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Enviar",
+          onPress: () => {
+            notificarSaldoPendiente(cli.uid, `${cli.nombre} ${cli.apellido}`, cli.saldo ?? 0)
+              .then(() => Alert.alert("✅ Enviado", `Recordatorio enviado a ${cli.nombre}.`))
+              .catch(() => Alert.alert("Error", "No se pudo enviar la notificación."));
+          },
+        },
+      ]
+    );
   };
 
   const eliminarCliente = (cli: Cliente) => {
@@ -162,12 +180,28 @@ export function AdminClientesScreen() {
                   </NumberText>
                 )}
               </View>
-              <TouchableOpacity
-                onPress={() => setModalCli(cli)}
-                style={[styles.editBtn, { borderColor: c.border }]}
-              >
-                <MaterialIcons name="workspace-premium" size={18} color={c.amber} />
-              </TouchableOpacity>
+              <View style={styles.acciones}>
+                <TouchableOpacity
+                  onPress={() => setModalCli(cli)}
+                  style={[styles.editBtn, { borderColor: c.border }]}
+                >
+                  <MaterialIcons name="workspace-premium" size={18} color={c.amber} />
+                </TouchableOpacity>
+                {(cli.saldo ?? 0) > 0 && (
+                  <TouchableOpacity
+                    onPress={() => notificarPago(cli)}
+                    style={[styles.editBtn, { borderColor: c.amber + "66" }]}
+                  >
+                    <MaterialIcons name="notifications" size={18} color={c.amber} />
+                  </TouchableOpacity>
+                )}
+                <TouchableOpacity
+                  onPress={() => eliminarCliente(cli)}
+                  style={[styles.editBtn, { borderColor: c.negative + "44" }]}
+                >
+                  <MaterialIcons name="delete-outline" size={18} color={c.negative} />
+                </TouchableOpacity>
+              </View>
             </ThemedCard>
           ))
         )}
@@ -212,9 +246,9 @@ export function AdminClientesScreen() {
               {modalCli?.categoria && (
                 <TouchableOpacity
                   onPress={() => modalCli && asignarCategoria(modalCli, null)}
-                  style={[styles.modalBtn, { borderColor: c.negative + "44" }]}
+                  style={[styles.modalBtn, { borderColor: c.border }]}
                 >
-                  <Text style={[styles.modalBtnText, { color: c.negative }]}>Quitar categoría</Text>
+                  <Text style={[styles.modalBtnText, { color: c.sub }]}>Quitar categoría</Text>
                 </TouchableOpacity>
               )}
               <TouchableOpacity
@@ -224,6 +258,18 @@ export function AdminClientesScreen() {
                 <Text style={[styles.modalBtnText, { color: "#000" }]}>Listo</Text>
               </TouchableOpacity>
             </View>
+
+            <TouchableOpacity
+              onPress={() => {
+                const cli = modalCli;
+                setModalCli(null);
+                if (cli) setTimeout(() => eliminarCliente(cli), 300);
+              }}
+              style={[styles.eliminarBtn, { borderColor: c.negative + "44" }]}
+            >
+              <MaterialIcons name="delete-outline" size={16} color={c.negative} />
+              <Text style={[styles.modalBtnText, { color: c.negative }]}>Eliminar cliente</Text>
+            </TouchableOpacity>
           </View>
         </View>
       </Modal>
@@ -250,7 +296,9 @@ const styles = StyleSheet.create({
   email:       { fontSize: 12, fontFamily: "SpaceGrotesk_400Regular" },
   visitasRow:  { flexDirection: "row", alignItems: "center", gap: 4 },
   visitasTxt:  { fontSize: 11, fontFamily: "SpaceGrotesk_400Regular" },
+  acciones:    { gap: 6 },
   editBtn:     { width: 34, height: 34, borderRadius: 8, borderWidth: 1, justifyContent: "center", alignItems: "center" },
+  eliminarBtn: { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, height: 44, borderRadius: 10, borderWidth: 1 },
   overlay:     { flex: 1, backgroundColor: "rgba(0,0,0,0.6)", justifyContent: "flex-end" },
   modalCard:   { borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 24, gap: 16 },
   modalTitle:  { fontSize: 20, fontFamily: "Syne_700Bold" },
