@@ -11,6 +11,7 @@ import { useGuestStore }  from "../../store/guestStore";
 import { NumberText }     from "../../components/ui/NumberText";
 import { ThemedCard }     from "../../components/ui/ThemedCard";
 import { ScreenWrapper }  from "../../components/ui/ScreenWrapper";
+import { notificarNuevoPedido } from "../../services/notifications";
 
 interface Producto {
   id:        string;
@@ -68,9 +69,10 @@ export function ClienteCarritoScreen() {
     }
     setEnviando(true);
     try {
+      const clienteNombre = user ? `${user.nombre} ${user.apellido}` : guest ? `${guest.nombre} ${guest.apellido}` : "Invitado";
       await addDoc(collection(db, "pedidos"), {
         clienteUid:    user?.uid ?? null,
-        clienteNombre: user ? `${user.nombre} ${user.apellido}` : guest ? `${guest.nombre} ${guest.apellido}` : "Invitado",
+        clienteNombre,
         clienteEmail:  user?.email ?? null,
         items: carrito.map(i => ({
           productoId: i.id,
@@ -83,6 +85,9 @@ export function ClienteCarritoScreen() {
         aCredito,
         createdAt: Timestamp.now(),
       });
+
+      // Avisar al negocio (admin + empleados que aprueban) del nuevo pedido
+      notificarNuevoPedido(clienteNombre, total, aCredito).catch(() => {});
 
       setCarrito([]);
       Alert.alert(
@@ -279,7 +284,7 @@ const styles = StyleSheet.create({
     width: 28, height: 28, borderRadius: 14,
     borderWidth: 1, justifyContent: "center", alignItems: "center",
   },
-  cant:    { fontSize: 15, fontFamily: "Syne_700Bold" },
+  cant:    { fontSize: 15, fontFamily: "Inter_700Bold" },
   addBtn: {
     flexDirection: "row", alignItems: "center", gap: 6,
     paddingHorizontal: 10, paddingVertical: 6,

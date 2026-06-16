@@ -9,6 +9,7 @@ import { useThemeColors } from "../../hooks/useThemeColors";
 import { useAuthStore }   from "../../store/authStore";
 import { ThemedCard }     from "../../components/ui/ThemedCard";
 import { ScreenWrapper }  from "../../components/ui/ScreenWrapper";
+import { PressableScale } from "../../components/ui/PressableScale";
 
 export function AdminPerfilScreen() {
   const { toggle, mode, ...colorProps } = useThemeColors();
@@ -95,13 +96,13 @@ export function AdminPerfilScreen() {
         </ThemedCard>
 
         {/* Logout */}
-        <TouchableOpacity
+        <PressableScale
           onPress={handleLogout}
           style={[styles.logoutBtn, { borderColor: c.red }]}
         >
           <MaterialIcons name="logout" size={18} color={c.red} />
           <Text style={[styles.logoutText, { color: c.red }]}>Cerrar sesión</Text>
-        </TouchableOpacity>
+        </PressableScale>
       </ScrollView>
     </ScreenWrapper>
   );

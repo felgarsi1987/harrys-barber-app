@@ -1,9 +1,10 @@
-import React, { useCallback } from "react";
+import React, { useCallback, useEffect } from "react";
 import {
   View, Text, StyleSheet, Pressable, Image,
 } from "react-native";
 import Animated, {
   FadeIn, FadeInDown, useSharedValue, useAnimatedStyle, withSpring,
+  withTiming, withRepeat, withDelay, interpolate, Easing,
 } from "react-native-reanimated";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { MaterialIcons, Feather } from "@expo/vector-icons";
@@ -33,6 +34,33 @@ export function EntradaScreen() {
   const c          = useThemeColors();
   const navigation = useNavigation<any>();
 
+  // ── Efecto 3D: el logo entra con un flip y luego flota en perspectiva ──
+  const intro = useSharedValue(0);   // entrada (una vez)
+  const float = useSharedValue(0);   // flotación continua
+
+  useEffect(() => {
+    intro.value = withDelay(120, withTiming(1, { duration: 800, easing: Easing.bezier(0.23, 1, 0.32, 1) }));
+    float.value = withRepeat(
+      withTiming(1, { duration: 3800, easing: Easing.inOut(Easing.ease) }),
+      -1, true,
+    );
+  }, []);
+
+  // Logo: flip de entrada (rotateX) + balanceo 3D continuo (rotateY) + flotación (translateY)
+  const logo3D = useAnimatedStyle(() => ({
+    transform: [
+      { perspective: 700 },
+      { rotateX: `${interpolate(intro.value, [0, 1], [40, 0])}deg` },
+      { rotateY: `${interpolate(float.value, [0, 1], [-8, 8])}deg` },
+      { translateY: interpolate(float.value, [0, 1], [-5, 5]) },
+    ],
+  }));
+
+  // Glow: parallax suave en sentido opuesto → sensación de profundidad
+  const glow3D = useAnimatedStyle(() => ({
+    transform: [{ translateY: interpolate(float.value, [0, 1], [4, -4]) }],
+  }));
+
   useFocusEffect(useCallback(() => {
     navState.lastAuthScreen = "entrada";
   }, []));
@@ -42,14 +70,16 @@ export function EntradaScreen() {
 
       {/* Logo — entra desde arriba */}
       <Animated.View entering={FadeIn.delay(80).duration(600)} style={styles.logoSection}>
-        {/* Glow detrás del logo */}
-        <View style={[styles.logoGlow, { backgroundColor: c.amber + "18" }]} />
-        <View style={[styles.logoGlowInner, { backgroundColor: c.amber + "12" }]} />
-        <Image
-          source={require("../../../assets/icon.png")}
-          style={styles.logo}
-          resizeMode="contain"
-        />
+        {/* Glow detrás del logo — parallax 3D */}
+        <Animated.View style={[styles.logoGlow, glow3D, { backgroundColor: c.amber + "18" }]} />
+        <Animated.View style={[styles.logoGlowInner, glow3D, { backgroundColor: c.amber + "12" }]} />
+        <Animated.View style={logo3D}>
+          <Image
+            source={require("../../../assets/icon.png")}
+            style={styles.logo}
+            resizeMode="contain"
+          />
+        </Animated.View>
         <Text style={[styles.brand,    { color: c.text }]}>HARRY'S</Text>
         <Text style={[styles.brandSub, { color: c.amber }]}>BARBER SHOP</Text>
       </Animated.View>

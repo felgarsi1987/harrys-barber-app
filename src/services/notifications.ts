@@ -209,6 +209,33 @@ export async function notificarEstadoPedido(
   await enviarPush(pushToken, msg.title, msg.body, { tipo: "pedido", estado }, "pedidos");
 }
 
+// ── Notificar al negocio cuando entra un pedido nuevo ───────────────────────
+export async function notificarNuevoPedido(
+  clienteNombre: string,
+  total:         number,
+  aCredito:      boolean,
+) {
+  try {
+    const { getDocs, collection, query, where } = await import("firebase/firestore");
+    const snap = await getDocs(query(collection(db, "users"), where("role", "in", ["admin", "empleado"])));
+    const tokens = snap.docs
+      .filter(d => { const u = d.data(); return u.role === "admin" || u.canApproveOrders; })
+      .map(d => d.data().pushToken as string | undefined)
+      .filter((t): t is string => !!t);
+
+    await Promise.all(tokens.map(token =>
+      enviarPush(
+        token,
+        "🛍️ Nuevo pedido",
+        `${clienteNombre} hizo un pedido por $${total.toLocaleString("es-CO")}${aCredito ? " · a crédito" : ""}`,
+        { tipo: "nuevo_pedido" },
+        "pedidos",
+        aCredito ? "Requiere aprobación de crédito" : undefined,
+      )
+    ));
+  } catch {}
+}
+
 // ── Notificar abono registrado ───────────────────────────────────────────────
 export async function notificarAbono(
   clienteUid:   string,

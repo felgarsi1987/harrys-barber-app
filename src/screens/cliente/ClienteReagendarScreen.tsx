@@ -210,7 +210,7 @@ const styles = StyleSheet.create({
     width: "22%", borderWidth: 1, borderRadius: 8,
     padding: 8, alignItems: "center", gap: 2,
   },
-  horaText: { fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold" },
+  horaText: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
   ocupadaText: { fontSize: 9, fontFamily: "SpaceGrotesk_400Regular" },
   confirmarBtn: {
     height: 52, borderRadius: 12,

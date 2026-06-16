@@ -40,6 +40,6 @@ export function NumberText({
 
 const styles = StyleSheet.create({
   base: {
-    fontFamily: "Syne_700Bold",
+    fontFamily: "Inter_700Bold",
   },
 });

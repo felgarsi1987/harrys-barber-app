@@ -3,6 +3,7 @@ import {
   View, Text, ScrollView, StyleSheet,
   ActivityIndicator, RefreshControl, TouchableOpacity, Alert,
 } from "react-native";
+import Animated, { FadeInDown } from "react-native-reanimated";
 import { MaterialIcons } from "@expo/vector-icons";
 import {
   collection, getDocs, query, where, Timestamp,
@@ -151,7 +152,8 @@ export function ClienteHistorialScreen() {
             </View>
           ) : (
             mostrar.map((r, i) => (
-              <ThemedCard key={i} style={styles.card}>
+              <Animated.View key={i} entering={FadeInDown.delay(i * 50).duration(320)}>
+              <ThemedCard style={styles.card}>
                 <View style={styles.cardHeader}>
                   <View style={{ flex: 1, gap: 4 }}>
                     <Text style={[styles.servicio, { color: c.text }]}>{r.servicio}</Text>
@@ -184,6 +186,7 @@ export function ClienteHistorialScreen() {
                   )}
                 </View>
               </ThemedCard>
+              </Animated.View>
             ))
           )}
         </ScrollView>
@@ -208,7 +211,7 @@ const styles = StyleSheet.create({
   peluquero: { fontSize: 12, fontFamily: "SpaceGrotesk_400Regular" },
   fechaRow:  { flexDirection: "row", alignItems: "center", gap: 6 },
   fecha:     { fontSize: 12, fontFamily: "SpaceGrotesk_400Regular" },
-  precio:    { fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold" },
+  precio:    { fontSize: 13, fontFamily: "Inter_600SemiBold" },
   cancelBtn: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 10, paddingVertical: 6, borderRadius: 8, borderWidth: 1, alignSelf: "flex-start", marginTop: 4 },
   cancelBtnText: { fontSize: 12, fontFamily: "SpaceGrotesk_500Medium" },
 });

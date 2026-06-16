@@ -3,6 +3,7 @@ import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator,
   TextInput, Alert, Modal, RefreshControl, KeyboardAvoidingView, Platform,
 } from "react-native";
+import Animated, { FadeInDown } from "react-native-reanimated";
 import { MaterialIcons } from "@expo/vector-icons";
 import {
   collection, getDocs, query, where,
@@ -297,7 +298,8 @@ export function AdminPagosScreen() {
               </View>
             ) : (
               clientes.map((cli, i) => (
-                <ThemedCard key={i} style={styles.clienteCard}>
+                <Animated.View key={i} entering={FadeInDown.delay(i * 45).duration(320)}>
+                <ThemedCard style={styles.clienteCard}>
                   <View style={[styles.avatar, { backgroundColor: c.negative + "18" }]}>
                     <Text style={[styles.avatarText, { color: c.negative }]}>
                       {cli.nombre[0]}{cli.apellido?.[0] ?? ""}
@@ -320,6 +322,7 @@ export function AdminPagosScreen() {
                     </TouchableOpacity>
                   </View>
                 </ThemedCard>
+                </Animated.View>
               ))
             )
           )}
@@ -333,7 +336,8 @@ export function AdminPagosScreen() {
               </View>
             ) : (
               pedidos.map((p, i) => (
-                <ThemedCard key={i} style={styles.solicitudCard}>
+                <Animated.View key={i} entering={FadeInDown.delay(i * 45).duration(320)}>
+                <ThemedCard style={styles.solicitudCard}>
                   <View style={styles.solicitudHeader}>
                     <View style={[styles.avatar, { backgroundColor: c.amber + "18" }]}>
                       <Text style={[styles.avatarText, { color: c.amber }]}>
@@ -375,6 +379,7 @@ export function AdminPagosScreen() {
                     </TouchableOpacity>
                   </View>
                 </ThemedCard>
+                </Animated.View>
               ))
             )
           )}
@@ -508,7 +513,7 @@ const styles = StyleSheet.create({
   },
   itemRow:   { flexDirection: "row", justifyContent: "space-between" },
   itemNombre:{ fontSize: 13, fontFamily: "SpaceGrotesk_500Medium" },
-  itemPrecio:{ fontSize: 12, fontFamily: "SpaceGrotesk_400Regular" },
+  itemPrecio:{ fontSize: 12, fontFamily: "Inter_500Medium" },
   solicitudBtns: { flexDirection: "row", gap: 10 },
   solicitudBtn: {
     flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center",
@@ -540,7 +545,7 @@ const styles = StyleSheet.create({
   modalCard:    { borderTopLeftRadius: 20, borderTopRightRadius: 20, padding: 24, gap: 16 },
   modalTitle:   { fontSize: 20, fontFamily: "Syne_700Bold" },
   modalCliente: { fontSize: 14, fontFamily: "SpaceGrotesk_500Medium" },
-  modalDeuda:   { fontSize: 16, fontFamily: "Syne_700Bold" },
+  modalDeuda:   { fontSize: 16, fontFamily: "Inter_700Bold" },
   inputLabel:   { fontSize: 12, fontFamily: "SpaceGrotesk_500Medium" },
   input: {
     height: 48, borderWidth: 1, borderRadius: 10,

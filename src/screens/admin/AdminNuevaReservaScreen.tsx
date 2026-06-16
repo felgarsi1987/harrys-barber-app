@@ -6,12 +6,14 @@ import {
 import { MaterialIcons } from "@expo/vector-icons";
 import { collection, addDoc, getDocs, query, where, Timestamp } from "firebase/firestore";
 import { getServicios, Servicio } from "../../services/serviciosService";
+import { notificarCambioEstado } from "../../services/notifications";
 import { db } from "../../services/firebase";
 import { useThemeColors }   from "../../hooks/useThemeColors";
 import { useHorarioConfig } from "../../hooks/useHorarioConfig";
 import { ThemedCard }     from "../../components/ui/ThemedCard";
 import { BackHeader }     from "../../components/ui/BackHeader";
 import { ScreenWrapper }  from "../../components/ui/ScreenWrapper";
+import { PressableScale } from "../../components/ui/PressableScale";
 
 const DIAS_SEMANA = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
 
@@ -114,6 +116,12 @@ export function AdminNuevaReservaScreen() {
         creadoPorAdmin: true,
         createdAt:     Timestamp.now(),
       });
+      // Avisar al cliente registrado que su cita quedó confirmada
+      if (clienteSel?.uid) {
+        notificarCambioEstado(
+          clienteSel.uid, nombreCliente.trim(), servicio.label, "confirmada", horaSel,
+        ).catch(() => {});
+      }
       Alert.alert("✅ Reserva creada", `${nombreCliente} — ${horaSel}`);
       setNombreCliente("");
       setHoraSel("");
@@ -277,7 +285,7 @@ export function AdminNuevaReservaScreen() {
           })}
         </View>
 
-        <TouchableOpacity
+        <PressableScale
           style={[
             styles.crearBtn,
             {
@@ -295,7 +303,7 @@ export function AdminNuevaReservaScreen() {
                 Crear reserva
               </Text>
           }
-        </TouchableOpacity>
+        </PressableScale>
 
       </ScrollView>
     </ScreenWrapper>
@@ -318,19 +326,19 @@ const styles = StyleSheet.create({
     width: 50, alignItems: "center", paddingVertical: 8, borderRadius: 10,
   },
   diaNombre: { fontSize: 10, fontFamily: "SpaceGrotesk_500Medium" },
-  diaNumero: { fontSize: 18, fontFamily: "Syne_700Bold" },
+  diaNumero: { fontSize: 18, fontFamily: "Inter_700Bold" },
   serviciosGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
   servicioBtn: {
     width: "47.5%", borderWidth: 1, borderRadius: 12, padding: 12, gap: 4,
   },
   servicioLabel:  { fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold" },
-  servicioPrecio: { fontSize: 11, fontFamily: "SpaceGrotesk_400Regular" },
+  servicioPrecio: { fontSize: 11, fontFamily: "Inter_500Medium" },
   horasGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   horaBtn: {
     width: "22%", borderWidth: 1, borderRadius: 8,
     padding: 8, alignItems: "center",
   },
-  horaText: { fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold" },
+  horaText: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
   crearBtn:     { height: 52, borderRadius: 12, borderWidth: 1, justifyContent: "center", alignItems: "center" },
   crearBtnText: { fontSize: 15, fontFamily: "SpaceGrotesk_600SemiBold" },
   modalOverlay:      { flex: 1, backgroundColor: "#00000088", justifyContent: "flex-end" },

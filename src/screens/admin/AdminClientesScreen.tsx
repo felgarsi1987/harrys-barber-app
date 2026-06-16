@@ -3,6 +3,7 @@ import {
   View, Text, ScrollView, StyleSheet, ActivityIndicator,
   TextInput, TouchableOpacity, Alert, Modal,
 } from "react-native";
+import Animated, { FadeInDown } from "react-native-reanimated";
 import { MaterialIcons } from "@expo/vector-icons";
 import { collection, getDocs, deleteDoc, doc, updateDoc, query, where } from "firebase/firestore";
 import { db } from "../../services/firebase";
@@ -145,7 +146,8 @@ export function AdminClientesScreen() {
           </View>
         ) : (
           filtered.map((cli, i) => (
-            <ThemedCard key={i} style={styles.clienteCard}>
+            <Animated.View key={i} entering={FadeInDown.delay(i * 45).duration(320)}>
+            <ThemedCard style={styles.clienteCard}>
               <View style={[styles.avatar, {
                 backgroundColor: cli.categoria === "diamante" ? "#29B6F622" :
                                  cli.categoria === "oro"      ? "#FFC10722" :
@@ -203,6 +205,7 @@ export function AdminClientesScreen() {
                 </TouchableOpacity>
               </View>
             </ThemedCard>
+            </Animated.View>
           ))
         )}
       </ScrollView>

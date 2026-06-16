@@ -3,8 +3,10 @@ import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator,
   TextInput, Alert, Modal, KeyboardAvoidingView, Platform,
 } from "react-native";
+import Animated, { FadeInDown } from "react-native-reanimated";
 import { MaterialIcons } from "@expo/vector-icons";
 import { BackHeader }    from "../../components/ui/BackHeader";
+import { ProgressBar }   from "../../components/ui/ProgressBar";
 import {
   collection, addDoc, updateDoc,
   deleteDoc, doc, Timestamp, onSnapshot,
@@ -175,7 +177,8 @@ export function AdminInventarioScreen() {
               const color = getStockColor(p.stock, min);
               const barW  = getBarWidth(p.stock, min);
               return (
-                <ThemedCard key={i} style={styles.productoCard}>
+                <Animated.View key={i} entering={FadeInDown.delay(i * 45).duration(320)}>
+                <ThemedCard style={styles.productoCard}>
                   <View style={styles.productoTop}>
                     <View style={{ flex: 1, gap: 2 }}>
                       <Text style={[styles.productoNombre, { color: c.text }]}>
@@ -208,15 +211,9 @@ export function AdminInventarioScreen() {
                     </View>
                   </View>
 
-                  <View style={[styles.barTrack, { backgroundColor: c.border }]}>
-                    <View
-                      style={[
-                        styles.barFill,
-                        { width: `${barW}%` as any, backgroundColor: color },
-                      ]}
-                    />
-                  </View>
+                  <ProgressBar pct={barW} color={color} track={c.border} height={4} delay={i * 45} />
                 </ThemedCard>
+                </Animated.View>
               );
             })
           )}
@@ -330,7 +327,7 @@ const styles = StyleSheet.create({
   productoNombre:    { fontSize: 15, fontFamily: "SpaceGrotesk_600SemiBold" },
   productoCategoria: { fontSize: 11, fontFamily: "SpaceGrotesk_400Regular" },
   stockCol:   { alignItems: "center", minWidth: 40 },
-  stockNum:   { fontSize: 22, fontFamily: "Syne_700Bold" },
+  stockNum:   { fontSize: 22, fontFamily: "Inter_700Bold" },
   stockUnits: { fontSize: 10, fontFamily: "SpaceGrotesk_400Regular" },
   botonesCol: { gap: 6 },
   iconBtn: {

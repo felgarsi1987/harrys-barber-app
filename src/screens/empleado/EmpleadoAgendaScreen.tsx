@@ -3,7 +3,7 @@ import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator, Alert,
   RefreshControl,
 } from "react-native";
-import Animated, { FadeInDown } from "react-native-reanimated";
+import Animated, { FadeInDown, FadeIn } from "react-native-reanimated";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import {
@@ -17,6 +17,7 @@ import { ThemedCard }     from "../../components/ui/ThemedCard";
 import { TagChip }        from "../../components/ui/TagChip";
 import { ScreenWrapper }  from "../../components/ui/ScreenWrapper";
 import { SkeletonLoader } from "../../components/ui/SkeletonLoader";
+import { PressableScale } from "../../components/ui/PressableScale";
 import { notificarCambioEstado, notificarCancelacion } from "../../services/notifications";
 
 interface Reserva {
@@ -29,6 +30,7 @@ interface Reserva {
   fecha:         Timestamp;
   estado:        string;
   noRegistrado?: boolean;
+  peluqueroUid?: string;
 }
 
 const ESTADO_CHIP: Record<string, any> = {
@@ -235,7 +237,7 @@ export function EmpleadoAgendaScreen() {
       <View style={[styles.header, { borderBottomColor: c.border }]}>
         <Text style={[styles.title, { color: c.text }]}>Mi agenda</Text>
         <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
-          <TouchableOpacity
+          <PressableScale
             onPress={() => setCompacto(v => !v)}
             style={[styles.compactBtn, {
               borderColor:     compacto ? c.amber : c.border,
@@ -243,14 +245,14 @@ export function EmpleadoAgendaScreen() {
             }]}
           >
             <MaterialIcons name={compacto ? "view-list" : "view-agenda"} size={18} color={compacto ? c.amber : c.sub} />
-          </TouchableOpacity>
-          <TouchableOpacity
+          </PressableScale>
+          <PressableScale
             onPress={() => navigation.navigate("Nueva Cita")}
             style={[styles.agendarBtn, { backgroundColor: c.amber }]}
           >
             <MaterialIcons name="add" size={18} color="#000" />
             <Text style={styles.agendarBtnText}>Agendar</Text>
-          </TouchableOpacity>
+          </PressableScale>
         </View>
       </View>
 
@@ -291,22 +293,24 @@ export function EmpleadoAgendaScreen() {
       >
         {dias.map((d, i) => {
           const activo = diaOffset === i;
+          const esHoy  = i === PAST_DAYS;
           return (
-            <TouchableOpacity
+            <PressableScale
               key={i}
               onPress={() => setDiaOffset(i)}
               style={[
                 styles.diaBtn,
                 activo && { backgroundColor: c.amber },
+                !activo && esHoy && { borderWidth: 1, borderColor: c.amber + "55" },
               ]}
             >
-              <Text style={[styles.diaNombre, { color: activo ? "#000" : c.sub }]}>
-                {DIAS_SEMANA[d.getDay()]}
+              <Text style={[styles.diaNombre, { color: activo ? "#000" : esHoy ? c.amber : c.sub }]}>
+                {esHoy ? "HOY" : DIAS_SEMANA[d.getDay()]}
               </Text>
               <Text style={[styles.diaNumero, { color: activo ? "#000" : c.text }]}>
                 {d.getDate()}
               </Text>
-            </TouchableOpacity>
+            </PressableScale>
           );
         })}
       </ScrollView>
@@ -338,15 +342,25 @@ export function EmpleadoAgendaScreen() {
       ) : (
         <ScrollView contentContainerStyle={styles.scroll} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={c.amber} />}>
           {reservas.length === 0 ? (
-            <View style={styles.empty}>
-              <MaterialIcons name="event-busy" size={48} color={c.sub} />
+            <Animated.View entering={FadeIn.duration(250)} style={styles.empty}>
+              <View style={[styles.emptyIconWrap, { backgroundColor: c.amber + "14" }]}>
+                <MaterialIcons name="event-available" size={32} color={c.amber} />
+              </View>
+              <Text style={[styles.emptyTitle, { color: c.text }]}>Día libre</Text>
               <Text style={[styles.emptyText, { color: c.sub }]}>
-                Sin citas para este día
+                No tienes citas para este día.
               </Text>
-            </View>
+              <PressableScale
+                onPress={() => navigation.navigate("Nueva Cita")}
+                style={[styles.emptyCta, { backgroundColor: c.amber }]}
+              >
+                <MaterialIcons name="add" size={16} color="#000" />
+                <Text style={styles.emptyCtaText}>Agendar una cita</Text>
+              </PressableScale>
+            </Animated.View>
           ) : (
             reservas.map((r, i) => compacto ? (
-              <View key={r.id}>
+              <Animated.View key={r.id} entering={FadeIn.delay(i * 40).duration(250)}>
                 <ThemedCard style={styles.reservaCardCompacta}>
                   <Text style={[styles.horaCompacta, { color: c.amber }]}>{r.hora}</Text>
                   <View style={{ flex: 1 }}>
@@ -355,7 +369,7 @@ export function EmpleadoAgendaScreen() {
                   </View>
                   <TagChip label={r.estado} variant={ESTADO_CHIP[r.estado] ?? "default"} />
                 </ThemedCard>
-              </View>
+              </Animated.View>
             ) : (
               <Animated.View key={r.id} entering={FadeInDown.delay(i * 60).duration(350)}>
               <ThemedCard
@@ -390,27 +404,27 @@ export function EmpleadoAgendaScreen() {
                   </View>
                   {r.estado === "confirmada" && (
                     <View style={styles.confirmadaRow}>
-                      <TouchableOpacity
+                      <PressableScale
                         onPress={() => marcarCompletado(r)}
-                        style={[styles.confirmadaBtn, { backgroundColor: c.positive + "18", borderColor: c.positive + "44" }]}
+                        style={[styles.actPrimary, { backgroundColor: c.positive }]}
                       >
-                        <MaterialIcons name="task-alt" size={14} color={c.positive} />
-                        <Text style={[styles.confirmadaBtnText, { color: c.positive }]}>Realizado</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
+                        <MaterialIcons name="task-alt" size={15} color="#0B0B0B" />
+                        <Text style={styles.actPrimaryText}>Realizado</Text>
+                      </PressableScale>
+                      <PressableScale
                         onPress={() => marcarFallido(r)}
-                        style={[styles.confirmadaBtn, { backgroundColor: c.amber + "18", borderColor: c.amber + "44" }]}
+                        style={[styles.actGhost, { borderColor: c.border }]}
                       >
                         <MaterialIcons name="event-busy" size={14} color={c.amber} />
-                        <Text style={[styles.confirmadaBtnText, { color: c.amber }]}>Fallido</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
+                        <Text style={[styles.actGhostText, { color: c.amber }]}>Fallido</Text>
+                      </PressableScale>
+                      <PressableScale
                         onPress={() => cancelarReserva(r)}
-                        style={[styles.confirmadaBtn, { backgroundColor: c.negative + "18", borderColor: c.negative + "44" }]}
+                        style={[styles.actGhost, { borderColor: c.border }]}
                       >
                         <MaterialIcons name="cancel" size={14} color={c.negative} />
-                        <Text style={[styles.confirmadaBtnText, { color: c.negative }]}>Cancelar</Text>
-                      </TouchableOpacity>
+                        <Text style={[styles.actGhostText, { color: c.negative }]}>Cancelar</Text>
+                      </PressableScale>
                     </View>
                   )}
                 </View>
@@ -450,14 +464,14 @@ export function EmpleadoAgendaScreen() {
                       })}
                     </Text>
                     <View style={styles.confirmadaRow}>
-                      <TouchableOpacity
+                      <PressableScale
                         onPress={() => aprobarReserva(r)}
-                        style={[styles.confirmadaBtn, { backgroundColor: c.positive + "18", borderColor: c.positive + "44" }]}
+                        style={[styles.actPrimary, { backgroundColor: c.positive }]}
                       >
-                        <MaterialIcons name="check" size={14} color={c.positive} />
-                        <Text style={[styles.confirmadaBtnText, { color: c.positive }]}>Confirmar</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
+                        <MaterialIcons name="check" size={15} color="#0B0B0B" />
+                        <Text style={styles.actPrimaryText}>Confirmar</Text>
+                      </PressableScale>
+                      <PressableScale
                         onPress={async () => {
                           try {
                             await updateDoc(doc(db, "reservas", r.id), { estado: "cancelada", updatedAt: Timestamp.now() });
@@ -465,11 +479,11 @@ export function EmpleadoAgendaScreen() {
                             notificarCancelacion(r.clienteUid, r.clienteNombre, r.servicio, r.hora, "empleado").catch(() => {});
                           } catch { Alert.alert("Error", "No se pudo negar."); }
                         }}
-                        style={[styles.confirmadaBtn, { backgroundColor: c.negative + "18", borderColor: c.negative + "44" }]}
+                        style={[styles.actGhost, { borderColor: c.border }]}
                       >
                         <MaterialIcons name="close" size={14} color={c.negative} />
-                        <Text style={[styles.confirmadaBtnText, { color: c.negative }]}>Negar</Text>
-                      </TouchableOpacity>
+                        <Text style={[styles.actGhostText, { color: c.negative }]}>Negar</Text>
+                      </PressableScale>
                     </View>
                   </View>
                 </ThemedCard>
@@ -505,7 +519,7 @@ const styles = StyleSheet.create({
     paddingVertical: 8, borderRadius: 10, gap: 4, minWidth: 52,
   },
   diaNombre:  { fontSize: 10, fontFamily: "SpaceGrotesk_600SemiBold" },
-  diaNumero:  { fontSize: 18, fontFamily: "Syne_700Bold" },
+  diaNumero:  { fontSize: 18, fontFamily: "Inter_700Bold" },
   fechaBar: {
     flexDirection: "row", justifyContent: "space-between",
     alignItems: "center", paddingHorizontal: 20,
@@ -515,29 +529,40 @@ const styles = StyleSheet.create({
   citasCount: { fontSize: 12, fontFamily: "SpaceGrotesk_600SemiBold" },
   resumenChips: { flexDirection: "row", gap: 8 },
   resumenChip:  { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
-  resumenChipNum: { fontSize: 14, fontFamily: "Syne_700Bold" },
+  resumenChipNum: { fontSize: 14, fontFamily: "Inter_700Bold" },
   resumenChipLbl: { fontSize: 11, fontFamily: "SpaceGrotesk_600SemiBold" },
   scroll:     { padding: 20, gap: 10 },
-  empty:      { alignItems: "center", marginTop: 60, gap: 12 },
-  emptyText:  { fontSize: 14, fontFamily: "SpaceGrotesk_400Regular" },
+  empty:      { alignItems: "center", marginTop: 56, gap: 8 },
+  emptyIconWrap: { width: 64, height: 64, borderRadius: 32, justifyContent: "center", alignItems: "center", marginBottom: 4 },
+  emptyTitle: { fontSize: 17, fontFamily: "Syne_700Bold" },
+  emptyText:  { fontSize: 14, fontFamily: "SpaceGrotesk_400Regular", textAlign: "center" },
+  emptyCta:   { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 18, paddingVertical: 11, borderRadius: 12, marginTop: 10 },
+  emptyCtaText: { fontSize: 14, fontFamily: "SpaceGrotesk_600SemiBold", color: "#000" },
   reservaCard: { flexDirection: "row", gap: 16 },
   horaBlock: {
     justifyContent: "center", alignItems: "center",
     paddingRight: 16, borderRightWidth: 1, minWidth: 64,
   },
-  hora:          { fontSize: 22, fontFamily: "Syne_700Bold" },
+  hora:          { fontSize: 22, fontFamily: "Inter_700Bold" },
   clienteNombre: { fontSize: 18, fontFamily: "SpaceGrotesk_600SemiBold" },
   servicio:      { fontSize: 13, fontFamily: "SpaceGrotesk_400Regular" },
   tagsRow:       { flexDirection: "row", gap: 6, marginTop: 4 },
-  confirmadaRow: { flexDirection: "row", gap: 8, marginTop: 8 },
-  confirmadaBtn: {
-    flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center",
-    gap: 5, paddingVertical: 8, borderRadius: 8, borderWidth: 1,
+  confirmadaRow: { flexDirection: "row", gap: 8, marginTop: 10 },
+  // Acción principal (Realizado / Confirmar) — sólida, destacada
+  actPrimary: {
+    flex: 1.4, flexDirection: "row", alignItems: "center", justifyContent: "center",
+    gap: 6, paddingVertical: 10, borderRadius: 10,
   },
-  confirmadaBtnText: { fontSize: 12, fontFamily: "SpaceGrotesk_500Medium" },
+  actPrimaryText: { fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold", color: "#0B0B0B" },
+  // Acciones secundarias — ghost, menor peso visual
+  actGhost: {
+    flex: 1, flexDirection: "row", alignItems: "center", justifyContent: "center",
+    gap: 5, paddingVertical: 10, borderRadius: 10, borderWidth: 1,
+  },
+  actGhostText: { fontSize: 12, fontFamily: "SpaceGrotesk_500Medium" },
   compactBtn: { width: 36, height: 36, borderRadius: 8, borderWidth: 1, justifyContent: "center", alignItems: "center" },
   reservaCardCompacta: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 10 },
-  horaCompacta:    { fontSize: 15, fontFamily: "Syne_700Bold", minWidth: 48, color: "transparent" },
+  horaCompacta:    { fontSize: 15, fontFamily: "Inter_700Bold", minWidth: 48 },
   clienteCompacto: { fontSize: 14, fontFamily: "SpaceGrotesk_600SemiBold" },
   servicioCompacto:{ fontSize: 12, fontFamily: "SpaceGrotesk_400Regular" },
 });

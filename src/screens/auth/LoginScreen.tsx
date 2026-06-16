@@ -12,6 +12,7 @@ import { auth } from "../../services/firebase";
 import { useThemeColors }  from "../../hooks/useThemeColors";
 import { useAuthStore }    from "../../store/authStore";
 import { ScreenWrapper }  from "../../components/ui/ScreenWrapper";
+import { PressableScale } from "../../components/ui/PressableScale";
 import { Typography }      from "../../theme/typography";
 import { Spacing, Radius } from "../../theme/spacing";
 
@@ -149,7 +150,7 @@ export function LoginScreen() {
           )}
 
           {/* CTA */}
-          <TouchableOpacity
+          <PressableScale
             style={[styles.btn, { backgroundColor: c.blue, opacity: isLoading ? 0.7 : 1 }]}
             onPress={handleLogin}
             disabled={isLoading}
@@ -158,7 +159,7 @@ export function LoginScreen() {
               ? <ActivityIndicator color="#fff" />
               : <Text style={[Typography.bodyLarge, { color: "#fff" }]}>Ingresar</Text>
             }
-          </TouchableOpacity>
+          </PressableScale>
         </View>
     </ScreenWrapper>
   );

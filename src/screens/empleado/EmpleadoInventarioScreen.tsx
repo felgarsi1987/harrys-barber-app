@@ -2,6 +2,8 @@ import React, { useEffect, useState } from "react";
 import {
   View, Text, ScrollView, StyleSheet, ActivityIndicator, TouchableOpacity,
 } from "react-native";
+import Animated, { FadeInDown } from "react-native-reanimated";
+import { ProgressBar } from "../../components/ui/ProgressBar";
 import { MaterialIcons } from "@expo/vector-icons";
 import { collection, getDocs } from "firebase/firestore";
 import { db } from "../../services/firebase";
@@ -94,7 +96,8 @@ export function EmpleadoInventarioScreen() {
               const label = getStockLabel(p.stock, min);
               const barW  = getBarWidth(p.stock, min);
               return (
-                <ThemedCard key={i} style={styles.productoCard}>
+                <Animated.View key={i} entering={FadeInDown.delay(i * 45).duration(320)}>
+                <ThemedCard style={styles.productoCard}>
                   <View style={styles.productoTop}>
                     <View style={{ flex: 1 }}>
                       <Text style={[styles.productoNombre, { color: c.text }]}>
@@ -115,15 +118,9 @@ export function EmpleadoInventarioScreen() {
                   </View>
 
                   {/* Barra de stock */}
-                  <View style={[styles.barTrack, { backgroundColor: c.border }]}>
-                    <View
-                      style={[
-                        styles.barFill,
-                        { width: `${barW}%` as any, backgroundColor: color },
-                      ]}
-                    />
-                  </View>
+                  <ProgressBar pct={barW} color={color} track={c.border} height={4} delay={i * 45} />
                 </ThemedCard>
+                </Animated.View>
               );
             })
           )}

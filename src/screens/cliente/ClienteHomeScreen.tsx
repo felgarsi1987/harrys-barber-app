@@ -2,6 +2,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import {
   View, Text, ScrollView, StyleSheet, Image, TouchableOpacity,
 } from "react-native";
+import Animated, { FadeInDown } from "react-native-reanimated";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useNavigation, useFocusEffect } from "@react-navigation/native";
 import { getServicios, Servicio } from "../../services/serviciosService";
@@ -16,6 +17,7 @@ import { TagChip }        from "../../components/ui/TagChip";
 import { FidelizacionBadge } from "../../components/ui/FidelizacionBadge";
 import { ThemedCard }        from "../../components/ui/ThemedCard";
 import { ScreenWrapper }  from "../../components/ui/ScreenWrapper";
+import { PressableScale } from "../../components/ui/PressableScale";
 
 interface Reserva {
   id:       string;
@@ -163,12 +165,12 @@ export function ClienteHomeScreen() {
             <Text style={[styles.noCitaText, { color: c.sub }]}>
               No tienes citas próximas
             </Text>
-            <TouchableOpacity
+            <PressableScale
               style={[styles.agendarBtn, { backgroundColor: c.amber }]}
               onPress={() => navigation.navigate("Agendar")}
             >
               <Text style={styles.agendarBtnText}>Agendar ahora</Text>
-            </TouchableOpacity>
+            </PressableScale>
           </ThemedCard>
         )}
 
@@ -177,24 +179,30 @@ export function ClienteHomeScreen() {
         <View style={styles.serviciosGrid}>
           {servicios.length > 0
             ? servicios.map((s, i) => (
-                <TouchableOpacity
-                  key={i}
-                  style={[styles.servicioCard, { borderColor: c.border, borderLeftColor: c.amber, borderLeftWidth: 3 }]}
-                  activeOpacity={0.7}
-                >
-                  <MaterialIcons name="content-cut" size={20} color={c.text} />
-                  <Text style={[styles.servicioLabel, { color: c.text }]}>{s.label}</Text>
-                  <Text style={[styles.servicioPrecio, { color: c.amber }]}>
-                    ${s.precio.toLocaleString("es-CO")}
-                  </Text>
-                </TouchableOpacity>
+                <Animated.View key={i} entering={FadeInDown.delay(i * 55).duration(320)} style={{ width: "47.5%" }}>
+                  <PressableScale
+                    style={[styles.servicioCard, { borderColor: c.border, borderLeftColor: c.amber, borderLeftWidth: 3 }]}
+                    onPress={() => navigation.navigate("Agendar")}
+                  >
+                    <MaterialIcons name="content-cut" size={20} color={c.text} />
+                    <Text style={[styles.servicioLabel, { color: c.text }]}>{s.label}</Text>
+                    <Text style={[styles.servicioPrecio, { color: c.amber }]}>
+                      ${s.precio.toLocaleString("es-CO")}
+                    </Text>
+                  </PressableScale>
+                </Animated.View>
               ))
             : [{label:"Corte",precio:"$15.000"},{label:"Barba",precio:"$10.000"},{label:"Corte + Barba",precio:"$22.000"}].map((s,i)=>(
-                <TouchableOpacity key={i} style={[styles.servicioCard,{borderColor:c.border,borderLeftColor:c.amber,borderLeftWidth:3}]} activeOpacity={0.7}>
-                  <MaterialIcons name="content-cut" size={20} color={c.text}/>
-                  <Text style={[styles.servicioLabel,{color:c.text}]}>{s.label}</Text>
-                  <Text style={[styles.servicioPrecio,{color:c.amber}]}>{s.precio}</Text>
-                </TouchableOpacity>
+                <Animated.View key={i} entering={FadeInDown.delay(i * 55).duration(320)} style={{ width: "47.5%" }}>
+                  <PressableScale
+                    style={[styles.servicioCard,{borderColor:c.border,borderLeftColor:c.amber,borderLeftWidth:3}]}
+                    onPress={() => navigation.navigate("Agendar")}
+                  >
+                    <MaterialIcons name="content-cut" size={20} color={c.text}/>
+                    <Text style={[styles.servicioLabel,{color:c.text}]}>{s.label}</Text>
+                    <Text style={[styles.servicioPrecio,{color:c.amber}]}>{s.precio}</Text>
+                  </PressableScale>
+                </Animated.View>
               ))
           }
         </View>
@@ -246,8 +254,8 @@ const styles = StyleSheet.create({
   agendarBtnText: { color: "#000", fontFamily: "SpaceGrotesk_600SemiBold", fontSize: 13 },
   serviciosGrid:  { flexDirection: "row", flexWrap: "wrap", gap: 10 },
   servicioCard: {
-    width: "47.5%", borderWidth: 1, borderRadius: 12, padding: 14, gap: 6,
+    width: "100%", borderWidth: 1, borderRadius: 12, padding: 14, gap: 6,
   },
   servicioLabel:  { fontSize: 14, fontFamily: "SpaceGrotesk_600SemiBold" },
-  servicioPrecio: { fontSize: 11, fontFamily: "SpaceGrotesk_400Regular" },
+  servicioPrecio: { fontSize: 11, fontFamily: "Inter_500Medium" },
 });

@@ -3,6 +3,7 @@ import {
   View, Text, ScrollView, StyleSheet, ActivityIndicator,
   TouchableOpacity, Alert, RefreshControl,
 } from "react-native";
+import Animated, { FadeInDown } from "react-native-reanimated";
 import { MaterialIcons } from "@expo/vector-icons";
 import {
   collection, query, where,
@@ -16,6 +17,7 @@ import { ThemedCard }     from "../../components/ui/ThemedCard";
 import { TagChip }        from "../../components/ui/TagChip";
 import { BackHeader }     from "../../components/ui/BackHeader";
 import { ScreenWrapper }  from "../../components/ui/ScreenWrapper";
+import { PressableScale } from "../../components/ui/PressableScale";
 
 interface Pedido {
   id:            string;
@@ -183,7 +185,8 @@ export function PedidosScreen({ mode, showBackHeader = true }: Props) {
             </View>
           ) : (
             mostrar.map((p, i) => (
-              <ThemedCard key={i} style={styles.card}>
+              <Animated.View key={i} entering={FadeInDown.delay(i * 55).duration(320)}>
+              <ThemedCard style={styles.card}>
                 <View style={styles.cardHeader}>
                   <View style={{ flex:1, gap:2 }}>
                     {mode !== "cliente" && (
@@ -207,23 +210,24 @@ export function PedidosScreen({ mode, showBackHeader = true }: Props) {
                 {p.aCredito && <TagChip label="A crédito" variant="warning" />}
                 {(mode === "admin" || (mode === "empleado" && user?.canApproveOrders)) && ["pendiente","pendiente_credito"].includes(p.estado) && (
                   <View style={styles.acciones}>
-                    <TouchableOpacity onPress={() => cambiarEstado(p,"rechazado")} style={[styles.accionBtn, { backgroundColor: c.negative+"18", borderColor: c.negative+"44" }]}>
+                    <PressableScale onPress={() => cambiarEstado(p,"rechazado")} style={[styles.accionBtnGhost, { borderColor: c.border }]}>
                       <MaterialIcons name="close" size={15} color={c.negative} />
                       <Text style={[styles.accionText, { color: c.negative }]}>Rechazar</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity onPress={() => cambiarEstado(p,"aprobado")} style={[styles.accionBtn, { backgroundColor: c.positive+"18", borderColor: c.positive+"44" }]}>
-                      <MaterialIcons name="check" size={15} color={c.positive} />
-                      <Text style={[styles.accionText, { color: c.positive }]}>Aprobar</Text>
-                    </TouchableOpacity>
+                    </PressableScale>
+                    <PressableScale onPress={() => cambiarEstado(p,"aprobado")} style={[styles.accionBtnPrimary, { backgroundColor: c.positive }]}>
+                      <MaterialIcons name="check" size={15} color="#0B0B0B" />
+                      <Text style={[styles.accionText, { color: "#0B0B0B" }]}>Aprobar</Text>
+                    </PressableScale>
                   </View>
                 )}
                 {(mode === "admin" || (mode === "empleado" && user?.canApproveOrders)) && p.estado === "aprobado" && (
-                  <TouchableOpacity onPress={() => cambiarEstado(p,"entregado")} style={[styles.accionBtn, { borderColor: c.amber+"44", backgroundColor: c.amber+"18" }]}>
+                  <PressableScale onPress={() => cambiarEstado(p,"entregado")} style={[styles.accionBtn, { borderColor: c.amber+"44", backgroundColor: c.amber+"18" }]}>
                     <MaterialIcons name="local-shipping" size={15} color={c.amber} />
                     <Text style={[styles.accionText, { color: c.amber }]}>Marcar entregado</Text>
-                  </TouchableOpacity>
+                  </PressableScale>
                 )}
               </ThemedCard>
+              </Animated.View>
             ))
           )}
         </ScrollView>
@@ -249,12 +253,14 @@ const styles = StyleSheet.create({
   cardHeader: { flexDirection:"row", alignItems:"flex-start", gap:8 },
   clienteNombre: { fontSize:15, fontFamily:"SpaceGrotesk_600SemiBold" },
   fecha:      { fontSize:12, fontFamily:"SpaceGrotesk_400Regular" },
-  total:      { fontSize:15, fontFamily:"SpaceGrotesk_600SemiBold" },
+  total:      { fontSize:15, fontFamily:"Inter_600SemiBold" },
   itemsBox:   { borderRadius:8, borderWidth:1, paddingHorizontal:12, paddingVertical:8, gap:6 },
   itemRow:    { flexDirection:"row", justifyContent:"space-between" },
   itemNombre: { fontSize:13, fontFamily:"SpaceGrotesk_500Medium" },
-  itemPrecio: { fontSize:12, fontFamily:"SpaceGrotesk_400Regular" },
+  itemPrecio: { fontSize:12, fontFamily:"Inter_500Medium" },
   acciones:   { flexDirection:"row", gap:10 },
   accionBtn:  { flex:1, flexDirection:"row", alignItems:"center", justifyContent:"center", gap:6, paddingVertical:10, borderRadius:10, borderWidth:1 },
+  accionBtnGhost:   { flex:1, flexDirection:"row", alignItems:"center", justifyContent:"center", gap:6, paddingVertical:11, borderRadius:10, borderWidth:1 },
+  accionBtnPrimary: { flex:1.3, flexDirection:"row", alignItems:"center", justifyContent:"center", gap:6, paddingVertical:11, borderRadius:10 },
   accionText: { fontSize:13, fontFamily:"SpaceGrotesk_600SemiBold" },
 });

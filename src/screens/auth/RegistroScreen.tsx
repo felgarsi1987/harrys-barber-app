@@ -7,6 +7,7 @@ import { useNavigation } from "@react-navigation/native";
 import { useThemeColors }  from "../../hooks/useThemeColors";
 import { useAuthStore }    from "../../store/authStore";
 import { ScreenWrapper }  from "../../components/ui/ScreenWrapper";
+import { PressableScale } from "../../components/ui/PressableScale";
 import { Typography }      from "../../theme/typography";
 import { Spacing, Radius } from "../../theme/spacing";
 
@@ -81,7 +82,7 @@ export function RegistroScreen() {
           <Text style={[Typography.bodySmall, { color: c.negative }]}>{error}</Text>
         ) : null}
 
-        <TouchableOpacity
+        <PressableScale
           style={[styles.btn, { backgroundColor: c.blue, opacity: isLoading ? 0.7 : 1 }]}
           onPress={handleRegister}
           disabled={isLoading}
@@ -90,7 +91,7 @@ export function RegistroScreen() {
             ? <ActivityIndicator color="#fff" />
             : <Text style={[Typography.bodyLarge, { color: "#fff" }]}>Registrarme</Text>
           }
-        </TouchableOpacity>
+        </PressableScale>
       </ScrollView>
     </ScreenWrapper>
   );

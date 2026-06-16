@@ -4,6 +4,7 @@ import {
   TouchableOpacity, ActivityIndicator, Alert,
   RefreshControl, TextInput,
 } from "react-native";
+import Animated, { FadeInDown } from "react-native-reanimated";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import {
@@ -358,7 +359,8 @@ export function AdminReservasScreen() {
             </View>
           ) : (
             filtered.map((r, i) => (
-              <ThemedCard key={i} style={styles.card}>
+              <Animated.View key={i} entering={FadeInDown.delay(i * 50).duration(320)}>
+              <ThemedCard style={styles.card}>
                 <View style={styles.cardTop}>
                   <View style={{ flex:1, gap:4 }}>
                     <View style={styles.nameRow}>
@@ -414,6 +416,7 @@ export function AdminReservasScreen() {
                   </View>
                 )}
               </ThemedCard>
+              </Animated.View>
             ))
           )}
         </ScrollView>

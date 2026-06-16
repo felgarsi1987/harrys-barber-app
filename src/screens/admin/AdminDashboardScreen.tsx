@@ -48,8 +48,7 @@ export function AdminDashboardScreen() {
       const serviciosSnap = await getDocs(
         query(collection(db,"servicios_realizados"),
           where("fecha",">=",Timestamp.fromDate(hoy)),
-          where("fecha","<", Timestamp.fromDate(manana)),
-          where("estado","==","completado"))
+          where("fecha","<", Timestamp.fromDate(manana)))
       );
       setServiciosHoy(serviciosSnap.size);
     } catch(e) { /* silent */ }

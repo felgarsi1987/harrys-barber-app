@@ -4,6 +4,7 @@ import {
   TouchableOpacity, TextInput, Alert, ActivityIndicator,
   Modal, Switch, RefreshControl, KeyboardAvoidingView, Platform,
 } from "react-native";
+import Animated, { FadeInDown } from "react-native-reanimated";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useThemeColors } from "../../hooks/useThemeColors";
 import { BackHeader }     from "../../components/ui/BackHeader";
@@ -151,7 +152,8 @@ export function AdminServiciosScreen() {
             </View>
           ) : (
             servicios.map((s, i) => (
-              <ThemedCard key={i} style={[styles.card, !s.activo && { opacity: 0.5 }]}>
+              <Animated.View key={i} entering={FadeInDown.delay(i * 45).duration(320)}>
+              <ThemedCard style={[styles.card, !s.activo && { opacity: 0.5 }]}>
                 <View style={{ flex: 1, gap: 4 }}>
                   <View style={styles.cardTop}>
                     <Text style={[styles.nombre, { color: c.text }]}>{s.label}</Text>
@@ -181,6 +183,7 @@ export function AdminServiciosScreen() {
                   </TouchableOpacity>
                 </View>
               </ThemedCard>
+              </Animated.View>
             ))
           )}
         </ScrollView>
@@ -283,7 +286,7 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderRadius: 6, paddingHorizontal: 6, paddingVertical: 2,
   },
   cardMeta:  { flexDirection: "row", alignItems: "center" },
-  precio:    { fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold" },
+  precio:    { fontSize: 13, fontFamily: "Inter_600SemiBold" },
   duracion:  { fontSize: 12, fontFamily: "SpaceGrotesk_400Regular" },
   acciones:  { flexDirection: "row", gap: 8 },
   accionBtn: { width: 34, height: 34, borderRadius: 8, justifyContent: "center", alignItems: "center" },

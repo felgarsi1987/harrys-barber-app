@@ -10,6 +10,7 @@ import { signInAnonymously } from "firebase/auth";
 import { auth }           from "../../services/firebase";
 import { useGuestStore }  from "../../store/guestStore";
 import { ScreenWrapper }  from "../../components/ui/ScreenWrapper";
+import { PressableScale } from "../../components/ui/PressableScale";
 
 export function InvitadoScreen() {
   const c          = useThemeColors();
@@ -104,7 +105,7 @@ export function InvitadoScreen() {
           </View>
         </View>
 
-        <TouchableOpacity
+        <PressableScale
           style={[styles.btn, { backgroundColor: nombre && apellido ? c.amber : c.surface, borderColor: c.border }]}
           onPress={entrar}
           disabled={loading}
@@ -115,7 +116,7 @@ export function InvitadoScreen() {
                 Entrar como invitado
               </Text>
           }
-        </TouchableOpacity>
+        </PressableScale>
 
         <TouchableOpacity onPress={() => navigation.navigate("Login", { role: "cliente" })}>
           <Text style={[styles.loginLink, { color: c.amber }]}>

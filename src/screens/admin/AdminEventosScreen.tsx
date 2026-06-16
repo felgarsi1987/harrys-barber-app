@@ -3,6 +3,7 @@ import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator,
   TextInput, Alert, Modal, Switch, Image, KeyboardAvoidingView, Platform,
 } from "react-native";
+import Animated, { FadeInDown } from "react-native-reanimated";
 import { MaterialIcons }  from "@expo/vector-icons";
 import * as ImagePicker   from "expo-image-picker";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
@@ -284,7 +285,8 @@ export function AdminEventosScreen() {
           </View>
         ) : (
           eventos.map((e, i) => (
-            <ThemedCard key={i} style={styles.eventoCard}>
+            <Animated.View key={i} entering={FadeInDown.delay(i * 50).duration(320)}>
+            <ThemedCard style={styles.eventoCard}>
               {/* Imagen del evento */}
               {e.imageUrl ? (
                 <Image source={{ uri: e.imageUrl }} style={styles.eventoImg} resizeMode="cover" />
@@ -338,6 +340,7 @@ export function AdminEventosScreen() {
                 </View>
               </View>
             </ThemedCard>
+            </Animated.View>
           ))
         )}
       </ScrollView>

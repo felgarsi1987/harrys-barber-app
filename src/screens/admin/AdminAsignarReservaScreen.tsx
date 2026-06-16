@@ -16,7 +16,7 @@ import { BackHeader }         from "../../components/ui/BackHeader";
 import { ThemedCard }         from "../../components/ui/ThemedCard";
 import { ScreenWrapper }  from "../../components/ui/ScreenWrapper";
 import { getServicios, Servicio } from "../../services/serviciosService";
-import { notificarCambioEstado } from "../../services/notifications";
+import { notificarCambioEstado, notificarEmpleadoAsignado } from "../../services/notifications";
 import * as Notifications from "expo-notifications";
 
 LocaleConfig.locales["es"] = {
@@ -132,25 +132,16 @@ export function AdminAsignarReservaScreen() {
         createdAt:       Timestamp.now(),
       });
 
-      // Notificar al empleado
-      if (empleadoSel.pushToken) {
-        await fetch("https://exp.host/--/api/v2/push/send", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            to:    empleadoSel.pushToken,
-            title: "📋 Nueva cita asignada",
-            body:  `${nombreCliente} · ${servicio.label} · ${fechaLabel} a las ${hora}`,
-            sound: "default",
-          }),
-        });
-      }
+      // Notificar al empleado (helper: canal "reservas" + prioridad alta = inmediata)
+      notificarEmpleadoAsignado(
+        empleadoSel.uid, nombreCliente, servicio.label, fechaLabel, hora,
+      ).catch(() => {});
 
       // Notificar al cliente registrado
       if (!usarManual && clienteSel?.uid) {
         notificarCambioEstado(
-          clienteSel.uid, nombreCliente, servicio.label, "confirmada", hora
-        );
+          clienteSel.uid, nombreCliente, servicio.label, "confirmada", hora,
+        ).catch(() => {});
       }
 
       Alert.alert(
@@ -456,7 +447,7 @@ const styles = StyleSheet.create({
     width: "22%", borderWidth: 1, borderRadius: 8,
     padding: 10, alignItems: "center", gap: 2,
   },
-  horaText: { fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold" },
+  horaText: { fontSize: 13, fontFamily: "Inter_600SemiBold" },
   ocupadaText: { fontSize: 9, fontFamily: "SpaceGrotesk_400Regular" },
   resumen:      { gap: 10, marginTop: 8 },
   resumenTitle: { fontSize: 16, fontFamily: "Syne_700Bold" },

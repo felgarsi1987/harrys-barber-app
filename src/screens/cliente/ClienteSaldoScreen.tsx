@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import {
   View, Text, ScrollView, StyleSheet, ActivityIndicator,
 } from "react-native";
+import Animated, { FadeInDown } from "react-native-reanimated";
 import { MaterialIcons } from "@expo/vector-icons";
 import {
   collection, query, where, doc, onSnapshot,
@@ -94,8 +95,9 @@ export function ClienteSaldoScreen() {
         ) : (
           <ThemedCard style={styles.historialCard}>
             {movimientos.map((m, i) => (
-              <View
+              <Animated.View
                 key={i}
+                entering={FadeInDown.delay(i * 40).duration(300)}
                 style={[
                   styles.movRow,
                   i < movimientos.length - 1 && { borderBottomWidth: 1, borderBottomColor: c.border },
@@ -122,7 +124,7 @@ export function ClienteSaldoScreen() {
                     {m.tipo === "cargo" ? "Cargo" : "Abono"}
                   </Text>
                 </View>
-              </View>
+              </Animated.View>
             ))}
           </ThemedCard>
         )}
@@ -136,7 +138,7 @@ const styles = StyleSheet.create({
   title:  { fontSize: 22, fontFamily: "Syne_700Bold" },
   scroll: { padding: 20, gap: 16 },
   saldoCard:  { gap: 8, alignItems: "center", paddingVertical: 28 },
-  saldoMonto: { fontSize: 36, fontFamily: "SpaceGrotesk_600SemiBold" },
+  saldoMonto: { fontSize: 36, fontFamily: "Inter_700Bold" },
   saldoLabel: { fontSize: 10, fontFamily: "SpaceGrotesk_600SemiBold", letterSpacing: 2 },
   saldoDesc:  { fontSize: 13, fontFamily: "SpaceGrotesk_400Regular" },
   sectionLabel: { fontSize: 10, fontFamily: "SpaceGrotesk_500Medium", letterSpacing: 1.5 },
@@ -148,7 +150,7 @@ const styles = StyleSheet.create({
     padding: 14, gap: 12,
   },
   movIcon:  { width: 36, height: 36, borderRadius: 18, justifyContent: "center", alignItems: "center" },
-  movMonto: { fontSize: 15, fontFamily: "SpaceGrotesk_600SemiBold" },
+  movMonto: { fontSize: 15, fontFamily: "Inter_600SemiBold" },
   movDesc:  { fontSize: 14, fontFamily: "SpaceGrotesk_500Medium" },
   movTipo:  { fontSize: 10, fontFamily: "SpaceGrotesk_600SemiBold" },
   movFecha: { fontSize: 11, fontFamily: "SpaceGrotesk_400Regular" },

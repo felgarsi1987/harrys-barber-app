@@ -14,6 +14,7 @@ import { useAuthStore }     from "../../store/authStore";
 import { ThemedCard }       from "../../components/ui/ThemedCard";
 import { TagChip }          from "../../components/ui/TagChip";
 import { ScreenWrapper }    from "../../components/ui/ScreenWrapper";
+import { PressableScale }   from "../../components/ui/PressableScale";
 
 const DIAS_SEMANA = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
 
@@ -439,7 +440,7 @@ export function EmpleadoReservaScreen() {
           })}
         </View>
 
-        <TouchableOpacity
+        <PressableScale
           style={[styles.crearBtn, {
             backgroundColor: nombreCliente && horaSel ? c.amber : c.surface,
             borderColor: c.border,
@@ -454,7 +455,7 @@ export function EmpleadoReservaScreen() {
                 Crear reserva
               </Text>
           }
-        </TouchableOpacity>
+        </PressableScale>
 
       </ScrollView>
 
@@ -541,14 +542,14 @@ const styles = StyleSheet.create({
   diasRow:  { gap: 8, paddingVertical: 4 },
   diaBtn:   { width: 50, alignItems: "center", paddingVertical: 8, borderRadius: 10 },
   diaNombre:{ fontSize: 10, fontFamily: "SpaceGrotesk_500Medium" },
-  diaNumero:{ fontSize: 18, fontFamily: "Syne_700Bold" },
+  diaNumero:{ fontSize: 18, fontFamily: "Inter_700Bold" },
   serviciosGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
   servicioBtn:   { width: "47.5%", borderWidth: 1, borderRadius: 12, padding: 12, gap: 4 },
   servicioLabel: { fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold" },
-  servicioPrecio:{ fontSize: 11, fontFamily: "SpaceGrotesk_400Regular" },
+  servicioPrecio:{ fontSize: 11, fontFamily: "Inter_500Medium" },
   horasGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   horaBtn:   { width: "22%", borderWidth: 1, borderRadius: 8, padding: 8, alignItems: "center" },
-  horaText:  { fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold" },
+  horaText:  { fontSize: 13, fontFamily: "Inter_600SemiBold" },
   crearBtn:  { height: 52, borderRadius: 12, borderWidth: 1, justifyContent: "center", alignItems: "center" },
   crearBtnText: { fontSize: 15, fontFamily: "SpaceGrotesk_600SemiBold" },
   modalOverlay: { flex: 1, backgroundColor: "#00000088", justifyContent: "flex-end" },
@@ -563,7 +564,7 @@ const styles = StyleSheet.create({
   historialBtnText: { fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold" },
   historialStats:   { flexDirection: "row", alignItems: "center", marginVertical: 12 },
   historialStatItem:{ flex: 1, alignItems: "center", gap: 4 },
-  historialStatNum: { fontSize: 22, fontFamily: "Syne_700Bold" },
+  historialStatNum: { fontSize: 22, fontFamily: "Inter_700Bold" },
   historialStatLabel:{ fontSize: 11, fontFamily: "SpaceGrotesk_400Regular" },
   historialDivider: { width: 1, height: 40, marginHorizontal: 12 },
   favServicio:      { flexDirection: "row", alignItems: "center", gap: 6, padding: 10, borderRadius: 8, borderWidth: 1, marginBottom: 12 },

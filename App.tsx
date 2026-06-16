@@ -3,6 +3,7 @@ import { View, StatusBar, Platform } from "react-native";
 import * as SplashScreen  from "expo-splash-screen";
 import * as Font          from "expo-font";
 import * as Network       from "expo-network";
+import { Inter_500Medium, Inter_600SemiBold, Inter_700Bold } from "@expo-google-fonts/inter";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { RootNavigator }     from "./src/navigation/RootNavigator";
 import { SinConexionScreen } from "./src/screens/errors/SinConexionScreen";
@@ -25,6 +26,10 @@ export default function App() {
       SpaceGrotesk_600SemiBold:require("./assets/fonts/SpaceGrotesk_600SemiBold.ttf"),
       Syne_700Bold:            require("./assets/fonts/Syne_700Bold.ttf"),
       Syne_800ExtraBold:       require("./assets/fonts/Syne_800ExtraBold.ttf"),
+      // Fuente de números: sobria, profesional, moderna
+      Inter_500Medium,
+      Inter_600SemiBold,
+      Inter_700Bold,
     })
       .then(() => setFontsLoaded(true))
       .catch(() => setFontsLoaded(true));
