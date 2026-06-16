@@ -4,6 +4,7 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useThemeColors } from "../hooks/useThemeColors";
 
+import { EmpleadoDashboardScreen }  from "../screens/empleado/EmpleadoDashboardScreen";
 import { EmpleadoAgendaScreen }    from "../screens/empleado/EmpleadoAgendaScreen";
 import { EmpleadoReservaScreen }   from "../screens/empleado/EmpleadoReservaScreen";
 import { EmpleadoInventarioScreen } from "../screens/empleado/EmpleadoInventarioScreen";
@@ -37,6 +38,7 @@ export function EmpleadoNavigator() {
         tabBarLabelStyle: { fontSize: 10 },
         tabBarIcon: ({ color }) => {
           const icons: Record<string, keyof typeof MaterialIcons.glyphMap> = {
+            Inicio:           "home",
             Agenda:           "event-note",
             "Nueva Cita":     "add-circle-outline",
             Inventario:       "inventory-2",
@@ -54,6 +56,7 @@ export function EmpleadoNavigator() {
         },
       })}
     >
+      <Tab.Screen name="Inicio"            component={EmpleadoDashboardScreen} />
       <Tab.Screen name="Agenda"           component={EmpleadoAgendaScreen} />
       <Tab.Screen name="Nueva Cita"       component={EmpleadoReservaScreen} />
       <Tab.Screen name="Inventario"       component={EmpleadoInventarioScreen} />

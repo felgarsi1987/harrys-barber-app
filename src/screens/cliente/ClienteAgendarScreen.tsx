@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import {
-  View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert, ActivityIndicator,
+  View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, Linking,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { Calendar, LocaleConfig } from "react-native-calendars";
@@ -52,6 +52,13 @@ export function ClienteAgendarScreen() {
   const [horasOcupadas,     setHorasOcupadas]      = useState<string[]>([]);
   const [guardando,         setGuardando]          = useState(false);
   const [loadingPeluqueros, setLoadingPeluqueros]  = useState(true);
+  const [exitosa, setExitosa] = useState<{
+    peluqueroNombre: string;
+    servicio: string;
+    precio: number;
+    fecha: string;
+    hora: string;
+  } | null>(null);
   const { horas: horasConfig } = useHorarioConfig();
 
   const hoy     = new Date();
@@ -172,10 +179,13 @@ export function ClienteAgendarScreen() {
         fechaSeleccionada,
         horaSeleccionada,
       ).catch(() => {});
-      Alert.alert(
-        "✅ Reserva enviada",
-        `Tu cita con ${peluqueroSel.nombre} fue enviada. El admin la confirmará pronto.`
-      );
+      setExitosa({
+        peluqueroNombre: `${peluqueroSel.nombre} ${peluqueroSel.apellido}`,
+        servicio:  servicio.label,
+        precio:    servicio.precio,
+        fecha:     fechaSeleccionada,
+        hora:      horaSeleccionada,
+      });
       setFechaSeleccionada(new Date().toISOString().split("T")[0]);
       setHoraSeleccionada("");
       setPeluqueroSel(null);
@@ -183,6 +193,55 @@ export function ClienteAgendarScreen() {
       Alert.alert("Error", "No se pudo crear la reserva.");
     } finally { setGuardando(false); }
   };
+
+  const compartirWhatsApp = () => {
+    if (!exitosa) return;
+    const text = `🗓️ Reservé mi cita en Harry's Barber!\n✂️ ${exitosa.servicio} con ${exitosa.peluqueroNombre}\n📅 ${exitosa.fecha} a las ${exitosa.hora}\n💰 $${exitosa.precio.toLocaleString("es-CO")}`;
+    Linking.openURL(`whatsapp://send?text=${encodeURIComponent(text)}`)
+      .catch(() => Linking.openURL(`https://wa.me/?text=${encodeURIComponent(text)}`));
+  };
+
+  if (exitosa) {
+    return (
+      <ScreenWrapper>
+        <View style={[styles.header, { borderBottomColor: c.border }]}>
+          <Text style={[styles.title, { color: c.text }]}>Agendar cita</Text>
+        </View>
+        <ScrollView contentContainerStyle={[styles.scroll, styles.exitosaScroll]}>
+          <MaterialIcons name="check-circle" size={72} color={c.positive} />
+          <Text style={[styles.exitosaTitle, { color: c.text }]}>¡Reserva enviada!</Text>
+          <Text style={[styles.exitosaSub, { color: c.sub }]}>El admin la confirmará pronto</Text>
+
+          <ThemedCard style={[styles.resumen, { width: "100%" }]}>
+            {([
+              { label: "Peluquero", value: exitosa.peluqueroNombre },
+              { label: "Servicio",  value: exitosa.servicio },
+              { label: "Fecha",     value: exitosa.fecha },
+              { label: "Hora",      value: exitosa.hora },
+              { label: "Precio",    value: `$${exitosa.precio.toLocaleString("es-CO")}`, amber: true },
+            ] as const).map((row, i) => (
+              <View key={i} style={styles.resumenRow}>
+                <Text style={[styles.resumenLabel, { color: c.sub }]}>{row.label}</Text>
+                <Text style={[styles.resumenVal, { color: (row as any).amber ? c.amber : c.text }]}>{row.value}</Text>
+              </View>
+            ))}
+          </ThemedCard>
+
+          <TouchableOpacity onPress={compartirWhatsApp} style={styles.whatsappBtn}>
+            <MaterialIcons name="chat" size={18} color="#fff" />
+            <Text style={styles.whatsappBtnText}>Compartir por WhatsApp</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            onPress={() => setExitosa(null)}
+            style={[styles.confirmarBtn, { borderColor: c.border, backgroundColor: c.surface, width: "100%" }]}
+          >
+            <Text style={[styles.confirmarText, { color: c.text }]}>Hacer otra reserva</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </ScreenWrapper>
+    );
+  }
 
   return (
     <ScreenWrapper>
@@ -330,7 +389,6 @@ export function ClienteAgendarScreen() {
             textMonthFontFamily:        "Syne_700Bold",
             textDayHeaderFontFamily:    "SpaceGrotesk_600SemiBold",
           }}
-          style={{ backgroundColor: c.surface, borderRadius: 12 }}
           style={[styles.calendar, { backgroundColor: c.surface, borderColor: c.border }]}
         />
 
@@ -487,4 +545,13 @@ const styles = StyleSheet.create({
     justifyContent: "center", alignItems: "center",
   },
   confirmarText: { fontSize: 15, fontFamily: "SpaceGrotesk_600SemiBold" },
+  exitosaScroll: { alignItems: "center", paddingTop: 40, gap: 16 },
+  exitosaTitle:  { fontSize: 26, fontFamily: "Syne_700Bold", textAlign: "center" },
+  exitosaSub:    { fontSize: 14, fontFamily: "SpaceGrotesk_400Regular", textAlign: "center" },
+  whatsappBtn:   {
+    flexDirection: "row", alignItems: "center", gap: 8,
+    height: 52, borderRadius: 12, justifyContent: "center",
+    width: "100%", backgroundColor: "#25D366",
+  },
+  whatsappBtnText: { fontSize: 15, fontFamily: "SpaceGrotesk_600SemiBold", color: "#fff" },
 });

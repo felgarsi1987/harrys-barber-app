@@ -16,6 +16,7 @@ import { useAuthStore }   from "../../store/authStore";
 import { ThemedCard }     from "../../components/ui/ThemedCard";
 import { TagChip }        from "../../components/ui/TagChip";
 import { ScreenWrapper }  from "../../components/ui/ScreenWrapper";
+import { SkeletonLoader } from "../../components/ui/SkeletonLoader";
 import { notificarCambioEstado, notificarCancelacion } from "../../services/notifications";
 
 interface Reserva {
@@ -48,6 +49,7 @@ export function EmpleadoAgendaScreen() {
   const [reservas,  setReservas]  = useState<Reserva[]>([]);
   const [loading,        setLoading]        = useState(true);
   const [refreshing,     setRefreshing]     = useState(false);
+  const [compacto,       setCompacto]       = useState(false);
   const [diaOffset,      setDiaOffset]      = useState(7);
   const diasScrollRef = useRef<ScrollView>(null);
   const [tab,            setTab]            = useState<"agenda" | "Pendientes">("agenda");
@@ -232,13 +234,24 @@ export function EmpleadoAgendaScreen() {
       {/* Header */}
       <View style={[styles.header, { borderBottomColor: c.border }]}>
         <Text style={[styles.title, { color: c.text }]}>Mi agenda</Text>
-        <TouchableOpacity
-          onPress={() => navigation.navigate("Nueva Cita")}
-          style={[styles.agendarBtn, { backgroundColor: c.amber }]}
-        >
-          <MaterialIcons name="add" size={18} color="#000" />
-          <Text style={styles.agendarBtnText}>Agendar</Text>
-        </TouchableOpacity>
+        <View style={{ flexDirection: "row", gap: 8, alignItems: "center" }}>
+          <TouchableOpacity
+            onPress={() => setCompacto(v => !v)}
+            style={[styles.compactBtn, {
+              borderColor:     compacto ? c.amber : c.border,
+              backgroundColor: compacto ? c.amber + "18" : "transparent",
+            }]}
+          >
+            <MaterialIcons name={compacto ? "view-list" : "view-agenda"} size={18} color={compacto ? c.amber : c.sub} />
+          </TouchableOpacity>
+          <TouchableOpacity
+            onPress={() => navigation.navigate("Nueva Cita")}
+            style={[styles.agendarBtn, { backgroundColor: c.amber }]}
+          >
+            <MaterialIcons name="add" size={18} color="#000" />
+            <Text style={styles.agendarBtnText}>Agendar</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Tabs */}
@@ -319,7 +332,9 @@ export function EmpleadoAgendaScreen() {
 
       {/* Lista */}
       {loading ? (
-        <ActivityIndicator color={c.amber} style={{ marginTop: 40 }} />
+        <ScrollView contentContainerStyle={styles.scroll}>
+          <SkeletonLoader count={4} height={compacto ? 54 : 104} />
+        </ScrollView>
       ) : (
         <ScrollView contentContainerStyle={styles.scroll} refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={c.amber} />}>
           {reservas.length === 0 ? (
@@ -330,7 +345,18 @@ export function EmpleadoAgendaScreen() {
               </Text>
             </View>
           ) : (
-            reservas.map((r, i) => (
+            reservas.map((r, i) => compacto ? (
+              <View key={r.id}>
+                <ThemedCard style={styles.reservaCardCompacta}>
+                  <Text style={[styles.horaCompacta, { color: c.amber }]}>{r.hora}</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={[styles.clienteCompacto, { color: c.text }]} numberOfLines={1}>{r.clienteNombre}</Text>
+                    <Text style={[styles.servicioCompacto, { color: c.sub }]} numberOfLines={1}>{r.servicio}</Text>
+                  </View>
+                  <TagChip label={r.estado} variant={ESTADO_CHIP[r.estado] ?? "default"} />
+                </ThemedCard>
+              </View>
+            ) : (
               <Animated.View key={r.id} entering={FadeInDown.delay(i * 60).duration(350)}>
               <ThemedCard
                 style={styles.reservaCard}
@@ -509,4 +535,9 @@ const styles = StyleSheet.create({
     gap: 5, paddingVertical: 8, borderRadius: 8, borderWidth: 1,
   },
   confirmadaBtnText: { fontSize: 12, fontFamily: "SpaceGrotesk_500Medium" },
+  compactBtn: { width: 36, height: 36, borderRadius: 8, borderWidth: 1, justifyContent: "center", alignItems: "center" },
+  reservaCardCompacta: { flexDirection: "row", alignItems: "center", gap: 12, paddingVertical: 10 },
+  horaCompacta:    { fontSize: 15, fontFamily: "Syne_700Bold", minWidth: 48, color: "transparent" },
+  clienteCompacto: { fontSize: 14, fontFamily: "SpaceGrotesk_600SemiBold" },
+  servicioCompacto:{ fontSize: 12, fontFamily: "SpaceGrotesk_400Regular" },
 });

@@ -3,7 +3,7 @@ import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity, TextInput,
   Alert, ActivityIndicator, Switch, FlatList, Modal,
 } from "react-native";
-import { collection, addDoc, getDocs, query, where, Timestamp } from "firebase/firestore";
+import { collection, addDoc, getDocs, query, where, Timestamp, orderBy } from "firebase/firestore";
 import { MaterialIcons } from "@expo/vector-icons";
 import { db } from "../../services/firebase";
 import { notificarEmpleadoAsignado } from "../../services/notifications";
@@ -12,9 +12,25 @@ import { useThemeColors }   from "../../hooks/useThemeColors";
 import { useHorarioConfig } from "../../hooks/useHorarioConfig";
 import { useAuthStore }     from "../../store/authStore";
 import { ThemedCard }       from "../../components/ui/ThemedCard";
+import { TagChip }          from "../../components/ui/TagChip";
 import { ScreenWrapper }    from "../../components/ui/ScreenWrapper";
 
 const DIAS_SEMANA = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
+
+const ESTADO_CHIP: Record<string, any> = {
+  pendiente:  "warning",
+  confirmada: "success",
+  completada: "default",
+  fallida:    "danger",
+  cancelada:  "danger",
+};
+
+interface HistorialData {
+  total:            number;
+  ultimaVisita:     string | null;
+  servicioFavorito: string | null;
+  ultimas:          { servicio: string; fechaStr: string; estado: string }[];
+}
 
 interface Empleado {
   uid:     string;
@@ -40,6 +56,9 @@ export function EmpleadoReservaScreen() {
   const [clienteSel,      setClienteSel]      = useState<Cliente | null>(null);
   const [busquedaCliente, setBusquedaCliente] = useState("");
   const [modalClientes,   setModalClientes]   = useState(false);
+  const [modalHistorial,  setModalHistorial]  = useState(false);
+  const [historialData,   setHistorialData]   = useState<HistorialData>({ total: 0, ultimaVisita: null, servicioFavorito: null, ultimas: [] });
+  const [loadingHistorial,setLoadingHistorial]= useState(false);
   const [barberoSel,      setBarberoSel]      = useState<Empleado | null>(null);
   const [paraMiMismo,     setParaMiMismo]     = useState(false);
   const [noRegistrado,    setNoRegistrado]    = useState(false);
@@ -113,6 +132,30 @@ export function EmpleadoReservaScreen() {
       setNombreCliente("");
       setClienteSel(null);
     }
+  };
+
+  const abrirHistorial = async (uid: string) => {
+    setLoadingHistorial(true);
+    setModalHistorial(true);
+    try {
+      const snap = await getDocs(query(collection(db, "reservas"), where("clienteUid", "==", uid)));
+      const todas = snap.docs
+        .map(d => d.data())
+        .sort((a: any, b: any) => (b.fecha?.toMillis?.() ?? 0) - (a.fecha?.toMillis?.() ?? 0));
+      const cnt: Record<string, number> = {};
+      todas.forEach((r: any) => { if (r.servicio) cnt[r.servicio] = (cnt[r.servicio] ?? 0) + 1; });
+      const favorito = Object.entries(cnt).sort((a, b) => b[1] - a[1])[0]?.[0] ?? null;
+      const ultima   = todas.find((r: any) => r.estado === "completada");
+      const ultimaStr = ultima?.fecha?.toDate?.().toLocaleDateString("es-CO", { day: "numeric", month: "short", year: "numeric" }) ?? null;
+      const ultimas  = todas.slice(0, 5).map((r: any) => ({
+        servicio: r.servicio ?? "—",
+        fechaStr: r.fecha?.toDate?.().toLocaleDateString("es-CO", { day: "numeric", month: "short" }) ?? "—",
+        estado:   r.estado ?? "—",
+      }));
+      setHistorialData({ total: todas.length, ultimaVisita: ultimaStr, servicioFavorito: favorito, ultimas });
+    } catch {
+      setHistorialData({ total: 0, ultimaVisita: null, servicioFavorito: null, ultimas: [] });
+    } finally { setLoadingHistorial(false); }
   };
 
   const clientesFiltrados = clientes.filter(c =>
@@ -246,6 +289,18 @@ export function EmpleadoReservaScreen() {
               </Text>
               <MaterialIcons name="expand-more" size={20} color={c.sub} />
             </TouchableOpacity>
+            {clienteSel && (
+              <TouchableOpacity
+                onPress={() => abrirHistorial(clienteSel.uid)}
+                style={[styles.historialBtn, { borderColor: c.amber + "44", backgroundColor: c.amber + "11" }]}
+              >
+                <MaterialIcons name="history" size={15} color={c.amber} />
+                <Text style={[styles.historialBtnText, { color: c.amber }]}>
+                  Ver historial de {clienteSel.nombre}
+                </Text>
+              </TouchableOpacity>
+            )}
+
             <Modal visible={modalClientes} animationType="slide" transparent>
               <View style={styles.modalOverlay}>
                 <View style={[styles.modalBox, { backgroundColor: c.surface }]}>
@@ -402,6 +457,65 @@ export function EmpleadoReservaScreen() {
         </TouchableOpacity>
 
       </ScrollView>
+
+      {/* Modal historial del cliente */}
+      <Modal visible={modalHistorial} animationType="slide" transparent>
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalBox, { backgroundColor: c.surface }]}>
+            <Text style={[styles.modalTitle, { color: c.text }]}>
+              {clienteSel?.nombre} {clienteSel?.apellido}
+            </Text>
+            {loadingHistorial ? (
+              <ActivityIndicator color={c.amber} style={{ marginVertical: 24 }} />
+            ) : (
+              <>
+                <View style={styles.historialStats}>
+                  <View style={styles.historialStatItem}>
+                    <Text style={[styles.historialStatNum, { color: c.amber }]}>{historialData.total}</Text>
+                    <Text style={[styles.historialStatLabel, { color: c.sub }]}>Visitas totales</Text>
+                  </View>
+                  <View style={[styles.historialDivider, { backgroundColor: c.border }]} />
+                  <View style={styles.historialStatItem}>
+                    <Text style={[styles.historialStatNum, { color: c.text, fontSize: 14 }]}>
+                      {historialData.ultimaVisita ?? "Sin visitas"}
+                    </Text>
+                    <Text style={[styles.historialStatLabel, { color: c.sub }]}>Última visita</Text>
+                  </View>
+                </View>
+                {historialData.servicioFavorito && (
+                  <View style={[styles.favServicio, { backgroundColor: c.amber + "11", borderColor: c.amber + "33" }]}>
+                    <MaterialIcons name="favorite" size={13} color={c.amber} />
+                    <Text style={[styles.favServicioText, { color: c.amber }]}>
+                      Favorito: {historialData.servicioFavorito}
+                    </Text>
+                  </View>
+                )}
+                {historialData.ultimas.length > 0 && (
+                  <>
+                    <Text style={[styles.historialSubtitle, { color: c.sub }]}>ÚLTIMAS CITAS</Text>
+                    {historialData.ultimas.map((r, i) => (
+                      <View key={i} style={[styles.historialItem, { borderBottomColor: c.border }]}>
+                        <View style={{ flex: 1 }}>
+                          <Text style={[styles.historialItemServicio, { color: c.text }]}>{r.servicio}</Text>
+                          <Text style={[styles.historialItemFecha, { color: c.sub }]}>{r.fechaStr}</Text>
+                        </View>
+                        <TagChip label={r.estado} variant={ESTADO_CHIP[r.estado] ?? "default"} />
+                      </View>
+                    ))}
+                  </>
+                )}
+              </>
+            )}
+            <TouchableOpacity
+              onPress={() => setModalHistorial(false)}
+              style={[styles.modalCerrar, { borderColor: c.border }]}
+            >
+              <Text style={{ color: c.sub, fontFamily: "SpaceGrotesk_600SemiBold" }}>Cerrar</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
+
     </ScreenWrapper>
   );
 }
@@ -445,4 +559,17 @@ const styles = StyleSheet.create({
   clienteItemNombre: { fontSize: 14, fontFamily: "SpaceGrotesk_600SemiBold" },
   clienteItemEmail:  { fontSize: 12, fontFamily: "SpaceGrotesk_400Regular" },
   modalCerrar:  { height: 44, borderRadius: 10, borderWidth: 1, justifyContent: "center", alignItems: "center", marginTop: 8 },
+  historialBtn:     { flexDirection: "row", alignItems: "center", gap: 6, paddingHorizontal: 12, paddingVertical: 8, borderRadius: 8, borderWidth: 1 },
+  historialBtnText: { fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold" },
+  historialStats:   { flexDirection: "row", alignItems: "center", marginVertical: 12 },
+  historialStatItem:{ flex: 1, alignItems: "center", gap: 4 },
+  historialStatNum: { fontSize: 22, fontFamily: "Syne_700Bold" },
+  historialStatLabel:{ fontSize: 11, fontFamily: "SpaceGrotesk_400Regular" },
+  historialDivider: { width: 1, height: 40, marginHorizontal: 12 },
+  favServicio:      { flexDirection: "row", alignItems: "center", gap: 6, padding: 10, borderRadius: 8, borderWidth: 1, marginBottom: 12 },
+  favServicioText:  { fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold" },
+  historialSubtitle:{ fontSize: 10, fontFamily: "SpaceGrotesk_600SemiBold", letterSpacing: 1.2, marginBottom: 4 },
+  historialItem:    { flexDirection: "row", alignItems: "center", paddingVertical: 10, borderBottomWidth: 1, gap: 8 },
+  historialItemServicio: { fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold" },
+  historialItemFecha:    { fontSize: 11, fontFamily: "SpaceGrotesk_400Regular", marginTop: 2 },
 });
