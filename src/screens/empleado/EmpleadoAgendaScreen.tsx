@@ -8,7 +8,7 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import {
   collection, getDocs, addDoc, query, where,
-  doc, updateDoc, getDoc, Timestamp, orderBy,
+  doc, updateDoc, getDoc, Timestamp, orderBy, onSnapshot,
 } from "firebase/firestore";
 import { db } from "../../services/firebase";
 import { useThemeColors } from "../../hooks/useThemeColors";
@@ -16,6 +16,7 @@ import { useAuthStore }   from "../../store/authStore";
 import { ThemedCard }     from "../../components/ui/ThemedCard";
 import { TagChip }        from "../../components/ui/TagChip";
 import { ScreenWrapper }  from "../../components/ui/ScreenWrapper";
+import { notificarCambioEstado, notificarCancelacion } from "../../services/notifications";
 
 interface Reserva {
   id:            string;
@@ -69,6 +70,7 @@ export function EmpleadoAgendaScreen() {
               setReservas(prev =>
                 prev.map(r => r.id === reserva.id ? { ...r, estado: "fallida" } : r)
               );
+              notificarCambioEstado(reserva.clienteUid, reserva.clienteNombre, reserva.servicio, "fallida", reserva.hora).catch(() => {});
             } catch { Alert.alert("Error", "No se pudo actualizar."); }
           },
         },
@@ -121,6 +123,7 @@ export function EmpleadoAgendaScreen() {
         });
       }
       setReservas(prev => prev.map(r => r.id === reserva.id ? { ...r, estado: "completada" } : r));
+      notificarCambioEstado(reserva.clienteUid, reserva.clienteNombre, reserva.servicio, "completada", reserva.hora).catch(() => {});
       Alert.alert("✅ Listo", `${modalidad === "credito" ? "A crédito" : "De contado"}`);
     } catch { Alert.alert("Error", "No se pudo registrar."); }
   };
@@ -128,24 +131,6 @@ export function EmpleadoAgendaScreen() {
   const fechaStr = fechaSeleccionada.toLocaleDateString("es-CO", {
     weekday: "long", day: "numeric", month: "long",
   }).toUpperCase();
-
-  const loadReservas = async () => {
-    const inicio = new Date(fechaSeleccionada);
-    inicio.setHours(0, 0, 0, 0);
-    const fin = new Date(fechaSeleccionada);
-    fin.setHours(23, 59, 59, 999);
-    try {
-      const snap = await getDocs(query(
-        collection(db, "reservas"),
-        where("fecha", ">=", Timestamp.fromDate(inicio)),
-        where("fecha", "<=", Timestamp.fromDate(fin)),
-        orderBy("fecha", "asc")
-      ));
-      const todas = snap.docs.map(d => ({ id: d.id, ...d.data() }) as Reserva);
-      setReservas(todas.filter(r => r.peluqueroUid === user?.uid));
-    } catch(e) { /* */ }
-    finally { setLoading(false); }
-  };
 
   // Auto-cancelar reservas pendientes cuya hora ya pasó
   useEffect(() => {
@@ -165,31 +150,44 @@ export function EmpleadoAgendaScreen() {
     cancelarVencidas();
   }, []);
 
+  // Reservas del día seleccionado, en tiempo real (solo las del peluquero)
   useEffect(() => {
     setLoading(true);
-    loadReservas();
-  }, [diaOffset]);
-
-  const onRefresh = async () => {
-    setRefreshing(true);
-    await loadReservas();
-    setRefreshing(false);
-  };
-
-  const loadPendingAll = async () => {
-    setLoadingPending(true);
-    try {
-      const snap = await getDocs(query(
+    const inicio = new Date(fechaSeleccionada); inicio.setHours(0, 0, 0, 0);
+    const fin    = new Date(fechaSeleccionada); fin.setHours(23, 59, 59, 999);
+    const unsub = onSnapshot(
+      query(
         collection(db, "reservas"),
-        where("estado", "==", "pendiente")
-      ));
-      setPendingAll(snap.docs
-        .map(d => ({ id: d.id, ...d.data() }) as Reserva)
-        .sort((a,b) => a.fecha.toMillis() - b.fecha.toMillis())
-      );
-    } catch {}
-    finally { setLoadingPending(false); }
-  };
+        where("fecha", ">=", Timestamp.fromDate(inicio)),
+        where("fecha", "<=", Timestamp.fromDate(fin)),
+        orderBy("fecha", "asc")
+      ),
+      snap => {
+        const todas = snap.docs.map(d => ({ id: d.id, ...d.data() }) as Reserva);
+        setReservas(todas.filter(r => r.peluqueroUid === user?.uid));
+        setLoading(false);
+      },
+      () => setLoading(false)
+    );
+    return () => unsub();
+  }, [diaOffset, user?.uid]);
+
+  const onRefresh = async () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 500); };
+
+  // Pendientes en tiempo real
+  const loadPendingAll = () => {};
+  useEffect(() => {
+    if (!user?.canApproveReservas) return;
+    const unsub = onSnapshot(
+      query(collection(db, "reservas"), where("estado", "==", "pendiente")),
+      snap => setPendingAll(
+        snap.docs.map(d => ({ id: d.id, ...d.data() }) as Reserva)
+          .sort((a,b) => a.fecha.toMillis() - b.fecha.toMillis())
+      ),
+      () => {}
+    );
+    return () => unsub();
+  }, [user?.canApproveReservas]);
 
   const cancelarReserva = async (reserva: Reserva) => {
     Alert.alert(
@@ -207,6 +205,7 @@ export function EmpleadoAgendaScreen() {
               setReservas(prev =>
                 prev.map(r => r.id === reserva.id ? { ...r, estado: "cancelada" } : r)
               );
+              notificarCancelacion(reserva.clienteUid, reserva.clienteNombre, reserva.servicio, reserva.hora, "empleado").catch(() => {});
             } catch { Alert.alert("Error", "No se pudo cancelar."); }
           },
         },
@@ -218,6 +217,7 @@ export function EmpleadoAgendaScreen() {
     try {
       await updateDoc(doc(db, "reservas", reserva.id), { estado: "confirmada", updatedAt: Timestamp.now() });
       setPendingAll(prev => prev.filter(r => r.id !== reserva.id));
+      notificarCambioEstado(reserva.clienteUid, reserva.clienteNombre, reserva.servicio, "confirmada", reserva.hora).catch(() => {});
     } catch {}
   };
 
@@ -298,12 +298,23 @@ export function EmpleadoAgendaScreen() {
         })}
       </ScrollView>
 
-      {/* Fecha */}
+      {/* Fecha + resumen del día */}
       <View style={[styles.fechaBar, { borderBottomColor: c.border }]}>
         <Text style={[styles.fechaText, { color: c.sub }]}>{fechaStr}</Text>
-        <Text style={[styles.citasCount, { color: c.amber }]}>
-          {reservas.length} {reservas.length === 1 ? "cita" : "citas"}
-        </Text>
+        <View style={styles.resumenChips}>
+          <View style={[styles.resumenChip, { backgroundColor: c.positive + "18" }]}>
+            <Text style={[styles.resumenChipNum, { color: c.positive }]}>
+              {reservas.filter(r => r.estado === "confirmada").length}
+            </Text>
+            <Text style={[styles.resumenChipLbl, { color: c.positive }]}>conf.</Text>
+          </View>
+          <View style={[styles.resumenChip, { backgroundColor: c.amber + "18" }]}>
+            <Text style={[styles.resumenChipNum, { color: c.amber }]}>
+              {reservas.filter(r => r.estado === "pendiente").length}
+            </Text>
+            <Text style={[styles.resumenChipLbl, { color: c.amber }]}>pend.</Text>
+          </View>
+        </View>
       </View>
 
       {/* Lista */}
@@ -425,6 +436,7 @@ export function EmpleadoAgendaScreen() {
                           try {
                             await updateDoc(doc(db, "reservas", r.id), { estado: "cancelada", updatedAt: Timestamp.now() });
                             setPendingAll(prev => prev.filter(x => x.id !== r.id));
+                            notificarCancelacion(r.clienteUid, r.clienteNombre, r.servicio, r.hora, "empleado").catch(() => {});
                           } catch { Alert.alert("Error", "No se pudo negar."); }
                         }}
                         style={[styles.confirmadaBtn, { backgroundColor: c.negative + "18", borderColor: c.negative + "44" }]}
@@ -473,19 +485,23 @@ const styles = StyleSheet.create({
     alignItems: "center", paddingHorizontal: 20,
     paddingVertical: 10, borderBottomWidth: 1,
   },
-  fechaText:  { fontSize: 10, fontFamily: "SpaceGrotesk_600SemiBold", letterSpacing: 1 },
+  fechaText:  { fontSize: 11, fontFamily: "SpaceGrotesk_600SemiBold", letterSpacing: 1 },
   citasCount: { fontSize: 12, fontFamily: "SpaceGrotesk_600SemiBold" },
+  resumenChips: { flexDirection: "row", gap: 8 },
+  resumenChip:  { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
+  resumenChipNum: { fontSize: 14, fontFamily: "Syne_700Bold" },
+  resumenChipLbl: { fontSize: 11, fontFamily: "SpaceGrotesk_600SemiBold" },
   scroll:     { padding: 20, gap: 10 },
   empty:      { alignItems: "center", marginTop: 60, gap: 12 },
   emptyText:  { fontSize: 14, fontFamily: "SpaceGrotesk_400Regular" },
   reservaCard: { flexDirection: "row", gap: 16 },
   horaBlock: {
     justifyContent: "center", alignItems: "center",
-    paddingRight: 16, borderRightWidth: 1, minWidth: 54,
+    paddingRight: 16, borderRightWidth: 1, minWidth: 64,
   },
-  hora:          { fontSize: 16, fontFamily: "Syne_700Bold" },
-  clienteNombre: { fontSize: 15, fontFamily: "SpaceGrotesk_600SemiBold" },
-  servicio:      { fontSize: 12, fontFamily: "SpaceGrotesk_400Regular" },
+  hora:          { fontSize: 22, fontFamily: "Syne_700Bold" },
+  clienteNombre: { fontSize: 18, fontFamily: "SpaceGrotesk_600SemiBold" },
+  servicio:      { fontSize: 13, fontFamily: "SpaceGrotesk_400Regular" },
   tagsRow:       { flexDirection: "row", gap: 6, marginTop: 4 },
   confirmadaRow: { flexDirection: "row", gap: 8, marginTop: 8 },
   confirmadaBtn: {

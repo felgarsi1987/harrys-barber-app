@@ -7,7 +7,7 @@ import { MaterialIcons } from "@expo/vector-icons";
 import {
   collection, getDocs, query, where,
   doc, addDoc, updateDoc, getDoc,
-  Timestamp,
+  Timestamp, onSnapshot,
 } from "firebase/firestore";
 import { db } from "../../services/firebase";
 import { notificarAbono, notificarEstadoPedido } from "../../services/notifications";
@@ -75,7 +75,7 @@ export function AdminPagosScreen() {
         )),
       ]);
 
-      const clientesData = clientesSnap.docs.map(d => d.data() as ClienteConSaldo);
+      const clientesData = clientesSnap.docs.map(d => ({ uid: d.id, ...d.data() }) as ClienteConSaldo);
       setClientes(clientesData.filter(c => (c.saldo ?? 0) > 0));
       setMovimientos(movSnap.docs.map(d => ({ id: d.id, ...d.data() }) as Movimiento));
       setPedidos(pedidosSnap.docs.map(d => ({ id: d.id, ...d.data() }) as PedidoCredito));
@@ -83,7 +83,29 @@ export function AdminPagosScreen() {
     finally { setLoading(false); }
   };
 
-  useEffect(() => { loadData(); }, []);
+  // Listeners en tiempo real
+  useEffect(() => {
+    const unsubClientes = onSnapshot(
+      query(collection(db, "users"), where("role", "==", "cliente")),
+      snap => {
+        const data = snap.docs.map(d => ({ uid: d.id, ...d.data() }) as ClienteConSaldo);
+        setClientes(data.filter(c => (c.saldo ?? 0) > 0));
+        setLoading(false);
+      },
+      () => setLoading(false)
+    );
+    const unsubMov = onSnapshot(
+      collection(db, "movimientos"),
+      snap => setMovimientos(snap.docs.map(d => ({ id: d.id, ...d.data() }) as Movimiento)),
+      () => {}
+    );
+    const unsubPed = onSnapshot(
+      query(collection(db, "pedidos"), where("estado", "==", "pendiente_credito")),
+      snap => setPedidos(snap.docs.map(d => ({ id: d.id, ...d.data() }) as PedidoCredito)),
+      () => {}
+    );
+    return () => { unsubClientes(); unsubMov(); unsubPed(); };
+  }, []);
 
   const onRefresh = async () => {
     setRefreshing(true);

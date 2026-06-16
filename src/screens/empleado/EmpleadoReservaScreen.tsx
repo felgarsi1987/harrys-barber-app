@@ -6,6 +6,7 @@ import {
 import { collection, addDoc, getDocs, query, where, Timestamp } from "firebase/firestore";
 import { MaterialIcons } from "@expo/vector-icons";
 import { db } from "../../services/firebase";
+import { notificarEmpleadoAsignado } from "../../services/notifications";
 import { getServicios, Servicio } from "../../services/serviciosService";
 import { useThemeColors }   from "../../hooks/useThemeColors";
 import { useHorarioConfig } from "../../hooks/useHorarioConfig";
@@ -160,6 +161,12 @@ export function EmpleadoReservaScreen() {
         createdAt:         Timestamp.now(),
       });
       setHorasOcupadas(prev => [...prev, horaSel]);
+      // Avisar al peluquero asignado si no es uno mismo
+      if (barberoSel && barberoSel.uid !== user?.uid) {
+        notificarEmpleadoAsignado(
+          barberoSel.uid, nombreCliente.trim(), servicio.label, fechaStr, horaSel,
+        ).catch(() => {});
+      }
       Alert.alert(
         "✅ Reserva creada",
         paraMiMismo

@@ -8,7 +8,7 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import {
   collection, getDocs, addDoc, query, orderBy,
-  doc, updateDoc, getDoc, Timestamp, where,
+  doc, updateDoc, getDoc, Timestamp, where, onSnapshot,
 } from "firebase/firestore";
 import { db } from "../../services/firebase";
 import { notificarCambioEstado, cancelarRecordatorio, notificarCancelacion } from "../../services/notifications";
@@ -99,7 +99,14 @@ export function AdminReservasScreen() {
     ).catch(() => {});
 
     loadEmpleados();
-    loadReservas();
+
+    // Reservas en tiempo real
+    const unsub = onSnapshot(
+      query(collection(db, "reservas"), orderBy("fecha", "asc")),
+      snap => { setReservas(snap.docs.map(d => ({ id: d.id, ...d.data() }) as Reserva)); setLoading(false); },
+      () => setLoading(false)
+    );
+    return () => unsub();
   }, []);
 
   const onRefresh = async () => {
@@ -436,11 +443,11 @@ const styles = StyleSheet.create({
   card:        { gap:12 },
   cardTop:     { flexDirection:"row", alignItems:"flex-start", gap:12 },
   nameRow:     { flexDirection:"row", alignItems:"center", gap:8, flexWrap:"wrap" },
-  clienteNombre:{ fontSize:15, fontFamily:"SpaceGrotesk_600SemiBold" },
+  clienteNombre:{ fontSize:16, fontFamily:"SpaceGrotesk_600SemiBold" },
   servicio:    { fontSize:13, fontFamily:"SpaceGrotesk_500Medium" },
-  peluquero:   { fontSize:11, fontFamily:"SpaceGrotesk_400Regular" },
+  peluquero:   { fontSize:14, fontFamily:"SpaceGrotesk_600SemiBold" },
   fechaRow:    { flexDirection:"row", alignItems:"center", gap:6 },
-  fechaText:   { fontSize:12, fontFamily:"SpaceGrotesk_400Regular" },
+  fechaText:   { fontSize:15, fontFamily:"SpaceGrotesk_600SemiBold" },
   actionsRow:  { flexDirection:"row", gap:8, paddingTop:12, borderTopWidth:1 },
   actionBtn:   { flex:1, flexDirection:"row", alignItems:"center", justifyContent:"center", gap:4, paddingVertical:8, borderRadius:8 },
   actionBtnText:{ fontSize:12, fontFamily:"SpaceGrotesk_600SemiBold" },

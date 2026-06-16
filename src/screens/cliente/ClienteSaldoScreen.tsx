@@ -4,7 +4,7 @@ import {
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import {
-  collection, getDocs, query, where,
+  collection, query, where, doc, onSnapshot,
 } from "firebase/firestore";
 import { db } from "../../services/firebase";
 import { useThemeColors } from "../../hooks/useThemeColors";
@@ -29,24 +29,30 @@ export function ClienteSaldoScreen() {
 
   useEffect(() => {
     if (!user?.uid) return;
-    getDocs(query(
-      collection(db, "movimientos"),
-      where("clienteUid", "==", user.uid)
-    )).then(snap => {
-      const data = snap.docs
-        .map(d => ({ id: d.id, ...d.data() }) as Movimiento)
-        .sort((a, b) => {
-          const ta = a.fecha?.toMillis ? a.fecha.toMillis() : 0;
-          const tb = b.fecha?.toMillis ? b.fecha.toMillis() : 0;
-          return tb - ta; // más reciente primero
-        });
-      setMovimientos(data);
-      const total = data.reduce((acc, m) =>
-        m.tipo === "cargo" ? acc + m.monto : acc - m.monto, 0
-      );
-      setSaldo(total);
-    }).catch(() => {})
-    .finally(() => setLoading(false));
+
+    // Saldo en tiempo real desde el doc del usuario (misma fuente que admin/balance)
+    const unsubUser = onSnapshot(doc(db, "users", user.uid), snap => {
+      if (snap.exists()) setSaldo(snap.data().saldo ?? 0);
+    });
+
+    // Historial de movimientos en tiempo real
+    const unsubMov = onSnapshot(
+      query(collection(db, "movimientos"), where("clienteUid", "==", user.uid)),
+      snap => {
+        const data = snap.docs
+          .map(d => ({ id: d.id, ...d.data() }) as Movimiento)
+          .sort((a, b) => {
+            const ta = a.fecha?.toMillis ? a.fecha.toMillis() : 0;
+            const tb = b.fecha?.toMillis ? b.fecha.toMillis() : 0;
+            return tb - ta;
+          });
+        setMovimientos(data);
+        setLoading(false);
+      },
+      () => setLoading(false)
+    );
+
+    return () => { unsubUser(); unsubMov(); };
   }, [user?.uid]);
 
   const formatFecha = (ts: any) => {

@@ -47,13 +47,15 @@ export function ScreenWrapper({ children, style, keyboard = true, scrollable = f
     </View>
   );
 
-  if (!keyboard) return content;
+  // En Android el manifest usa softwareKeyboardLayoutMode "adjustResize",
+  // que ya reacomoda la ventana. Aplicar además "padding" duplica el ajuste,
+  // por eso solo usamos KeyboardAvoidingView en iOS.
+  if (!keyboard || Platform.OS === "android") return content;
 
   return (
     <KeyboardAvoidingView
       style={[styles.kav, { backgroundColor: c.bg }]}
-      behavior={Platform.OS === "ios" ? "padding" : "padding"}
-      keyboardVerticalOffset={Platform.OS === "android" ? 0 : 0}
+      behavior="padding"
       enabled
     >
       {content}

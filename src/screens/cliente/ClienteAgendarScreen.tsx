@@ -9,7 +9,7 @@ import {
   where, Timestamp, doc,
 } from "firebase/firestore";
 import { db, auth } from "../../services/firebase";
-import { programarRecordatorio } from "../../services/notifications";
+import { programarRecordatorio, notificarEmpleadoAsignado } from "../../services/notifications";
 import { getServicios, Servicio } from "../../services/serviciosService";
 import { useThemeColors }    from "../../hooks/useThemeColors";
 import { useHorarioConfig }  from "../../hooks/useHorarioConfig";
@@ -164,6 +164,14 @@ export function ClienteAgendarScreen() {
         fecha,
         `${peluqueroSel.nombre} ${peluqueroSel.apellido}`
       );
+      // Avisar al peluquero que tiene una nueva reserva
+      notificarEmpleadoAsignado(
+        peluqueroSel.uid,
+        clienteNombre,
+        servicio.label,
+        fechaSeleccionada,
+        horaSeleccionada,
+      ).catch(() => {});
       Alert.alert(
         "✅ Reserva enviada",
         `Tu cita con ${peluqueroSel.nombre} fue enviada. El admin la confirmará pronto.`

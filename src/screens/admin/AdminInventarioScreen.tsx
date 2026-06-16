@@ -1,13 +1,13 @@
 import React, { useEffect, useState } from "react";
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator,
-  TextInput, Alert, Modal,
+  TextInput, Alert, Modal, KeyboardAvoidingView, Platform,
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import { BackHeader }    from "../../components/ui/BackHeader";
 import {
-  collection, getDocs, addDoc, updateDoc,
-  deleteDoc, doc, Timestamp,
+  collection, addDoc, updateDoc,
+  deleteDoc, doc, Timestamp, onSnapshot,
 } from "firebase/firestore";
 import { db } from "../../services/firebase";
 import { useThemeColors } from "../../hooks/useThemeColors";
@@ -41,15 +41,16 @@ export function AdminInventarioScreen() {
   const [guardando,    setGuardando]    = useState(false);
   const [filtroCateg,  setFiltroCateg]  = useState("todos");
 
-  const loadProductos = async () => {
-    try {
-      const snap = await getDocs(collection(db, "inventario"));
-      setProductos(snap.docs.map(d => ({ id: d.id, ...d.data() }) as Producto));
-    } catch(e) { /* */ }
-    finally { setLoading(false); }
-  };
+  const loadProductos = async () => { /* recarga automática vía onSnapshot */ };
 
-  useEffect(() => { loadProductos(); }, []);
+  useEffect(() => {
+    const unsub = onSnapshot(
+      collection(db, "inventario"),
+      snap => { setProductos(snap.docs.map(d => ({ id: d.id, ...d.data() }) as Producto)); setLoading(false); },
+      () => setLoading(false)
+    );
+    return () => unsub();
+  }, []);
 
   const abrirModal = (producto?: Producto) => {
     if (producto) {
@@ -224,7 +225,15 @@ export function AdminInventarioScreen() {
 
       {/* Modal crear/editar */}
       <Modal visible={modalVisible} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
+        <KeyboardAvoidingView
+          style={styles.modalOverlay}
+          behavior={Platform.OS === "ios" ? "padding" : "height"}
+        >
+          <ScrollView
+            contentContainerStyle={{ flexGrow: 1, justifyContent: "flex-end" }}
+            keyboardShouldPersistTaps="handled"
+            showsVerticalScrollIndicator={false}
+          >
           <View style={[styles.modalCard, { backgroundColor: c.surface }]}>
             <Text style={[styles.modalTitle, { color: c.text }]}>
               {editando ? "Editar producto" : "Nuevo producto"}
@@ -294,7 +303,8 @@ export function AdminInventarioScreen() {
               </TouchableOpacity>
             </View>
           </View>
-        </View>
+          </ScrollView>
+        </KeyboardAvoidingView>
       </Modal>
 
     </ScreenWrapper>

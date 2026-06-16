@@ -48,3 +48,6 @@ GoogleService-Info.plist
 # OS
 .DS_Store
 Thumbs.dbservice-account.json
+
+build-log.txt
+dist/

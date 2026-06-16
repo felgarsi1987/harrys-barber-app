@@ -337,17 +337,28 @@ export function AdminAsignarReservaScreen() {
               {horasConfig.map((h, i) => {
                 const ocupada = horasOcupadas.includes(h);
                 const sel     = hora === h;
+                const ahora   = new Date();
+                const esHoy   = fecha === ahora.toISOString().split("T")[0];
+                const [hh, mm] = h.split(":").map(Number);
+                const pasada  = esHoy && (hh * 60 + mm) <= (ahora.getHours() * 60 + ahora.getMinutes());
+                const noDisp  = ocupada || pasada;
                 return (
                   <TouchableOpacity
                     key={i}
-                    disabled={ocupada}
+                    disabled={noDisp}
                     onPress={() => setHora(h)}
                     style={[
                       styles.horaBtn,
-                      { borderColor: sel ? c.amber : c.border, backgroundColor: sel ? c.amber + "18" : ocupada ? c.border + "30" : c.surface, opacity: ocupada ? 0.4 : 1 }
+                      {
+                        borderColor:     sel ? c.amber : ocupada ? c.negative + "66" : c.border,
+                        backgroundColor: sel ? c.amber + "18" : ocupada ? c.negative + "11" : c.surface,
+                        opacity:         pasada && !ocupada ? 0.35 : 1,
+                      },
                     ]}
                   >
-                    <Text style={[styles.horaText, { color: sel ? c.amber : ocupada ? c.sub : c.text }]}>{h}</Text>
+                    <Text style={[styles.horaText, { color: sel ? c.amber : ocupada ? c.negative : pasada ? c.sub : c.text }]}>{h}</Text>
+                    {ocupada && <Text style={[styles.ocupadaText, { color: c.negative }]}>Ocupada</Text>}
+                    {pasada && !ocupada && <Text style={[styles.ocupadaText, { color: c.sub }]}>Pasada</Text>}
                   </TouchableOpacity>
                 );
               })}
@@ -443,9 +454,10 @@ const styles = StyleSheet.create({
   horasGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   horaBtn: {
     width: "22%", borderWidth: 1, borderRadius: 8,
-    padding: 10, alignItems: "center",
+    padding: 10, alignItems: "center", gap: 2,
   },
   horaText: { fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold" },
+  ocupadaText: { fontSize: 9, fontFamily: "SpaceGrotesk_400Regular" },
   resumen:      { gap: 10, marginTop: 8 },
   resumenTitle: { fontSize: 16, fontFamily: "Syne_700Bold" },
   resumenRow:   { flexDirection: "row", justifyContent: "space-between" },

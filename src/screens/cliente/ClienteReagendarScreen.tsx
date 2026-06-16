@@ -153,23 +153,28 @@ export function ClienteReagendarScreen() {
               {horasConfig.map((h, i) => {
                 const ocupada = horasOcupadas.includes(h);
                 const sel     = hora === h;
+                const [hh, mm] = h.split(":").map(Number);
+                const pasada   = esHoy && (hh * 60 + mm) <= (hoy.getHours() * 60 + hoy.getMinutes());
+                const noDisp   = ocupada || pasada;
                 return (
                   <TouchableOpacity
                     key={i}
-                    onPress={() => !ocupada && setHora(h)}
-                    disabled={ocupada}
+                    onPress={() => !noDisp && setHora(h)}
+                    disabled={noDisp}
                     style={[
                       styles.horaBtn,
                       {
                         borderColor:     sel ? c.amber : ocupada ? c.negative + "66" : c.border,
                         backgroundColor: sel ? c.amber + "18" : ocupada ? c.negative + "11" : c.surface,
-                        opacity:         1,
+                        opacity:         pasada && !ocupada ? 0.35 : 1,
                       },
                     ]}
                   >
-                    <Text style={[styles.horaText, { color: sel ? c.amber : ocupada ? c.negative : c.text }]}>
+                    <Text style={[styles.horaText, { color: sel ? c.amber : ocupada ? c.negative : pasada ? c.sub : c.text }]}>
                       {h}
                     </Text>
+                    {ocupada && <Text style={[styles.ocupadaText, { color: c.negative }]}>Ocupada</Text>}
+                    {pasada && !ocupada && <Text style={[styles.ocupadaText, { color: c.sub }]}>Pasada</Text>}
                   </TouchableOpacity>
                 );
               })}
@@ -203,9 +208,10 @@ const styles = StyleSheet.create({
   horasGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
   horaBtn: {
     width: "22%", borderWidth: 1, borderRadius: 8,
-    padding: 8, alignItems: "center",
+    padding: 8, alignItems: "center", gap: 2,
   },
   horaText: { fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold" },
+  ocupadaText: { fontSize: 9, fontFamily: "SpaceGrotesk_400Regular" },
   confirmarBtn: {
     height: 52, borderRadius: 12,
     justifyContent: "center", alignItems: "center", marginTop: 8,

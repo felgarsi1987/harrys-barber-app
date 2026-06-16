@@ -5,10 +5,11 @@ import {
 } from "react-native";
 import { MaterialIcons } from "@expo/vector-icons";
 import {
-  collection, getDocs, query, where,
-  doc, updateDoc, Timestamp,
+  collection, query, where,
+  doc, updateDoc, getDoc, addDoc, Timestamp, onSnapshot,
 } from "firebase/firestore";
 import { db } from "../../services/firebase";
+import { notificarEstadoPedido } from "../../services/notifications";
 import { useThemeColors } from "../../hooks/useThemeColors";
 import { useAuthStore }   from "../../store/authStore";
 import { ThemedCard }     from "../../components/ui/ThemedCard";
@@ -57,23 +58,21 @@ export function PedidosScreen({ mode, showBackHeader = true }: Props) {
   const [tab,        setTab]        = useState<"pendientes"|"historial">("pendientes");
   const [filtroCateg, setFiltroCateg] = useState<string>("todos");
 
-  const load = async () => {
-    try {
-      let q;
-      if (mode === "cliente" && user?.uid) {
-        q = query(collection(db,"pedidos"), where("clienteUid","==",user.uid));
-      } else {
-        q = query(collection(db,"pedidos"));
-      }
-      const snap = await getDocs(q);
-      setPedidos(snap.docs.map(d => ({ id: d.id, ...d.data() }) as Pedido));
-    } catch(e) { /* */ }
-    finally { setLoading(false); }
-  };
+  const load = async () => { /* recarga automática vía onSnapshot */ };
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    const q = mode === "cliente" && user?.uid
+      ? query(collection(db, "pedidos"), where("clienteUid", "==", user.uid))
+      : query(collection(db, "pedidos"));
+    const unsub = onSnapshot(
+      q,
+      snap => { setPedidos(snap.docs.map(d => ({ id: d.id, ...d.data() }) as Pedido)); setLoading(false); },
+      () => setLoading(false)
+    );
+    return () => unsub();
+  }, [mode, user?.uid]);
 
-  const onRefresh = async () => { setRefreshing(true); await load(); setRefreshing(false); };
+  const onRefresh = async () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 500); };
 
   const cambiarEstado = async (pedido: Pedido, nuevoEstado: string) => {
     const labels: Record<string,string> = { aprobado:"Aprobar", rechazado:"Rechazar", entregado:"Marcar entregado" };
@@ -88,7 +87,28 @@ export function PedidosScreen({ mode, showBackHeader = true }: Props) {
           onPress: async () => {
             try {
               await updateDoc(doc(db,"pedidos",pedido.id), { estado: nuevoEstado, updatedAt: Timestamp.now() });
-              setPedidos(prev => prev.map(p => p.id === pedido.id ? { ...p, estado: nuevoEstado } : p));
+
+              // Si se aprueba un pedido a crédito, cargar el saldo del cliente
+              if (nuevoEstado === "aprobado" && pedido.estado === "pendiente_credito" && pedido.clienteUid) {
+                try {
+                  const userRef  = doc(db, "users", pedido.clienteUid);
+                  const userSnap = await getDoc(userRef);
+                  const saldoActual = userSnap.exists() ? (userSnap.data().saldo ?? 0) : 0;
+                  await updateDoc(userRef, { saldo: saldoActual + pedido.total });
+                  await addDoc(collection(db, "movimientos"), {
+                    clienteUid:  pedido.clienteUid,
+                    tipo:        "cargo",
+                    descripcion: `Tienda — ${pedido.items.map(i => `${i.nombre} x${i.cantidad}`).join(", ")}`,
+                    monto:       pedido.total,
+                    fecha:       Timestamp.now(),
+                  });
+                } catch {}
+              }
+
+              // Notificar al cliente del cambio de estado
+              if (pedido.clienteUid && ["aprobado","rechazado","entregado"].includes(nuevoEstado)) {
+                notificarEstadoPedido(pedido.clienteUid, nuevoEstado as any, pedido.total).catch(() => {});
+              }
             } catch { Alert.alert("Error","No se pudo actualizar."); }
           },
         },
