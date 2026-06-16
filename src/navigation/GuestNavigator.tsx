@@ -8,6 +8,8 @@ import { MaterialIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useThemeColors }   from "../hooks/useThemeColors";
 import { useGuestStore }    from "../store/guestStore";
+import { TabIcon }          from "../components/ui/TabIcon";
+import { AixonFooter }      from "../components/ui/AixonFooter";
 import { ClienteAgendarScreen }  from "../screens/cliente/ClienteAgendarScreen";
 import { ClienteCarritoScreen }  from "../screens/cliente/ClienteCarritoScreen";
 import { EntretenimientoScreen } from "../screens/shared/EntretenimientoScreen";
@@ -149,6 +151,9 @@ function GuestPerfilScreen() {
           </ScalePress>
         </Animated.View>
 
+        {/* Footer Aixon */}
+        <AixonFooter />
+
       </ScrollView>
     </ScreenWrapper>
   );
@@ -174,14 +179,14 @@ export function GuestNavigator() {
         tabBarActiveTintColor:   c.amber,
         tabBarInactiveTintColor: c.sub,
         tabBarLabelStyle: { fontSize: 10 },
-        tabBarIcon: ({ color }) => {
+        tabBarIcon: ({ color, focused }) => {
           const icons: Record<string, keyof typeof MaterialIcons.glyphMap> = {
             Agendar:         "content-cut",
             Entretenimiento: "sports-soccer",
             Tienda:          "shopping-bag",
             Perfil:          "person-outline",
           };
-          return <MaterialIcons name={icons[route.name] ?? "circle"} size={22} color={color} />;
+          return <TabIcon name={icons[route.name] ?? "circle"} color={color} focused={focused} />;
         },
       })}
     >

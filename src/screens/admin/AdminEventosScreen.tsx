@@ -43,6 +43,7 @@ export function AdminEventosScreen() {
   const [eventos,       setEventos]       = useState<Evento[]>([]);
   const [loading,       setLoading]       = useState(true);
   const [guardando,     setGuardando]     = useState(false);
+  const [notificando,   setNotificando]   = useState(false);
   const [showCalendar,  setShowCalendar]  = useState(false);
   const [modalVisible,  setModalVisible]  = useState(false);
   const [editando,      setEditando]      = useState<Evento | null>(null);
@@ -180,9 +181,9 @@ export function AdminEventosScreen() {
           ...prev,
         ]);
 
-        // Notificar a todos los clientes si el evento está activo
+        // Preguntar si notificar al crear activo
         if (form.activo) {
-          notificarTodosLosClientes(form.titulo, form.descripcion);
+          setTimeout(() => handleNotificar(form.titulo, form.descripcion), 350);
         }
       }
       setModalVisible(false);
@@ -195,7 +196,7 @@ export function AdminEventosScreen() {
   };
 
   // ── Notificar a todos los clientes ───────────────────────────────────────
-  const notificarTodosLosClientes = async (titulo: string, descripcion: string) => {
+  const notificarTodosLosClientes = async (titulo: string, descripcion: string): Promise<number> => {
     try {
       const snap = await getDocs(
         query(collection(db, "users"), ...[])
@@ -206,7 +207,7 @@ export function AdminEventosScreen() {
         if (pushToken) tokens.push(pushToken);
       });
 
-      if (tokens.length === 0) return;
+      if (tokens.length === 0) return 0;
 
       // Enviar en lotes de 100 (límite de Expo Push API)
       for (let i = 0; i < tokens.length; i += 100) {
@@ -224,7 +225,34 @@ export function AdminEventosScreen() {
           body:    JSON.stringify(batch),
         });
       }
-    } catch {}
+      return tokens.length;
+    } catch { return -1; }
+  };
+
+  // Confirmar antes y después de enviar la notificación general
+  const handleNotificar = (titulo: string, descripcion: string) => {
+    Alert.alert(
+      "Notificar a clientes",
+      `¿Enviar "${titulo}" a todos los usuarios registrados?`,
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Enviar",
+          onPress: async () => {
+            setNotificando(true);
+            const n = await notificarTodosLosClientes(titulo, descripcion);
+            setNotificando(false);
+            if (n === -1) {
+              Alert.alert("Error", "No se pudo enviar la notificación. Revisa tu conexión.");
+            } else if (n === 0) {
+              Alert.alert("Sin destinatarios", "Ningún usuario tiene las notificaciones activas todavía.");
+            } else {
+              Alert.alert("✅ Notificación enviada", `Se envió a ${n} ${n === 1 ? "persona" : "personas"}.`);
+            }
+          },
+        },
+      ]
+    );
   };
 
   const toggleActivo = async (evento: Evento) => {
@@ -233,9 +261,9 @@ export function AdminEventosScreen() {
       setEventos(prev => prev.map(e =>
         e.id === evento.id ? { ...e, activo: !e.activo } : e
       ));
-      // Notificar al activar
+      // Preguntar si notificar al activar
       if (!evento.activo) {
-        notificarTodosLosClientes(evento.titulo, evento.descripcion);
+        handleNotificar(evento.titulo, evento.descripcion);
       }
     } catch {}
   };
@@ -328,11 +356,18 @@ export function AdminEventosScreen() {
                     </Text>
                   </TouchableOpacity>
                   <TouchableOpacity
-                    onPress={() => notificarTodosLosClientes(e.titulo, e.descripcion)}
-                    style={[styles.actionBtn, { borderColor: c.blue }]}
+                    onPress={() => handleNotificar(e.titulo, e.descripcion)}
+                    disabled={notificando}
+                    style={[styles.actionBtn, { borderColor: c.blue, opacity: notificando ? 0.6 : 1 }]}
                   >
-                    <MaterialIcons name="notifications" size={15} color={c.blue} />
-                    <Text style={[styles.actionBtnText, { color: c.blue }]}>Notificar</Text>
+                    {notificando ? (
+                      <ActivityIndicator size="small" color={c.blue} />
+                    ) : (
+                      <>
+                        <MaterialIcons name="notifications" size={15} color={c.blue} />
+                        <Text style={[styles.actionBtnText, { color: c.blue }]}>Notificar</Text>
+                      </>
+                    )}
                   </TouchableOpacity>
                   <TouchableOpacity onPress={() => eliminar(e)} style={[styles.actionBtn, { borderColor: c.negative + "44" }]}>
                     <MaterialIcons name="delete" size={15} color={c.negative} />

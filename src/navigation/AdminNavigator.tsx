@@ -4,6 +4,7 @@ import { createStackNavigator }     from "@react-navigation/stack";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useThemeColors } from "../hooks/useThemeColors";
+import { TabIcon } from "../components/ui/TabIcon";
 
 import { AdminDashboardScreen }  from "../screens/admin/AdminDashboardScreen";
 import { AdminReservasScreen }   from "../screens/admin/AdminReservasScreen";
@@ -48,7 +49,7 @@ function AdminTabs() {
         tabBarActiveTintColor:   c.amber,
         tabBarInactiveTintColor: c.sub,
         tabBarLabelStyle: { fontSize: 10 },
-        tabBarIcon: ({ color }) => {
+        tabBarIcon: ({ color, focused }) => {
           const icons: Record<string, keyof typeof MaterialIcons.glyphMap> = {
             Dashboard:       "dashboard",
             Reservas:        "event-available",
@@ -59,11 +60,7 @@ function AdminTabs() {
             Perfil:          "manage-accounts",
           };
           return (
-            <MaterialIcons
-              name={icons[route.name] ?? "circle"}
-              size={22}
-              color={color}
-            />
+            <TabIcon name={icons[route.name] ?? "circle"} color={color} focused={focused} />
           );
         },
       })}

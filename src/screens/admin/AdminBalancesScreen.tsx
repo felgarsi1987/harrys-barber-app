@@ -17,6 +17,7 @@ import { ScreenWrapper } from "../../components/ui/ScreenWrapper";
 import { SkeletonLoader } from "../../components/ui/SkeletonLoader";
 import { ProgressBar }    from "../../components/ui/ProgressBar";
 import { PressableScale } from "../../components/ui/PressableScale";
+import { AnimatedNumber } from "../../components/ui/AnimatedNumber";
 
 const { width: SCREEN_W } = Dimensions.get("window");
 const CHART_W = SCREEN_W - 48;
@@ -54,6 +55,7 @@ export function AdminBalancesScreen() {
   const c = useThemeColors();
   const [servicios,     setServicios]     = useState<ServicioRealizado[]>([]);
   const [pedidos,       setPedidos]       = useState<PedidoAprobado[]>([]);
+  const [abonos,        setAbonos]        = useState<{ monto: number; fecha: Timestamp; tipo: string }[]>([]);
   const [creditoTotal,  setCreditoTotal]  = useState(0);
   const [peluqueros,    setPeluqueros]    = useState<{uid:string;nombre:string}[]>([]);
   const [loading,       setLoading]       = useState(true);
@@ -110,6 +112,17 @@ export function AdminBalancesScreen() {
       () => {}
     );
 
+    // Abonos (pagos de crédito) — efectivo que entra cuando el cliente paga su deuda
+    const unsubAbonos = onSnapshot(
+      query(
+        collection(db, "movimientos"),
+        where("fecha", ">=", desde), where("fecha", "<=", hasta),
+        orderBy("fecha", "asc"),
+      ),
+      snap => setAbonos(snap.docs.map(d => d.data() as any).filter((m: any) => m.tipo === "abono")),
+      () => {}
+    );
+
     const unsubCred = onSnapshot(
       query(collection(db, "users"), where("role", "==", "cliente")),
       snap => setCreditoTotal(snap.docs.reduce((acc, d) => acc + (d.data().saldo ?? 0), 0)),
@@ -122,7 +135,7 @@ export function AdminBalancesScreen() {
       () => {}
     );
 
-    return () => { unsubServ(); unsubPed(); unsubCred(); unsubPel(); };
+    return () => { unsubServ(); unsubPed(); unsubAbonos(); unsubCred(); unsubPel(); };
   }, [periodo, mesSelec, anioSelec]);
 
   const onRefresh = async () => { setRefreshing(true); setTimeout(() => setRefreshing(false), 500); };
@@ -151,10 +164,13 @@ export function AdminBalancesScreen() {
   const ingTienda        = ingTiendaContado + ingTiendaCredito;
   const ticketTienda     = pedFilt.length > 0 ? Math.round(ingTienda / pedFilt.length) : 0;
 
-  // ── CAJA = efectivo realmente cobrado (NO incluye crédito) ──
+  // ── ABONOS = efectivo que entra al pagar deudas de crédito ──
+  const ingAbonos = abonos.filter(m => enRango(m.fecha)).reduce((a, m) => a + (m.monto ?? 0), 0);
+
+  // ── CAJA = efectivo realmente cobrado (contado + abonos, NO el crédito nuevo) ──
   const cajaServicios   = ingContado;
   const cajaTienda      = ingTiendaContado;
-  const ingCaja         = cajaServicios + cajaTienda;
+  const ingCaja         = cajaServicios + cajaTienda + ingAbonos;
   // Por cobrar generado en el período (crédito nuevo)
   const creditoGenerado = ingCredito + ingTiendaCredito;
 
@@ -163,15 +179,19 @@ export function AdminBalancesScreen() {
 
   // Hero adaptado a la vista
   const heroNum   = vista === "tienda" ? cajaTienda : vista === "peluqueria" ? cajaServicios : ingCaja;
-  const breakA    = vista === "todo"
-    ? { label: "Servicios", val: cajaServicios }
-    : { label: "Contado",   val: vista === "tienda" ? ingTiendaContado : ingContado };
-  const breakB    = vista === "todo"
-    ? { label: "Tienda",        val: cajaTienda }
-    : { label: "Por cobrar",    val: vista === "tienda" ? ingTiendaCredito : ingCredito };
+  const breakItems = vista === "todo"
+    ? [
+        { label: "Servicios", val: cajaServicios, tint: "text" },
+        { label: "Tienda",    val: cajaTienda,    tint: "text" },
+        ...(ingAbonos > 0 ? [{ label: "Abonos", val: ingAbonos, tint: "positive" }] : []),
+      ]
+    : [
+        { label: "Contado",    val: vista === "tienda" ? ingTiendaContado : ingContado, tint: "text" },
+        { label: "Por cobrar", val: vista === "tienda" ? ingTiendaCredito : ingCredito, tint: "negative" },
+      ];
 
   const periodoLabel = periodo === "Mes" ? `${MESES[mesSelec]} ${anioSelec}` : periodo;
-  const sinDatos = servFilt.length === 0 && pedFilt.length === 0;
+  const sinDatos = servFilt.length === 0 && pedFilt.length === 0 && ingAbonos === 0;
 
   // ── Gráfica (solo servicios) ──
   const buildBarData = () => {
@@ -327,18 +347,20 @@ export function AdminBalancesScreen() {
               <MaterialIcons name="account-balance-wallet" size={16} color={c.positive} />
               <Text style={[styles.heroLabel, { color: c.sub }]}>CAJA · {periodoLabel.toUpperCase()}</Text>
             </View>
-            <Text style={[styles.heroNum, { color: c.positive }]}>${heroNum.toLocaleString("es-CO")}</Text>
+            <AnimatedNumber value={heroNum} prefix="$" style={[styles.heroNum, { color: c.positive }]} />
             <Text style={[styles.heroSub, { color: c.sub }]}>Efectivo cobrado en el período</Text>
             <View style={[styles.heroBreak, { borderTopColor: c.border }]}>
-              <View style={styles.heroBreakItem}>
-                <Text style={[styles.heroBreakNum, { color: c.text }]}>${breakA.val.toLocaleString("es-CO")}</Text>
-                <Text style={[styles.heroBreakLbl, { color: c.sub }]}>{breakA.label}</Text>
-              </View>
-              <View style={[styles.heroDivider, { backgroundColor: c.border }]} />
-              <View style={styles.heroBreakItem}>
-                <Text style={[styles.heroBreakNum, { color: breakB.label === "Por cobrar" ? c.negative : c.text }]}>${breakB.val.toLocaleString("es-CO")}</Text>
-                <Text style={[styles.heroBreakLbl, { color: c.sub }]}>{breakB.label}</Text>
-              </View>
+              {breakItems.map((it, i) => (
+                <React.Fragment key={it.label}>
+                  {i > 0 && <View style={[styles.heroDivider, { backgroundColor: c.border }]} />}
+                  <View style={styles.heroBreakItem}>
+                    <Text style={[styles.heroBreakNum, {
+                      color: it.tint === "negative" ? c.negative : it.tint === "positive" ? c.positive : c.text,
+                    }]}>${it.val.toLocaleString("es-CO")}</Text>
+                    <Text style={[styles.heroBreakLbl, { color: c.sub }]}>{it.label}</Text>
+                  </View>
+                </React.Fragment>
+              ))}
             </View>
           </ThemedCard>
           </Animated.View>

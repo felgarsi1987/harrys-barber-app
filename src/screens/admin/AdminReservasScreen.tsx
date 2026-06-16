@@ -12,13 +12,14 @@ import {
   doc, updateDoc, getDoc, Timestamp, where, onSnapshot,
 } from "firebase/firestore";
 import { db } from "../../services/firebase";
-import { notificarCambioEstado, cancelarRecordatorio, notificarCancelacion } from "../../services/notifications";
+import { notificarCambioEstado, cancelarRecordatorio, notificarCancelacion, notificarCancelacionAAdmins, notificarCambioEstadoAAdmins } from "../../services/notifications";
 import { useThemeColors } from "../../hooks/useThemeColors";
 import { useAuthStore }   from "../../store/authStore";
 import { ThemedCard }     from "../../components/ui/ThemedCard";
 import { FidelizacionBadge } from "../../components/ui/FidelizacionBadge";
 import { TagChip }        from "../../components/ui/TagChip";
 import { ScreenWrapper }  from "../../components/ui/ScreenWrapper";
+import { colorPeluquero } from "../../utils/peluqueroColor";
 
 interface Reserva {
   id:              string;
@@ -152,6 +153,7 @@ export function AdminReservasScreen() {
             await updateDoc(doc(db,"reservas",reserva.id), { estado: nuevoEstado, updatedAt: Timestamp.now() });
             setReservas(prev => prev.map(r => r.id === reserva.id ? { ...r, estado: nuevoEstado } : r));
             notificarCambioEstado(reserva.clienteUid, reserva.clienteNombre, reserva.servicio, nuevoEstado, reserva.hora);
+            notificarCambioEstadoAAdmins(reserva.clienteNombre, reserva.servicio, nuevoEstado, reserva.hora, user?.uid).catch(() => {});
             if (nuevoEstado === "cancelada" || nuevoEstado === "pendiente") cancelarRecordatorio(reserva.id);
           } catch { Alert.alert("Error","No se pudo actualizar."); }
         },
@@ -190,6 +192,7 @@ export function AdminReservasScreen() {
       }
       setReservas(prev => prev.map(r => r.id === reserva.id ? { ...r, estado:"completada" } : r));
       notificarCambioEstado(reserva.clienteUid, reserva.clienteNombre, reserva.servicio, "completada", reserva.hora);
+      notificarCambioEstadoAAdmins(reserva.clienteNombre, reserva.servicio, "completada", reserva.hora, user?.uid).catch(() => {});
       Alert.alert("✅ Registrado", `${modalidad === "credito" ? "A crédito" : "De contado"}`);
     } catch(e) { Alert.alert("Error","No se pudo registrar."); }
   };
@@ -202,6 +205,7 @@ export function AdminReservasScreen() {
           await updateDoc(doc(db,"reservas",reserva.id), { estado:"fallida", updatedAt:Timestamp.now() });
           setReservas(prev => prev.map(r => r.id === reserva.id ? { ...r, estado:"fallida" as any } : r));
           notificarCambioEstado(reserva.clienteUid, reserva.clienteNombre, reserva.servicio, "fallida", reserva.hora);
+          notificarCambioEstadoAAdmins(reserva.clienteNombre, reserva.servicio, "fallida", reserva.hora, user?.uid).catch(() => {});
         } catch { Alert.alert("Error","No se pudo actualizar."); }
       }},
     ]);
@@ -238,6 +242,10 @@ export function AdminReservasScreen() {
                   reserva.servicio, reserva.hora, "admin"
                 );
               }
+              // Notificar a los demás admins
+              notificarCancelacionAAdmins(
+                reserva.clienteNombre, reserva.servicio, reserva.hora, "admin", user?.uid,
+              ).catch(() => {});
             } catch { Alert.alert("Error","No se pudo cancelar."); }
           },
         },
@@ -315,17 +323,21 @@ export function AdminReservasScreen() {
             </Text>
           </TouchableOpacity>
         )}
-        {empleados.filter(e => e.uid !== user?.uid).map((emp, i) => (
-          <TouchableOpacity
-            key={i}
-            onPress={() => setEmpleadoFil(emp.uid)}
-            style={[styles.barberoBtn, empleadoFil===emp.uid && { backgroundColor: c.amber+"22", borderColor: c.amber }]}
-          >
-            <Text style={[styles.barberoText, { color: empleadoFil===emp.uid ? c.amber : c.sub }]}>
-              {emp.nombre}
-            </Text>
-          </TouchableOpacity>
-        ))}
+        {empleados.filter(e => e.uid !== user?.uid).map((emp, i) => {
+          const ec = colorPeluquero(emp.uid);
+          return (
+            <TouchableOpacity
+              key={i}
+              onPress={() => setEmpleadoFil(emp.uid)}
+              style={[styles.barberoBtnRow, empleadoFil===emp.uid && { backgroundColor: ec+"22", borderColor: ec }]}
+            >
+              <View style={[styles.barberoDot, { backgroundColor: ec }]} />
+              <Text style={[styles.barberoText, { color: empleadoFil===emp.uid ? ec : c.sub }]}>
+                {emp.nombre}
+              </Text>
+            </TouchableOpacity>
+          );
+        })}
       </ScrollView>
 
       {/* Búsqueda */}
@@ -358,7 +370,9 @@ export function AdminReservasScreen() {
               <Text style={[styles.emptyText, { color: c.sub }]}>Sin reservas</Text>
             </View>
           ) : (
-            filtered.map((r, i) => (
+            filtered.map((r, i) => {
+              const pc = r.peluqueroUid ? colorPeluquero(r.peluqueroUid) : c.amber;
+              return (
               <Animated.View key={i} entering={FadeInDown.delay(i * 50).duration(320)}>
               <ThemedCard style={styles.card}>
                 <View style={styles.cardTop}>
@@ -374,19 +388,16 @@ export function AdminReservasScreen() {
                   <TagChip label={r.estado} variant={ESTADO_CHIP[r.estado]} />
                 </View>
 
-                {/* Peluquero asignado — protagonista */}
-                <View style={[styles.peluqueroPill, {
-                  backgroundColor: r.peluqueroNombre ? c.blue + "12" : c.amber + "10",
-                  borderColor:     r.peluqueroNombre ? c.blue + "30" : c.amber + "30",
-                }]}>
-                  <View style={[styles.peluqueroAvatar, { backgroundColor: r.peluqueroNombre ? c.blue : c.amber }]}>
+                {/* Peluquero asignado — protagonista, con color propio */}
+                <View style={[styles.peluqueroPill, { backgroundColor: pc + "14", borderColor: pc + "33" }]}>
+                  <View style={[styles.peluqueroAvatar, { backgroundColor: pc }]}>
                     {r.peluqueroNombre
                       ? <Text style={styles.peluqueroAvatarText}>
                           {r.peluqueroNombre.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase()}
                         </Text>
                       : <MaterialIcons name="person-search" size={15} color="#000" />}
                   </View>
-                  <Text style={[styles.peluqueroNombreBig, { color: r.peluqueroNombre ? c.blue : c.amber }]} numberOfLines={1}>
+                  <Text style={[styles.peluqueroNombreBig, { color: pc }]} numberOfLines={1}>
                     {r.peluqueroNombre ?? "Sin asignar"}
                   </Text>
                   <View style={styles.fechaInlineWrap}>
@@ -426,7 +437,8 @@ export function AdminReservasScreen() {
                 )}
               </ThemedCard>
               </Animated.View>
-            ))
+              );
+            })
           )}
         </ScrollView>
       )}
@@ -448,6 +460,8 @@ const styles = StyleSheet.create({
   estadoText:  { fontSize:12, fontFamily:"SpaceGrotesk_600SemiBold" },
   barberoScroll:{ borderBottomWidth:1, paddingVertical:8, paddingHorizontal:16 },
   barberoBtn:  { paddingHorizontal:12, paddingVertical:5, borderRadius:20, borderWidth:1, borderColor:"transparent", marginRight:8 },
+  barberoBtnRow: { flexDirection:"row", alignItems:"center", gap:6, paddingHorizontal:12, paddingVertical:5, borderRadius:20, borderWidth:1, borderColor:"transparent", marginRight:8 },
+  barberoDot:  { width:8, height:8, borderRadius:4 },
   barberoText: { fontSize:12, fontFamily:"SpaceGrotesk_500Medium" },
   scroll:      { padding:20, gap:12 },
   empty:       { alignItems:"center", marginTop:60, gap:12 },

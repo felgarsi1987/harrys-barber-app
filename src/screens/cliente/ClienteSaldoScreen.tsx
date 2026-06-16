@@ -4,6 +4,7 @@ import {
 } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { MaterialIcons } from "@expo/vector-icons";
+import { AnimatedNumber } from "../../components/ui/AnimatedNumber";
 import {
   collection, query, where, doc, onSnapshot,
 } from "firebase/firestore";
@@ -73,9 +74,11 @@ export function ClienteSaldoScreen() {
         {/* Saldo actual */}
         <ThemedCard style={styles.saldoCard} elevated>
           <Text style={[styles.saldoLabel, { color: c.sub }]}>SALDO PENDIENTE</Text>
-          <Text style={[styles.saldoMonto, { color: saldo > 0 ? c.negative : c.positive }]}>
-            ${Math.abs(saldo).toLocaleString("es-CO")}
-          </Text>
+          <AnimatedNumber
+            value={Math.abs(saldo)}
+            prefix="$"
+            style={[styles.saldoMonto, { color: saldo > 0 ? c.negative : c.positive }]}
+          />
           <Text style={[styles.saldoDesc, { color: c.sub }]}>
             {saldo > 0 ? "Tienes una deuda pendiente" : "Estás al día ✓"}
           </Text>

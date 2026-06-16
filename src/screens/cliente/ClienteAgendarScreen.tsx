@@ -2,6 +2,8 @@ import React, { useEffect, useState } from "react";
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity, Alert, ActivityIndicator, Linking,
 } from "react-native";
+import Animated, { useSharedValue, useAnimatedStyle, withSpring } from "react-native-reanimated";
+import { haptics } from "../../utils/haptics";
 import { MaterialIcons } from "@expo/vector-icons";
 import { Calendar, LocaleConfig } from "react-native-calendars";
 import {
@@ -9,7 +11,7 @@ import {
   where, Timestamp, doc,
 } from "firebase/firestore";
 import { db, auth } from "../../services/firebase";
-import { programarRecordatorio, notificarEmpleadoAsignado } from "../../services/notifications";
+import { programarRecordatorio, notificarEmpleadoAsignado, notificarNuevaReservaAdmin, notificarCambioEstado } from "../../services/notifications";
 import { getServicios, Servicio } from "../../services/serviciosService";
 import { useThemeColors }    from "../../hooks/useThemeColors";
 import { useHorarioConfig }  from "../../hooks/useHorarioConfig";
@@ -37,6 +39,21 @@ interface Peluquero {
   horasBloqueadas?: string[];
 }
 
+// Check con pop de entrada (spring) + háptica de éxito
+function SuccessCheck({ color }: { color: string }) {
+  const scale = useSharedValue(0.5);
+  useEffect(() => {
+    scale.value = withSpring(1, { damping: 9, stiffness: 170 });
+    haptics.success();
+  }, []);
+  const aStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+  return (
+    <Animated.View style={aStyle}>
+      <MaterialIcons name="check-circle" size={72} color={color} />
+    </Animated.View>
+  );
+}
+
 export function ClienteAgendarScreen() {
   const c = useThemeColors();
   const { user } = useAuthStore();
@@ -58,6 +75,7 @@ export function ClienteAgendarScreen() {
     precio: number;
     fecha: string;
     hora: string;
+    confirmada: boolean;
   } | null>(null);
   const { horas: horasConfig } = useHorarioConfig();
 
@@ -179,12 +197,32 @@ export function ClienteAgendarScreen() {
         fechaSeleccionada,
         horaSeleccionada,
       ).catch(() => {});
+      // Avisar a los admins de la nueva reserva (sin duplicar si el peluquero es admin)
+      notificarNuevaReservaAdmin(
+        clienteNombre,
+        `${peluqueroSel.nombre} ${peluqueroSel.apellido}`,
+        servicio.label,
+        fechaSeleccionada,
+        horaSeleccionada,
+        peluqueroSel.uid,
+      ).catch(() => {});
+      // Si quedó confirmada automáticamente, avisar al cliente
+      if (estadoInicial === "confirmada" && user?.uid) {
+        notificarCambioEstado(
+          clienteUid,
+          clienteNombre,
+          servicio.label,
+          "confirmada",
+          horaSeleccionada,
+        ).catch(() => {});
+      }
       setExitosa({
         peluqueroNombre: `${peluqueroSel.nombre} ${peluqueroSel.apellido}`,
         servicio:  servicio.label,
         precio:    servicio.precio,
         fecha:     fechaSeleccionada,
         hora:      horaSeleccionada,
+        confirmada: estadoInicial === "confirmada",
       });
       setFechaSeleccionada(new Date().toISOString().split("T")[0]);
       setHoraSeleccionada("");
@@ -208,9 +246,13 @@ export function ClienteAgendarScreen() {
           <Text style={[styles.title, { color: c.text }]}>Agendar cita</Text>
         </View>
         <ScrollView contentContainerStyle={[styles.scroll, styles.exitosaScroll]}>
-          <MaterialIcons name="check-circle" size={72} color={c.positive} />
-          <Text style={[styles.exitosaTitle, { color: c.text }]}>¡Reserva enviada!</Text>
-          <Text style={[styles.exitosaSub, { color: c.sub }]}>El admin la confirmará pronto</Text>
+          <SuccessCheck color={c.positive} />
+          <Text style={[styles.exitosaTitle, { color: c.text }]}>
+            {exitosa.confirmada ? "¡Cita confirmada!" : "¡Reserva enviada!"}
+          </Text>
+          <Text style={[styles.exitosaSub, { color: c.sub }]}>
+            {exitosa.confirmada ? `Te esperamos el ${exitosa.fecha} a las ${exitosa.hora} 💈` : "El admin la confirmará pronto"}
+          </Text>
 
           <ThemedCard style={[styles.resumen, { width: "100%" }]}>
             {([

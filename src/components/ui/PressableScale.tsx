@@ -3,6 +3,7 @@ import { Pressable, StyleProp, ViewStyle } from "react-native";
 import Animated, {
   useSharedValue, useAnimatedStyle, withTiming, Easing,
 } from "react-native-reanimated";
+import { haptics } from "../../utils/haptics";
 
 const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
@@ -16,6 +17,7 @@ interface Props {
   scaleTo?:  number;
   disabled?: boolean;
   hitSlop?:  number;
+  haptic?:   boolean;
 }
 
 /**
@@ -23,7 +25,7 @@ interface Props {
  * Da la sensación de que la UI "escucha" el toque, sin keyframes ni librerías extra.
  */
 export function PressableScale({
-  children, onPress, style, scaleTo = 0.96, disabled, hitSlop,
+  children, onPress, style, scaleTo = 0.96, disabled, hitSlop, haptic = true,
 }: Props) {
   const scale = useSharedValue(1);
   const aStyle = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
@@ -33,7 +35,7 @@ export function PressableScale({
       onPress={onPress}
       disabled={disabled}
       hitSlop={hitSlop}
-      onPressIn={()  => { scale.value = withTiming(scaleTo, { duration: 120, easing: EASE }); }}
+      onPressIn={()  => { scale.value = withTiming(scaleTo, { duration: 120, easing: EASE }); if (haptic) haptics.selection(); }}
       onPressOut={() => { scale.value = withTiming(1,       { duration: 160, easing: EASE }); }}
       style={[style, aStyle]}
     >

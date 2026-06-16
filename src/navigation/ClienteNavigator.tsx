@@ -4,6 +4,7 @@ import { createStackNavigator }     from "@react-navigation/stack";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useThemeColors } from "../hooks/useThemeColors";
+import { TabIcon } from "../components/ui/TabIcon";
 
 import { ClienteHomeScreen }       from "../screens/cliente/ClienteHomeScreen";
 import { ClienteAgendarScreen }    from "../screens/cliente/ClienteAgendarScreen";
@@ -36,7 +37,7 @@ function ClienteTabs() {
         tabBarActiveTintColor:   c.amber,
         tabBarInactiveTintColor: c.sub,
         tabBarLabelStyle: { fontSize: 10 },
-        tabBarIcon: ({ color }) => {
+        tabBarIcon: ({ color, focused }) => {
           const icons: Record<string, keyof typeof MaterialIcons.glyphMap> = {
             Inicio:          "home",
             Agendar:         "event-available",
@@ -46,11 +47,7 @@ function ClienteTabs() {
             Perfil:          "person-outline",
           };
           return (
-            <MaterialIcons
-              name={icons[route.name] ?? "circle"}
-              size={22}
-              color={color}
-            />
+            <TabIcon name={icons[route.name] ?? "circle"} color={color} focused={focused} />
           );
         },
       })}

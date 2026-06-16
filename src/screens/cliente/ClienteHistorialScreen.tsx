@@ -10,7 +10,7 @@ import {
   doc, updateDoc,
 } from "firebase/firestore";
 import { db }             from "../../services/firebase";
-import { notificarCancelacion, cancelarRecordatorio } from "../../services/notifications";
+import { notificarCancelacion, cancelarRecordatorio, notificarCancelacionAAdmins } from "../../services/notifications";
 import { useThemeColors } from "../../hooks/useThemeColors";
 import { useAuthStore }   from "../../store/authStore";
 import { ThemedCard }     from "../../components/ui/ThemedCard";
@@ -86,6 +86,7 @@ export function ClienteHistorialScreen() {
               setReservas(prev => prev.map(r =>
                 r.id === reserva.id ? { ...r, estado: "cancelada" } : r
               ));
+              const nombreCliente = user ? `${user.nombre} ${user.apellido}` : "Cliente";
               // Notificar al barbero si hay uno asignado
               if (reserva.peluqueroUid) {
                 notificarCancelacion(
@@ -94,6 +95,10 @@ export function ClienteHistorialScreen() {
                   reserva.servicio, reserva.hora, "cliente"
                 );
               }
+              // Notificar a los admins
+              notificarCancelacionAAdmins(
+                nombreCliente, reserva.servicio, reserva.hora, "cliente",
+              ).catch(() => {});
             } catch {}
           },
         },

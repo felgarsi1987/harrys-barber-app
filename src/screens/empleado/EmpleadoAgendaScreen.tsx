@@ -18,7 +18,7 @@ import { TagChip }        from "../../components/ui/TagChip";
 import { ScreenWrapper }  from "../../components/ui/ScreenWrapper";
 import { SkeletonLoader } from "../../components/ui/SkeletonLoader";
 import { PressableScale } from "../../components/ui/PressableScale";
-import { notificarCambioEstado, notificarCancelacion } from "../../services/notifications";
+import { notificarCambioEstado, notificarCancelacion, notificarCancelacionAAdmins, notificarCambioEstadoAAdmins } from "../../services/notifications";
 
 interface Reserva {
   id:            string;
@@ -75,6 +75,7 @@ export function EmpleadoAgendaScreen() {
                 prev.map(r => r.id === reserva.id ? { ...r, estado: "fallida" } : r)
               );
               notificarCambioEstado(reserva.clienteUid, reserva.clienteNombre, reserva.servicio, "fallida", reserva.hora).catch(() => {});
+              notificarCambioEstadoAAdmins(reserva.clienteNombre, reserva.servicio, "fallida", reserva.hora, user?.uid).catch(() => {});
             } catch { Alert.alert("Error", "No se pudo actualizar."); }
           },
         },
@@ -129,6 +130,7 @@ export function EmpleadoAgendaScreen() {
       }
       setReservas(prev => prev.map(r => r.id === reserva.id ? { ...r, estado: "completada" } : r));
       notificarCambioEstado(reserva.clienteUid, reserva.clienteNombre, reserva.servicio, "completada", reserva.hora).catch(() => {});
+      notificarCambioEstadoAAdmins(reserva.clienteNombre, reserva.servicio, "completada", reserva.hora, user?.uid).catch(() => {});
       Alert.alert("✅ Listo", `${modalidad === "credito" ? "A crédito" : "De contado"}`);
     } catch { Alert.alert("Error", "No se pudo registrar."); }
   };
@@ -207,6 +209,7 @@ export function EmpleadoAgendaScreen() {
                 prev.map(r => r.id === reserva.id ? { ...r, estado: "cancelada" } : r)
               );
               notificarCancelacion(reserva.clienteUid, reserva.clienteNombre, reserva.servicio, reserva.hora, "empleado").catch(() => {});
+              notificarCancelacionAAdmins(reserva.clienteNombre, reserva.servicio, reserva.hora, "empleado", user?.uid).catch(() => {});
             } catch { Alert.alert("Error", "No se pudo cancelar."); }
           },
         },
@@ -219,6 +222,7 @@ export function EmpleadoAgendaScreen() {
       await updateDoc(doc(db, "reservas", reserva.id), { estado: "confirmada", updatedAt: Timestamp.now() });
       setPendingAll(prev => prev.filter(r => r.id !== reserva.id));
       notificarCambioEstado(reserva.clienteUid, reserva.clienteNombre, reserva.servicio, "confirmada", reserva.hora).catch(() => {});
+      notificarCambioEstadoAAdmins(reserva.clienteNombre, reserva.servicio, "confirmada", reserva.hora, user?.uid).catch(() => {});
     } catch {}
   };
 
@@ -458,6 +462,7 @@ export function EmpleadoAgendaScreen() {
                             await updateDoc(doc(db, "reservas", r.id), { estado: "cancelada", updatedAt: Timestamp.now() });
                             setPendingAll(prev => prev.filter(x => x.id !== r.id));
                             notificarCancelacion(r.clienteUid, r.clienteNombre, r.servicio, r.hora, "empleado").catch(() => {});
+                            notificarCancelacionAAdmins(r.clienteNombre, r.servicio, r.hora, "empleado", user?.uid).catch(() => {});
                           } catch { Alert.alert("Error", "No se pudo negar."); }
                         }}
                         style={[styles.actGhost, { borderColor: c.border }]}

@@ -13,6 +13,7 @@ import { programarResumenDiario } from "../../services/notifications";
 import { useThemeColors } from "../../hooks/useThemeColors";
 import { useAuthStore }   from "../../store/authStore";
 import { NumberText }     from "../../components/ui/NumberText";
+import { AnimatedNumber } from "../../components/ui/AnimatedNumber";
 import { ScreenWrapper }  from "../../components/ui/ScreenWrapper";
 
 export function AdminDashboardScreen() {
@@ -107,7 +108,7 @@ export function AdminDashboardScreen() {
             { label: "Pedidos hoy",   value: pedidosHoy,     icon: "receipt-long",   color: "#A78BFA" },
           ].map((kpi, i) => (
             <Animated.View key={kpi.label} entering={FadeInDown.delay(i * 70).springify().damping(18).stiffness(200)} style={styles.kpiCardWrap}>
-              <KPICard label={kpi.label} value={kpi.value.toString()} icon={kpi.icon} c={c} iconColor={kpi.color} />
+              <KPICard label={kpi.label} value={kpi.value} icon={kpi.icon} c={c} iconColor={kpi.color} />
             </Animated.View>
           ))}
         </View>
@@ -144,9 +145,7 @@ function KPICard({ label, value, icon, c, iconColor }: any) {
         <Text style={[styles.kpiLabel, { color: c.sub }]} numberOfLines={1}>{label}</Text>
       </View>
       <View style={styles.kpiValueWrap}>
-        <NumberText size={30}>
-          {value}
-        </NumberText>
+        <AnimatedNumber value={value} style={{ fontSize: 30, fontFamily: "Inter_700Bold", color: c.text, padding: 0 }} />
       </View>
     </View>
   );

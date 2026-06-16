@@ -12,11 +12,12 @@ import {
 import { db } from "../../services/firebase";
 import { useThemeColors }    from "../../hooks/useThemeColors";
 import { useHorarioConfig } from "../../hooks/useHorarioConfig";
+import { useAuthStore }      from "../../store/authStore";
 import { BackHeader }         from "../../components/ui/BackHeader";
 import { ThemedCard }         from "../../components/ui/ThemedCard";
 import { ScreenWrapper }  from "../../components/ui/ScreenWrapper";
 import { getServicios, Servicio } from "../../services/serviciosService";
-import { notificarCambioEstado, notificarEmpleadoAsignado } from "../../services/notifications";
+import { notificarCambioEstado, notificarEmpleadoAsignado, notificarCambioEstadoAAdmins } from "../../services/notifications";
 import * as Notifications from "expo-notifications";
 
 LocaleConfig.locales["es"] = {
@@ -64,6 +65,7 @@ export function AdminAsignarReservaScreen() {
   const [hora,          setHora]          = useState("");
 
   const { horas: horasConfig } = useHorarioConfig();
+  const { user } = useAuthStore();
 
   useEffect(() => {
     Promise.all([
@@ -143,6 +145,8 @@ export function AdminAsignarReservaScreen() {
           clienteSel.uid, nombreCliente, servicio.label, "confirmada", hora,
         ).catch(() => {});
       }
+      // Notificar a los demás admins
+      notificarCambioEstadoAAdmins(nombreCliente, servicio.label, "confirmada", hora, user?.uid).catch(() => {});
 
       Alert.alert(
         "✅ Reserva asignada",

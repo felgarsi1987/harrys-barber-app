@@ -10,10 +10,11 @@ import {
 import { db } from "../../services/firebase";
 import { useThemeColors }   from "../../hooks/useThemeColors";
 import { useHorarioConfig } from "../../hooks/useHorarioConfig";
+import { useAuthStore }     from "../../store/authStore";
 import { BackHeader }     from "../../components/ui/BackHeader";
 import { ThemedCard }     from "../../components/ui/ThemedCard";
 import { ScreenWrapper }  from "../../components/ui/ScreenWrapper";
-import { programarRecordatorio, cancelarRecordatorio } from "../../services/notifications";
+import { programarRecordatorio, cancelarRecordatorio, notificarReagenda } from "../../services/notifications";
 
 LocaleConfig.locales["es"] = {
   monthNames: ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"],
@@ -38,6 +39,7 @@ export function ClienteReagendarScreen() {
   const route = useRoute<RouteProp<ReagendarParams, "ClienteReagendar">>();
   const { reservaId, servicio, peluqueroUid, peluqueroNombre } = route.params;
   const c = useThemeColors();
+  const { user } = useAuthStore();
 
   const [fecha,         setFecha]         = useState("");
   const [hora,          setHora]          = useState("");
@@ -93,6 +95,12 @@ export function ClienteReagendarScreen() {
       });
       await cancelarRecordatorio(reservaId);
       await programarRecordatorio(reservaId, servicio, nuevaFecha, peluqueroNombre);
+      // Avisar al peluquero y a los admins que la cita se movió
+      notificarReagenda(
+        peluqueroUid,
+        user ? `${user.nombre} ${user.apellido}` : "Un cliente",
+        servicio, fecha, hora,
+      ).catch(() => {});
       Alert.alert("✅ Reagendado", `Tu cita quedó para el ${fecha} a las ${hora}.`);
     } catch {
       Alert.alert("Error", "No se pudo reagendar.");

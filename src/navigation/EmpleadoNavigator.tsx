@@ -3,6 +3,7 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { MaterialIcons } from "@expo/vector-icons";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useThemeColors } from "../hooks/useThemeColors";
+import { TabIcon } from "../components/ui/TabIcon";
 
 import { EmpleadoDashboardScreen }  from "../screens/empleado/EmpleadoDashboardScreen";
 import { EmpleadoAgendaScreen }    from "../screens/empleado/EmpleadoAgendaScreen";
@@ -36,7 +37,7 @@ export function EmpleadoNavigator() {
         tabBarActiveTintColor:   c.amber,
         tabBarInactiveTintColor: c.sub,
         tabBarLabelStyle: { fontSize: 10 },
-        tabBarIcon: ({ color }) => {
+        tabBarIcon: ({ color, focused }) => {
           const icons: Record<string, keyof typeof MaterialIcons.glyphMap> = {
             Inicio:           "home",
             Agenda:           "event-note",
@@ -47,11 +48,7 @@ export function EmpleadoNavigator() {
             Perfil:           "person-outline",
           };
           return (
-            <MaterialIcons
-              name={icons[route.name] ?? "circle"}
-              size={22}
-              color={color}
-            />
+            <TabIcon name={icons[route.name] ?? "circle"} color={color} focused={focused} />
           );
         },
       })}

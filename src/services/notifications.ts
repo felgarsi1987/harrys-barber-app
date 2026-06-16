@@ -160,6 +160,43 @@ export async function notificarCambioEstado(
   await enviarPush(pushToken, msg.title, msg.body, { estado: nuevoEstado, servicio }, "reservas", msg.subtitle);
 }
 
+// ── Notificar a los admins cualquier cambio de estado de una cita ───────────
+export async function notificarCambioEstadoAAdmins(
+  clienteNombre: string,
+  servicio:      string,
+  nuevoEstado:   string,
+  hora?:         string,
+  excluirUid?:   string,
+) {
+  const accion: Record<string, string> = {
+    confirmada: "✅ confirmada",
+    aplazada:   "📅 aplazada",
+    negada:     "❌ negada",
+    completada: "🎉 completada",
+    fallida:    "⚠️ no realizada",
+  };
+  const txt = accion[nuevoEstado];
+  if (!txt) return;
+  try {
+    const { getDocs, collection, query, where } = await import("firebase/firestore");
+    const snap = await getDocs(query(collection(db, "users"), where("role", "==", "admin")));
+    const tokens = snap.docs
+      .filter(d => d.id !== excluirUid)
+      .map(d => d.data().pushToken as string | undefined)
+      .filter((t): t is string => !!t);
+
+    await Promise.all(tokens.map(token =>
+      enviarPush(
+        token,
+        "📋 Cita actualizada",
+        `${clienteNombre} — ${servicio}${hora ? ` (${hora})` : ""}\nEstado: ${txt}`,
+        { tipo: "estado_admin", estado: nuevoEstado },
+        "reservas",
+      )
+    ));
+  } catch {}
+}
+
 // ── Notificar al empleado cuando se le asigna una reserva ───────────────────
 export async function notificarEmpleadoAsignado(
   empleadoUid:   string,
@@ -179,6 +216,36 @@ export async function notificarEmpleadoAsignado(
     "reservas",
     `${fecha} · ${hora}`,
   );
+}
+
+// ── Notificar a los admins cuando entra una reserva nueva ───────────────────
+export async function notificarNuevaReservaAdmin(
+  clienteNombre:   string,
+  peluqueroNombre: string,
+  servicio:        string,
+  fecha:           string,
+  hora:            string,
+  excluirUid?:     string,   // el peluquero asignado ya recibió su aviso
+) {
+  try {
+    const { getDocs, collection, query, where } = await import("firebase/firestore");
+    const snap = await getDocs(query(collection(db, "users"), where("role", "==", "admin")));
+    const tokens = snap.docs
+      .filter(d => d.id !== excluirUid)
+      .map(d => d.data().pushToken as string | undefined)
+      .filter((t): t is string => !!t);
+
+    await Promise.all(tokens.map(token =>
+      enviarPush(
+        token,
+        "🗓️ Nueva reserva",
+        `${clienteNombre} reservó ${servicio} con ${peluqueroNombre}`,
+        { tipo: "nueva_reserva" },
+        "reservas",
+        `${fecha} · ${hora}`,
+      )
+    ));
+  } catch {}
 }
 
 // ── Notificar estado de pedido al cliente ────────────────────────────────────
@@ -332,6 +399,64 @@ export async function notificarCancelacion(
     "reservas",
     servicio,
   );
+}
+
+// ── Notificar reagenda (cliente movió la cita) al peluquero + admins ────────
+export async function notificarReagenda(
+  peluqueroUid:  string | null | undefined,
+  clienteNombre: string,
+  servicio:      string,
+  fecha:         string,
+  hora:          string,
+) {
+  try {
+    const { getDocs, collection, query, where } = await import("firebase/firestore");
+    const body = `${clienteNombre} movió ${servicio}\nNueva fecha: ${fecha} a las ${hora}`;
+
+    // Peluquero asignado
+    if (peluqueroUid) {
+      const token = await getPushToken(peluqueroUid);
+      if (token) await enviarPush(token, "📅 Cita reagendada", body, { tipo: "reagenda" }, "reservas", `${fecha} · ${hora}`);
+    }
+    // Admins (sin duplicar si el peluquero es admin)
+    const snap = await getDocs(query(collection(db, "users"), where("role", "==", "admin")));
+    const tokens = snap.docs
+      .filter(d => d.id !== peluqueroUid)
+      .map(d => d.data().pushToken as string | undefined)
+      .filter((t): t is string => !!t);
+    await Promise.all(tokens.map(token =>
+      enviarPush(token, "📅 Cita reagendada", body, { tipo: "reagenda" }, "reservas", `${fecha} · ${hora}`)
+    ));
+  } catch {}
+}
+
+// ── Notificar a los admins cuando se cancela una cita ───────────────────────
+export async function notificarCancelacionAAdmins(
+  clienteNombre: string,
+  servicio:      string,
+  hora:          string | undefined,
+  canceladoPor:  "cliente" | "empleado" | "admin",
+  excluirUid?:   string,
+) {
+  try {
+    const { getDocs, collection, query, where } = await import("firebase/firestore");
+    const snap = await getDocs(query(collection(db, "users"), where("role", "==", "admin")));
+    const quien = canceladoPor === "cliente" ? "el cliente" : canceladoPor === "empleado" ? "el peluquero" : "un admin";
+    const tokens = snap.docs
+      .filter(d => d.id !== excluirUid)
+      .map(d => d.data().pushToken as string | undefined)
+      .filter((t): t is string => !!t);
+
+    await Promise.all(tokens.map(token =>
+      enviarPush(
+        token,
+        "❌ Cita cancelada",
+        `${clienteNombre} — ${servicio}${hora ? ` a las ${hora}` : ""}\nCancelada por ${quien}`,
+        { tipo: "cancelacion_admin" },
+        "reservas",
+      )
+    ));
+  } catch {}
 }
 
 // ── Programar resumen diario para el admin ──────────────────────────────────
