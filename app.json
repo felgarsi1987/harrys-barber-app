@@ -18,6 +18,7 @@
       },
       "predictiveBackGestureEnabled": false,
       "package": "com.felgarsi.harrysbarberapp",
+      "googleServicesFile": "./google-services.json",
       "softwareKeyboardLayoutMode": "adjustResize"
     },
     "web": {

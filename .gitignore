@@ -51,3 +51,4 @@ Thumbs.dbservice-account.json
 
 build-log.txt
 dist/
+.gstack/
