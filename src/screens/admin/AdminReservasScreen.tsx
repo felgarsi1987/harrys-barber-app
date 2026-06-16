@@ -362,28 +362,37 @@ export function AdminReservasScreen() {
               <Animated.View key={i} entering={FadeInDown.delay(i * 50).duration(320)}>
               <ThemedCard style={styles.card}>
                 <View style={styles.cardTop}>
-                  <View style={{ flex:1, gap:4 }}>
+                  <View style={{ flex:1, gap:3 }}>
                     <View style={styles.nameRow}>
-                      <View style={{ flexDirection: "row", alignItems: "center", gap: 6, flexWrap: "wrap" }}>
-                    <Text style={[styles.clienteNombre, { color: c.text }]}>{r.clienteNombre}</Text>
-                  </View>
+                      <Text style={[styles.clienteNombre, { color: c.text }]}>{r.clienteNombre}</Text>
                       {r.noRegistrado && <TagChip label="Sin registro" variant="default" />}
                     </View>
                     <Text style={[styles.servicio, { color: c.amber }]}>
                       {r.servicio}{r.precio ? `  ·  $${r.precio.toLocaleString("es-CO")}` : ""}
                     </Text>
-                    {r.peluqueroNombre && (
-                      <Text style={[styles.peluquero, { color: c.sub }]}>
-                        <MaterialIcons name="content-cut" size={11} /> {r.peluqueroNombre}
-                      </Text>
-                    )}
                   </View>
                   <TagChip label={r.estado} variant={ESTADO_CHIP[r.estado]} />
                 </View>
 
-                <View style={styles.fechaRow}>
-                  <MaterialIcons name="event" size={14} color={c.sub} />
-                  <Text style={[styles.fechaText, { color: c.sub }]}>{formatFecha(r.fecha)} — {r.hora}</Text>
+                {/* Peluquero asignado — protagonista */}
+                <View style={[styles.peluqueroPill, {
+                  backgroundColor: r.peluqueroNombre ? c.blue + "12" : c.amber + "10",
+                  borderColor:     r.peluqueroNombre ? c.blue + "30" : c.amber + "30",
+                }]}>
+                  <View style={[styles.peluqueroAvatar, { backgroundColor: r.peluqueroNombre ? c.blue : c.amber }]}>
+                    {r.peluqueroNombre
+                      ? <Text style={styles.peluqueroAvatarText}>
+                          {r.peluqueroNombre.split(" ").map((n: string) => n[0]).join("").slice(0, 2).toUpperCase()}
+                        </Text>
+                      : <MaterialIcons name="person-search" size={15} color="#000" />}
+                  </View>
+                  <Text style={[styles.peluqueroNombreBig, { color: r.peluqueroNombre ? c.blue : c.amber }]} numberOfLines={1}>
+                    {r.peluqueroNombre ?? "Sin asignar"}
+                  </Text>
+                  <View style={styles.fechaInlineWrap}>
+                    <MaterialIcons name="schedule" size={13} color={c.sub} />
+                    <Text style={[styles.fechaInline, { color: c.sub }]}>{formatFecha(r.fecha)} · {r.hora}</Text>
+                  </View>
                 </View>
 
                 {r.estado === "pendiente" && (
@@ -446,11 +455,14 @@ const styles = StyleSheet.create({
   card:        { gap:12 },
   cardTop:     { flexDirection:"row", alignItems:"flex-start", gap:12 },
   nameRow:     { flexDirection:"row", alignItems:"center", gap:8, flexWrap:"wrap" },
-  clienteNombre:{ fontSize:16, fontFamily:"SpaceGrotesk_600SemiBold" },
+  clienteNombre:{ fontSize:17, fontFamily:"SpaceGrotesk_600SemiBold" },
   servicio:    { fontSize:13, fontFamily:"SpaceGrotesk_500Medium" },
-  peluquero:   { fontSize:14, fontFamily:"SpaceGrotesk_600SemiBold" },
-  fechaRow:    { flexDirection:"row", alignItems:"center", gap:6 },
-  fechaText:   { fontSize:15, fontFamily:"SpaceGrotesk_600SemiBold" },
+  peluqueroPill:{ flexDirection:"row", alignItems:"center", gap:8, paddingVertical:7, paddingHorizontal:10, borderRadius:10, borderWidth:1 },
+  peluqueroAvatar:{ width:28, height:28, borderRadius:14, justifyContent:"center", alignItems:"center" },
+  peluqueroAvatarText:{ fontSize:11, fontFamily:"Syne_700Bold", color:"#000" },
+  peluqueroNombreBig:{ fontSize:15, fontFamily:"SpaceGrotesk_600SemiBold", maxWidth:"45%" },
+  fechaInlineWrap:{ flexDirection:"row", alignItems:"center", gap:4, marginLeft:"auto" },
+  fechaInline: { fontSize:12, fontFamily:"Inter_500Medium" },
   actionsRow:  { flexDirection:"row", gap:8, paddingTop:12, borderTopWidth:1 },
   actionBtn:   { flex:1, flexDirection:"row", alignItems:"center", justifyContent:"center", gap:4, paddingVertical:8, borderRadius:8 },
   actionBtnText:{ fontSize:12, fontFamily:"SpaceGrotesk_600SemiBold" },

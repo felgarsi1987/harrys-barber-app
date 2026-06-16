@@ -8,6 +8,7 @@ import { ProfilePhoto }   from "../../components/ui/ProfilePhoto";
 import { useThemeColors } from "../../hooks/useThemeColors";
 import { useAuthStore }   from "../../store/authStore";
 import { ScreenWrapper }  from "../../components/ui/ScreenWrapper";
+import { AixonFooter }    from "../../components/ui/AixonFooter";
 
 function ScalePress({ onPress, style, children }: { onPress: () => void; style: any; children: React.ReactNode }) {
   const scale = useSharedValue(1);
@@ -122,6 +123,9 @@ export function EmpleadoPerfilScreen() {
             <Text style={[styles.logoutText, { color: c.negative }]}>Cerrar sesión</Text>
           </ScalePress>
         </Animated.View>
+
+        {/* Footer Aixon */}
+        <AixonFooter />
 
       </ScrollView>
     </ScreenWrapper>

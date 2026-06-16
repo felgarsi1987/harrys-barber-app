@@ -3,7 +3,7 @@ import {
   View, Text, ScrollView, StyleSheet, ActivityIndicator,
   TouchableOpacity, Alert, RefreshControl,
 } from "react-native";
-import Animated, { FadeInDown } from "react-native-reanimated";
+import Animated, { FadeIn } from "react-native-reanimated";
 import { MaterialIcons } from "@expo/vector-icons";
 import {
   collection, query, where,
@@ -59,6 +59,7 @@ export function PedidosScreen({ mode, showBackHeader = true }: Props) {
   const [refreshing, setRefreshing] = useState(false);
   const [tab,        setTab]        = useState<"pendientes"|"historial">("pendientes");
   const [filtroCateg, setFiltroCateg] = useState<string>("todos");
+  const [fechaFil,   setFechaFil]   = useState<"hoy"|"7dias"|"todos">("todos");
 
   const load = async () => { /* recarga automática vía onSnapshot */ };
 
@@ -121,9 +122,21 @@ export function PedidosScreen({ mode, showBackHeader = true }: Props) {
   const formatFecha = (ts: Timestamp) =>
     ts.toDate().toLocaleDateString("es-CO", { day:"numeric", month:"short", year:"numeric" });
 
-  const pedidosFiltrados = filtroCateg === "todos" ? pedidos : pedidos.filter(p =>
-    p.items?.some((i: any) => i.categoria === filtroCateg || i.nombre?.toLowerCase().includes(filtroCateg.toLowerCase()))
-  );
+  const enRangoFecha = (ts?: Timestamp) => {
+    if (fechaFil === "todos" || !ts?.toDate) return true;
+    const f = ts.toDate();
+    const ahora = new Date();
+    if (fechaFil === "hoy") {
+      return f.getFullYear() === ahora.getFullYear() && f.getMonth() === ahora.getMonth() && f.getDate() === ahora.getDate();
+    }
+    const d = new Date(ahora); d.setDate(ahora.getDate() - 7);
+    return f >= d;
+  };
+
+  const pedidosFiltrados = pedidos
+    .filter(p => filtroCateg === "todos" || p.items?.some((i: any) =>
+      i.categoria === filtroCateg || i.nombre?.toLowerCase().includes(filtroCateg.toLowerCase())))
+    .filter(p => enRangoFecha(p.createdAt));
   const pendientes = pedidosFiltrados.filter(p => ["pendiente","pendiente_credito"].includes(p.estado));
   const historial  = pedidosFiltrados.filter(p => !["pendiente","pendiente_credito"].includes(p.estado));
   const mostrar    = tab === "pendientes" ? pendientes : historial;
@@ -150,6 +163,17 @@ export function PedidosScreen({ mode, showBackHeader = true }: Props) {
                 </View>
               )}
             </View>
+          </TouchableOpacity>
+        ))}
+      </View>
+
+      {/* Filtro de fecha */}
+      <View style={[styles.fechaRow, { borderBottomColor: c.border }]}>
+        <MaterialIcons name="event" size={15} color={c.sub} />
+        {([["todos","Todas"],["hoy","Hoy"],["7dias","7 días"]] as const).map(([k, l]) => (
+          <TouchableOpacity key={k} onPress={() => setFechaFil(k)}
+            style={[styles.fechaChip, fechaFil===k && { backgroundColor: c.amber+"22", borderColor: c.amber }]}>
+            <Text style={[styles.categTxt, { color: fechaFil===k ? c.amber : c.sub }]}>{l}</Text>
           </TouchableOpacity>
         ))}
       </View>
@@ -185,7 +209,7 @@ export function PedidosScreen({ mode, showBackHeader = true }: Props) {
             </View>
           ) : (
             mostrar.map((p, i) => (
-              <Animated.View key={i} entering={FadeInDown.delay(i * 55).duration(320)}>
+              <Animated.View key={i} entering={FadeIn.delay(Math.min(i * 25, 200)).duration(200)}>
               <ThemedCard style={styles.card}>
                 <View style={styles.cardHeader}>
                   <View style={{ flex:1, gap:2 }}>
@@ -220,12 +244,6 @@ export function PedidosScreen({ mode, showBackHeader = true }: Props) {
                     </PressableScale>
                   </View>
                 )}
-                {(mode === "admin" || (mode === "empleado" && user?.canApproveOrders)) && p.estado === "aprobado" && (
-                  <PressableScale onPress={() => cambiarEstado(p,"entregado")} style={[styles.accionBtn, { borderColor: c.amber+"44", backgroundColor: c.amber+"18" }]}>
-                    <MaterialIcons name="local-shipping" size={15} color={c.amber} />
-                    <Text style={[styles.accionText, { color: c.amber }]}>Marcar entregado</Text>
-                  </PressableScale>
-                )}
               </ThemedCard>
               </Animated.View>
             ))
@@ -240,6 +258,8 @@ const styles = StyleSheet.create({
   categRow: { borderBottomWidth: 1, paddingVertical: 8, paddingHorizontal: 16 },
   categBtn: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20, borderWidth: 1, borderColor: "transparent", marginRight: 8 },
   categTxt: { fontSize: 12, fontFamily: "SpaceGrotesk_600SemiBold" },
+  fechaRow:  { flexDirection: "row", alignItems: "center", gap: 8, paddingVertical: 8, paddingHorizontal: 16, borderBottomWidth: 1 },
+  fechaChip: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 20, borderWidth: 1, borderColor: "transparent" },
   tabs:       { flexDirection:"row", borderBottomWidth:1, paddingHorizontal:20 },
   tabBtn:     { paddingVertical:12, paddingHorizontal:12 },
   tabInner:   { flexDirection:"row", alignItems:"center", gap:6 },

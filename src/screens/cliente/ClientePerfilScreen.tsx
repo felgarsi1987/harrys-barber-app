@@ -11,6 +11,7 @@ import { useAuthStore }   from "../../store/authStore";
 import { useGuestStore }  from "../../store/guestStore";
 import { FidelizacionBadge } from "../../components/ui/FidelizacionBadge";
 import { ScreenWrapper }  from "../../components/ui/ScreenWrapper";
+import { AixonFooter }    from "../../components/ui/AixonFooter";
 
 function ScalePress({ onPress, style, children }: { onPress: () => void; style: any; children: React.ReactNode }) {
   const scale = useSharedValue(1);
@@ -133,6 +134,9 @@ export function ClientePerfilScreen() {
             <Text style={[styles.logoutText, { color: c.negative }]}>Cerrar sesión</Text>
           </ScalePress>
         </Animated.View>
+
+        {/* Footer Aixon */}
+        <AixonFooter />
 
       </ScrollView>
     </ScreenWrapper>

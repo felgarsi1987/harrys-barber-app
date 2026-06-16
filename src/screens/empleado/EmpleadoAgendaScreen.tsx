@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator, Alert,
   RefreshControl,
@@ -43,6 +43,7 @@ const ESTADO_CHIP: Record<string, any> = {
 };
 
 const DIAS_SEMANA = ["Dom","Lun","Mar","Mié","Jue","Vie","Sáb"];
+const DIAS_SEMANA_LARGO = ["Domingo","Lunes","Martes","Miércoles","Jueves","Viernes","Sábado"];
 
 export function EmpleadoAgendaScreen() {
   const c = useThemeColors();
@@ -53,7 +54,6 @@ export function EmpleadoAgendaScreen() {
   const [refreshing,     setRefreshing]     = useState(false);
   const [compacto,       setCompacto]       = useState(false);
   const [diaOffset,      setDiaOffset]      = useState(7);
-  const diasScrollRef = useRef<ScrollView>(null);
   const [tab,            setTab]            = useState<"agenda" | "Pendientes">("agenda");
   const [pendingAll,     setPendingAll]     = useState<Reserva[]>([]);
   const [loadingPending, setLoadingPending] = useState(false);
@@ -88,6 +88,7 @@ export function EmpleadoAgendaScreen() {
     d.setDate(d.getDate() + (diaOffset - PAST_DAYS));
     return d;
   })();
+  const esHoy = diaOffset === PAST_DAYS;
 
   const marcarCompletado = async (reserva: Reserva) => {
     const esRegistrado = !!reserva.clienteUid && !reserva.noRegistrado;
@@ -131,10 +132,6 @@ export function EmpleadoAgendaScreen() {
       Alert.alert("✅ Listo", `${modalidad === "credito" ? "A crédito" : "De contado"}`);
     } catch { Alert.alert("Error", "No se pudo registrar."); }
   };
-
-  const fechaStr = fechaSeleccionada.toLocaleDateString("es-CO", {
-    weekday: "long", day: "numeric", month: "long",
-  }).toUpperCase();
 
   // Auto-cancelar reservas pendientes cuya hora ya pasó
   useEffect(() => {
@@ -225,12 +222,6 @@ export function EmpleadoAgendaScreen() {
     } catch {}
   };
 
-  const dias = Array.from({ length: 15 }, (_, i) => {  // 7 past + today + 7 future
-    const d = new Date();
-    d.setDate(d.getDate() - 7 + i);
-    return d;
-  });
-
   return (
     <ScreenWrapper>
       {/* Header */}
@@ -247,7 +238,7 @@ export function EmpleadoAgendaScreen() {
             <MaterialIcons name={compacto ? "view-list" : "view-agenda"} size={18} color={compacto ? c.amber : c.sub} />
           </PressableScale>
           <PressableScale
-            onPress={() => navigation.navigate("Nueva Cita")}
+            onPress={() => navigation.navigate(user?.role === "admin" ? "AdminNuevaReserva" : "Nueva Cita")}
             style={[styles.agendarBtn, { backgroundColor: c.amber }]}
           >
             <MaterialIcons name="add" size={18} color="#000" />
@@ -280,58 +271,48 @@ export function EmpleadoAgendaScreen() {
       {/* ── TAB AGENDA ── */}
       {tab === "agenda" && (<>
 
-      {/* Selector de días */}
-      <ScrollView
-        ref={diasScrollRef}
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={[styles.diasRow, { borderBottomColor: c.border }]}
-        onLayout={() => {
-          // Scroll para centrar "hoy" (índice 7 de 15 días, ~80px por día)
-          diasScrollRef.current?.scrollTo({ x: 7 * 80 - 80, animated: false });
-        }}
-      >
-        {dias.map((d, i) => {
-          const activo = diaOffset === i;
-          const esHoy  = i === PAST_DAYS;
-          return (
-            <PressableScale
-              key={i}
-              onPress={() => setDiaOffset(i)}
-              style={[
-                styles.diaBtn,
-                activo && { backgroundColor: c.amber },
-                !activo && esHoy && { borderWidth: 1, borderColor: c.amber + "55" },
-              ]}
-            >
-              <Text style={[styles.diaNombre, { color: activo ? "#000" : esHoy ? c.amber : c.sub }]}>
-                {esHoy ? "HOY" : DIAS_SEMANA[d.getDay()]}
-              </Text>
-              <Text style={[styles.diaNumero, { color: activo ? "#000" : c.text }]}>
-                {d.getDate()}
-              </Text>
-            </PressableScale>
-          );
-        })}
-      </ScrollView>
+      {/* Navegador de día — flechas + fecha grande + Hoy */}
+      <View style={[styles.dateNav, { borderBottomColor: c.border }]}>
+        <PressableScale onPress={() => setDiaOffset(o => o - 1)} style={[styles.navArrow, { borderColor: c.border }]}>
+          <MaterialIcons name="chevron-left" size={24} color={c.text} />
+        </PressableScale>
 
-      {/* Fecha + resumen del día */}
-      <View style={[styles.fechaBar, { borderBottomColor: c.border }]}>
-        <Text style={[styles.fechaText, { color: c.sub }]}>{fechaStr}</Text>
+        <PressableScale onPress={() => setDiaOffset(PAST_DAYS)} style={styles.dateCenter}>
+          <Text style={[styles.dateWeekday, { color: esHoy ? c.amber : c.text }]}>
+            {esHoy ? "HOY" : DIAS_SEMANA_LARGO[fechaSeleccionada.getDay()].toUpperCase()}
+          </Text>
+          <Text style={[styles.dateFull, { color: c.sub }]}>
+            {fechaSeleccionada.toLocaleDateString("es-CO", { day: "numeric", month: "long" })}
+          </Text>
+        </PressableScale>
+
+        <PressableScale onPress={() => setDiaOffset(o => o + 1)} style={[styles.navArrow, { borderColor: c.border }]}>
+          <MaterialIcons name="chevron-right" size={24} color={c.text} />
+        </PressableScale>
+      </View>
+
+      {/* Resumen del día + atajo a Hoy */}
+      <View style={[styles.resumenBar, { borderBottomColor: c.border }]}>
         <View style={styles.resumenChips}>
           <View style={[styles.resumenChip, { backgroundColor: c.positive + "18" }]}>
             <Text style={[styles.resumenChipNum, { color: c.positive }]}>
               {reservas.filter(r => r.estado === "confirmada").length}
             </Text>
-            <Text style={[styles.resumenChipLbl, { color: c.positive }]}>conf.</Text>
+            <Text style={[styles.resumenChipLbl, { color: c.positive }]}>confirmadas</Text>
           </View>
           <View style={[styles.resumenChip, { backgroundColor: c.amber + "18" }]}>
             <Text style={[styles.resumenChipNum, { color: c.amber }]}>
               {reservas.filter(r => r.estado === "pendiente").length}
             </Text>
-            <Text style={[styles.resumenChipLbl, { color: c.amber }]}>pend.</Text>
+            <Text style={[styles.resumenChipLbl, { color: c.amber }]}>pendientes</Text>
           </View>
         </View>
+        {!esHoy && (
+          <PressableScale onPress={() => setDiaOffset(PAST_DAYS)} style={[styles.hoyBtn, { backgroundColor: c.amber + "18", borderColor: c.amber + "44" }]}>
+            <MaterialIcons name="today" size={14} color={c.amber} />
+            <Text style={[styles.hoyBtnText, { color: c.amber }]}>Hoy</Text>
+          </PressableScale>
+        )}
       </View>
 
       {/* Lista */}
@@ -351,7 +332,7 @@ export function EmpleadoAgendaScreen() {
                 No tienes citas para este día.
               </Text>
               <PressableScale
-                onPress={() => navigation.navigate("Nueva Cita")}
+                onPress={() => navigation.navigate(user?.role === "admin" ? "AdminNuevaReserva" : "Nueva Cita")}
                 style={[styles.emptyCta, { backgroundColor: c.amber }]}
               >
                 <MaterialIcons name="add" size={16} color="#000" />
@@ -509,24 +490,21 @@ const styles = StyleSheet.create({
   tabsRow: { flexDirection: "row", borderBottomWidth: 1, paddingHorizontal: 20 },
   tabBtn:  { paddingVertical: 12, paddingHorizontal: 16 },
   tabText: { fontSize: 13, fontFamily: "SpaceGrotesk_600SemiBold" },
-  diaHist: { fontSize: 10, fontFamily: "SpaceGrotesk_400Regular", marginTop: 2 },
-  diasRow: {
-    paddingHorizontal: 16, paddingVertical: 12,
-    gap: 8, borderBottomWidth: 1,
+  dateNav: {
+    flexDirection: "row", alignItems: "center", justifyContent: "space-between",
+    paddingHorizontal: 16, paddingVertical: 12, borderBottomWidth: 1,
   },
-  diaBtn: {
-    alignItems: "center", paddingHorizontal: 14,
-    paddingVertical: 8, borderRadius: 10, gap: 4, minWidth: 52,
-  },
-  diaNombre:  { fontSize: 10, fontFamily: "SpaceGrotesk_600SemiBold" },
-  diaNumero:  { fontSize: 18, fontFamily: "Inter_700Bold" },
-  fechaBar: {
+  navArrow: { width: 42, height: 42, borderRadius: 12, borderWidth: 1, justifyContent: "center", alignItems: "center" },
+  dateCenter: { flex: 1, alignItems: "center", gap: 2 },
+  dateWeekday: { fontSize: 17, fontFamily: "Syne_700Bold", letterSpacing: 1 },
+  dateFull: { fontSize: 12, fontFamily: "SpaceGrotesk_500Medium" },
+  resumenBar: {
     flexDirection: "row", justifyContent: "space-between",
     alignItems: "center", paddingHorizontal: 20,
     paddingVertical: 10, borderBottomWidth: 1,
   },
-  fechaText:  { fontSize: 11, fontFamily: "SpaceGrotesk_600SemiBold", letterSpacing: 1 },
-  citasCount: { fontSize: 12, fontFamily: "SpaceGrotesk_600SemiBold" },
+  hoyBtn: { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, borderWidth: 1 },
+  hoyBtnText: { fontSize: 12, fontFamily: "SpaceGrotesk_600SemiBold" },
   resumenChips: { flexDirection: "row", gap: 8 },
   resumenChip:  { flexDirection: "row", alignItems: "center", gap: 4, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 20 },
   resumenChipNum: { fontSize: 14, fontFamily: "Inter_700Bold" },

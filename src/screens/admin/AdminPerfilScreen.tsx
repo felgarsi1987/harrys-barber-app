@@ -10,6 +10,7 @@ import { useAuthStore }   from "../../store/authStore";
 import { ThemedCard }     from "../../components/ui/ThemedCard";
 import { ScreenWrapper }  from "../../components/ui/ScreenWrapper";
 import { PressableScale } from "../../components/ui/PressableScale";
+import { AixonFooter }    from "../../components/ui/AixonFooter";
 
 export function AdminPerfilScreen() {
   const { toggle, mode, ...colorProps } = useThemeColors();
@@ -103,6 +104,9 @@ export function AdminPerfilScreen() {
           <MaterialIcons name="logout" size={18} color={c.red} />
           <Text style={[styles.logoutText, { color: c.red }]}>Cerrar sesión</Text>
         </PressableScale>
+
+        {/* Footer Aixon */}
+        <AixonFooter />
       </ScrollView>
     </ScreenWrapper>
   );
