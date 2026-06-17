@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import {
   View, Text, ScrollView, StyleSheet, TouchableOpacity, ActivityIndicator,
   TextInput, Alert, Modal, Switch, Image, KeyboardAvoidingView, Platform,
@@ -290,6 +290,24 @@ export function AdminEventosScreen() {
     });
   };
 
+  // Memoizados: evitan que el calendario se reinicie/parpadee en cada tecla
+  const calTheme = useMemo(() => ({
+    backgroundColor: c.surface, calendarBackground: c.surface,
+    textSectionTitleColor: c.sub,
+    selectedDayBackgroundColor: c.amber, selectedDayTextColor: "#000",
+    todayTextColor: c.amber, dayTextColor: c.text,
+    textDisabledColor: c.border, arrowColor: c.amber, monthTextColor: c.text,
+    textDayFontFamily: "SpaceGrotesk_500Medium",
+    textMonthFontFamily: "Syne_700Bold",
+    textDayHeaderFontFamily: "SpaceGrotesk_400Regular",
+  }), [c.surface, c.sub, c.amber, c.text, c.border]);
+
+  const markedDates = useMemo(() => (
+    form.fecha ? { [form.fecha]: { selected: true, selectedColor: c.amber } } : {}
+  ), [form.fecha, c.amber]);
+
+  const minDate = useMemo(() => new Date().toISOString().split("T")[0], []);
+
   return (
     <ScreenWrapper keyboard={false}>
       <BackHeader title="Eventos y publicidad" />
@@ -313,7 +331,7 @@ export function AdminEventosScreen() {
           </View>
         ) : (
           eventos.map((e, i) => (
-            <Animated.View key={i} entering={FadeInDown.delay(i * 50).duration(320)}>
+            <Animated.View key={e.id} entering={FadeInDown.delay(i * 50).duration(320)}>
             <ThemedCard style={styles.eventoCard}>
               {/* Imagen del evento */}
               {e.imageUrl ? (
@@ -463,23 +481,14 @@ export function AdminEventosScreen() {
                 </TouchableOpacity>
                 {showCalendar && (
                   <Calendar
-                    minDate={new Date().toISOString().split("T")[0]}
+                    minDate={minDate}
                     onDayPress={day => {
                       setForm(prev => ({ ...prev, fecha: day.dateString }));
                       setShowCalendar(false);
                     }}
-                    markedDates={form.fecha ? { [form.fecha]: { selected: true, selectedColor: c.amber } } : {}}
+                    markedDates={markedDates}
                     key={c.mode}
-                    theme={{
-                      backgroundColor: c.surface, calendarBackground: c.surface,
-                      textSectionTitleColor: c.sub,
-                      selectedDayBackgroundColor: c.amber, selectedDayTextColor: "#000",
-                      todayTextColor: c.amber, dayTextColor: c.text,
-                      textDisabledColor: c.border, arrowColor: c.amber, monthTextColor: c.text,
-                      textDayFontFamily: "SpaceGrotesk_500Medium",
-                      textMonthFontFamily: "Syne_700Bold",
-                      textDayHeaderFontFamily: "SpaceGrotesk_400Regular",
-                    }}
+                    theme={calTheme}
                     style={{ backgroundColor: c.surface, borderRadius: 12, overflow: "hidden" }}
                   />
                 )}

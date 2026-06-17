@@ -18,6 +18,7 @@ import { TagChip }        from "../../components/ui/TagChip";
 import { BackHeader }     from "../../components/ui/BackHeader";
 import { ScreenWrapper }  from "../../components/ui/ScreenWrapper";
 import { PressableScale } from "../../components/ui/PressableScale";
+import { NuevoPedidoModal } from "./NuevoPedidoModal";
 
 interface Pedido {
   id:            string;
@@ -60,6 +61,7 @@ export function PedidosScreen({ mode, showBackHeader = true }: Props) {
   const [tab,        setTab]        = useState<"pendientes"|"historial">("pendientes");
   const [filtroCateg, setFiltroCateg] = useState<string>("todos");
   const [fechaFil,   setFechaFil]   = useState<"hoy"|"7dias"|"todos">("todos");
+  const [nuevoVisible, setNuevoVisible] = useState(false);
 
   const load = async () => { /* recarga automática vía onSnapshot */ };
 
@@ -250,6 +252,20 @@ export function PedidosScreen({ mode, showBackHeader = true }: Props) {
           )}
         </ScrollView>
       )}
+
+      {/* FAB nuevo pedido de mostrador (admin/empleado) */}
+      {mode !== "cliente" && (
+        <TouchableOpacity
+          onPress={() => setNuevoVisible(true)}
+          activeOpacity={0.85}
+          style={[styles.fab, { backgroundColor: c.amber }]}
+        >
+          <MaterialIcons name="add-shopping-cart" size={22} color="#000" />
+          <Text style={styles.fabText}>Nuevo pedido</Text>
+        </TouchableOpacity>
+      )}
+
+      <NuevoPedidoModal mode={mode} visible={nuevoVisible} onClose={() => setNuevoVisible(false)} />
     </ScreenWrapper>
   );
 }
@@ -283,4 +299,11 @@ const styles = StyleSheet.create({
   accionBtnGhost:   { flex:1, flexDirection:"row", alignItems:"center", justifyContent:"center", gap:6, paddingVertical:11, borderRadius:10, borderWidth:1 },
   accionBtnPrimary: { flex:1.3, flexDirection:"row", alignItems:"center", justifyContent:"center", gap:6, paddingVertical:11, borderRadius:10 },
   accionText: { fontSize:13, fontFamily:"SpaceGrotesk_600SemiBold" },
+  fab: {
+    position:"absolute", right:20, bottom:24,
+    flexDirection:"row", alignItems:"center", gap:8,
+    paddingHorizontal:18, height:52, borderRadius:26,
+    shadowColor:"#000", shadowOpacity:0.25, shadowRadius:8, shadowOffset:{ width:0, height:4 }, elevation:6,
+  },
+  fabText: { fontSize:14, fontFamily:"SpaceGrotesk_600SemiBold", color:"#000" },
 });

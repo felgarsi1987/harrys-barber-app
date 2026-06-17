@@ -5,7 +5,7 @@ import {
 } from "react-native";
 import Animated, { FadeInDown } from "react-native-reanimated";
 import { MaterialIcons } from "@expo/vector-icons";
-import { collection, getDocs, deleteDoc, doc, updateDoc, query, where } from "firebase/firestore";
+import { collection, getDocs, deleteDoc, doc, updateDoc, query, where, onSnapshot } from "firebase/firestore";
 import { db } from "../../services/firebase";
 import { notificarSaldoPendiente } from "../../services/notifications";
 import { useThemeColors }      from "../../hooks/useThemeColors";
@@ -42,22 +42,27 @@ export function AdminClientesScreen() {
   const [modalCli,  setModalCli]  = useState<Cliente | null>(null);
 
   useEffect(() => {
-    Promise.all([
-      getDocs(query(collection(db, "users"), where("role", "==", "cliente"))),
-      getDocs(collection(db, "servicios_realizados")),
-    ]).then(([usersSnap, servSnap]) => {
-      // Count visits per client
+    let unsub = () => {};
+    // Visitas se cargan una vez; los usuarios (saldo) van en tiempo real
+    getDocs(collection(db, "servicios_realizados")).then(servSnap => {
       const visitasPorCliente: Record<string, number> = {};
       servSnap.docs.forEach(d => {
         const uid = d.data().clienteUid;
         if (uid) visitasPorCliente[uid] = (visitasPorCliente[uid] ?? 0) + 1;
       });
-      const data = usersSnap.docs
-        .map(d => ({ ...d.data() as Cliente, visitas: visitasPorCliente[d.data().uid] ?? 0 }))
-        .filter(cl => !!cl.email);
-      setClientes(data);
-      setFiltered(data);
-    }).finally(() => setLoading(false));
+      unsub = onSnapshot(
+        query(collection(db, "users"), where("role", "==", "cliente")),
+        snap => {
+          const data = snap.docs
+            .map(d => ({ ...(d.data() as Cliente), visitas: visitasPorCliente[d.data().uid] ?? 0 }))
+            .filter(cl => !!cl.email);
+          setClientes(data);
+          setLoading(false);
+        },
+        () => setLoading(false),
+      );
+    }).catch(() => setLoading(false));
+    return () => unsub();
   }, []);
 
   useEffect(() => {
@@ -146,7 +151,7 @@ export function AdminClientesScreen() {
           </View>
         ) : (
           filtered.map((cli, i) => (
-            <Animated.View key={i} entering={FadeInDown.delay(i * 45).duration(320)}>
+            <Animated.View key={cli.uid} entering={FadeInDown.delay(i * 45).duration(320)}>
             <ThemedCard style={styles.clienteCard}>
               <View style={[styles.avatar, {
                 backgroundColor: cli.categoria === "diamante" ? "#29B6F622" :

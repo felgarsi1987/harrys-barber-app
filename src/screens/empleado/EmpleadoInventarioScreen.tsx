@@ -96,7 +96,7 @@ export function EmpleadoInventarioScreen() {
               const label = getStockLabel(p.stock, min);
               const barW  = getBarWidth(p.stock, min);
               return (
-                <Animated.View key={i} entering={FadeInDown.delay(i * 45).duration(320)}>
+                <Animated.View key={p.id} entering={FadeInDown.delay(i * 45).duration(320)}>
                 <ThemedCard style={styles.productoCard}>
                   <View style={styles.productoTop}>
                     <View style={{ flex: 1 }}>
