@@ -2,13 +2,16 @@ import React, { useEffect, useState, useCallback } from "react";
 import { View, StatusBar, Platform } from "react-native";
 import * as SplashScreen  from "expo-splash-screen";
 import * as Font          from "expo-font";
-import * as Network       from "expo-network";
 import { Inter_500Medium, Inter_600SemiBold, Inter_700Bold } from "@expo-google-fonts/inter";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { RootNavigator }     from "./src/navigation/RootNavigator";
 import { SinConexionScreen } from "./src/screens/errors/SinConexionScreen";
 
-SplashScreen.preventAutoHideAsync();
+const isNative = Platform.OS === "android" || Platform.OS === "ios";
+
+if (isNative) {
+  SplashScreen.preventAutoHideAsync().catch(() => {});
+}
 
 export default function App() {
   const [fontsLoaded, setFontsLoaded] = useState(false);
@@ -26,7 +29,6 @@ export default function App() {
       SpaceGrotesk_600SemiBold:require("./assets/fonts/SpaceGrotesk_600SemiBold.ttf"),
       Syne_700Bold:            require("./assets/fonts/Syne_700Bold.ttf"),
       Syne_800ExtraBold:       require("./assets/fonts/Syne_800ExtraBold.ttf"),
-      // Fuente de números: sobria, profesional, moderna
       Inter_500Medium,
       Inter_600SemiBold,
       Inter_700Bold,
@@ -39,18 +41,20 @@ export default function App() {
   }, []);
 
   const checkConnection = async () => {
+    if (!isNative) return; // en web el navegador gestiona la conectividad
     try {
+      const Network = await import("expo-network");
       const state = await Network.getNetworkStateAsync();
       setSinConexion(!state.isConnected);
     } catch { setSinConexion(false); }
   };
 
   const onLayoutRootView = useCallback(async () => {
-    if (fontsLoaded) await SplashScreen.hideAsync().catch(() => {});
+    if (fontsLoaded && isNative) await SplashScreen.hideAsync().catch(() => {});
   }, [fontsLoaded]);
 
   useEffect(() => {
-    if (fontsLoaded) {
+    if (fontsLoaded && isNative) {
       SplashScreen.hideAsync().catch(() => {});
     }
   }, [fontsLoaded]);

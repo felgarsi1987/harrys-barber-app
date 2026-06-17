@@ -1,22 +1,30 @@
-import * as Notifications from "expo-notifications";
 import { Platform } from "react-native";
 import { doc, updateDoc } from "firebase/firestore";
 import { db } from "./firebase";
 
-// ── Configuración global de notificaciones ───────────────────────────────────
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert:  true,
-    shouldPlaySound:  true,
-    shouldSetBadge:   true,
-    shouldShowBanner: true,
-    shouldShowList:   true,
-  }),
-});
+// expo-notifications solo existe en native; en web importamos de forma lazy
+const isNative = Platform.OS === "android" || Platform.OS === "ios";
+
+if (isNative) {
+  // Importación dinámica para evitar crash en web
+  import("expo-notifications").then((Notifications) => {
+    Notifications.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowAlert:  true,
+        shouldPlaySound:  true,
+        shouldSetBadge:   true,
+        shouldShowBanner: true,
+        shouldShowList:   true,
+      }),
+    });
+  }).catch(() => {});
+}
 
 // ── Registrar dispositivo para push notifications ────────────────────────────
 export async function registerForPushNotifications(userId: string): Promise<string | null> {
+  if (!isNative) return null;
   try {
+    const Notifications = await import("expo-notifications");
     const { status: existing } = await Notifications.getPermissionsAsync();
     let finalStatus = existing;
 
@@ -33,7 +41,6 @@ export async function registerForPushNotifications(userId: string): Promise<stri
     await updateDoc(doc(db, "users", userId), { pushToken: token });
 
     if (Platform.OS === "android") {
-      // Canal principal — reservas y estados
       await Notifications.setNotificationChannelAsync("reservas", {
         name:             "Reservas",
         description:      "Confirmaciones, cambios y recordatorios de citas",
@@ -44,8 +51,6 @@ export async function registerForPushNotifications(userId: string): Promise<stri
         lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
         bypassDnd:        false,
       });
-
-      // Canal pedidos
       await Notifications.setNotificationChannelAsync("pedidos", {
         name:             "Pedidos",
         description:      "Estados de pedidos y aprobaciones",
@@ -55,8 +60,6 @@ export async function registerForPushNotifications(userId: string): Promise<stri
         sound:            "default",
         lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
       });
-
-      // Canal pagos
       await Notifications.setNotificationChannelAsync("pagos", {
         name:             "Pagos y créditos",
         description:      "Recordatorios de saldo y abonos",
@@ -353,7 +356,9 @@ export async function programarRecordatorio(
   fechaCita:       Date,
   peluqueroNombre?: string,
 ) {
+  if (!isNative) return;
   try {
+    const Notifications = await import("expo-notifications");
     await Notifications.cancelScheduledNotificationAsync(reservaId).catch(() => {});
 
     const unHoraAntes = new Date(fechaCita.getTime() - 60 * 60 * 1000);
@@ -465,7 +470,9 @@ export async function programarResumenDiario(
   totalCitas:  number,
   hora:        string = "07:00",
 ) {
+  if (!isNative) return;
   try {
+    const Notifications = await import("expo-notifications");
     await Notifications.cancelScheduledNotificationAsync("resumen_diario").catch(() => {});
 
     const [hh, mm] = hora.split(":").map(Number);
@@ -494,7 +501,9 @@ export async function programarResumenDiario(
 
 // ── Cancelar recordatorio ────────────────────────────────────────────────────
 export async function cancelarRecordatorio(reservaId: string) {
+  if (!isNative) return;
   try {
+    const Notifications = await import("expo-notifications");
     await Notifications.cancelScheduledNotificationAsync(reservaId);
   } catch {}
 }

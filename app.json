@@ -22,7 +22,18 @@
       "softwareKeyboardLayoutMode": "adjustResize"
     },
     "web": {
-      "favicon": "./assets/favicon.png"
+      "favicon": "./assets/favicon.png",
+      "bundler": "metro",
+      "name": "Harry's Barber",
+      "shortName": "Harry's",
+      "description": "Gestión integral para Harry's Barber Shop",
+      "themeColor": "#F2B90C",
+      "backgroundColor": "#0D0D0D",
+      "lang": "es",
+      "scope": "/",
+      "startUrl": "/",
+      "display": "standalone",
+      "orientation": "portrait"
     },
     "plugins": [
       "expo-font",
